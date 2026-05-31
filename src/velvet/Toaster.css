@@ -1,0 +1,182 @@
+.Toaster {
+  position: fixed;
+  z-index: 9999;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 0; /* toasts are positioned against this anchor */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1); /* strong ease-out */
+}
+.Toaster--bottom-right { bottom: 24px; right: 24px; }
+.Toaster--bottom-left { bottom: 24px; left: 24px; }
+.Toaster--bottom-center { bottom: 24px; left: 50%; transform: translateX(-50%); }
+.Toaster--top-right { top: 24px; right: 24px; }
+.Toaster--top-left { top: 24px; left: 24px; }
+.Toaster--top-center { top: 24px; left: 50%; transform: translateX(-50%); }
+
+.Toast {
+  position: absolute;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px 13px 15px;
+  background: var(--cream-surface, #fff);
+  border-radius: 15px;
+  /* layered transparent shadows read as natural depth on any background */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 10px -2px rgba(0, 0, 0, 0.08),
+    0 16px 30px -12px rgba(0, 0, 0, 0.22);
+  transition: transform 0.42s var(--ease), opacity 0.3s var(--ease);
+  will-change: transform;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
+}
+.Toaster--bottom-right .Toast,
+.Toaster--bottom-left .Toast,
+.Toaster--bottom-center .Toast { bottom: 0; transform-origin: bottom center; }
+.Toaster--top-right .Toast,
+.Toaster--top-left .Toast,
+.Toaster--top-center .Toast { top: 0; transform-origin: top center; }
+.Toast:active { cursor: grabbing; }
+/* Exit is snappier than the entrance (asymmetric): the system responds fast
+   once a toast is on its way out. */
+.Toast[data-exiting="true"] {
+  transition: transform 0.3s var(--ease), opacity 0.22s var(--ease);
+}
+/* Bridge the gaps between toasts and the offset toward the placement edge, so
+   hover stays continuous across the whole stack. */
+.Toast::before,
+.Toast::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22px;
+}
+.Toast::before { bottom: 100%; }
+.Toast::after { top: 100%; }
+/* Custom toasts render the caller's own UI — no chrome. */
+.Toast--custom {
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.Toast-icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: #8a8a8e;
+}
+.Toast--success .Toast-icon { background: #34c759; }
+.Toast--error .Toast-icon { background: #ff3b30; }
+.Toast--info .Toast-icon { background: #007aff; }
+.Toast--warning .Toast-icon { background: #ff9500; }
+.Toast--loading .Toast-icon { background: transparent; }
+
+.Toast-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(60, 60, 67, 0.2);
+  border-top-color: var(--accent, #111827);
+  animation: velvet-spin 0.6s linear infinite;
+}
+@keyframes velvet-spin { to { transform: rotate(360deg); } }
+
+.Toast-body { flex: 1; min-width: 0; }
+.Toast-title {
+  font-size: 14.5px;
+  font-weight: 590;
+  color: var(--ink, #1c1c1e);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+.Toast-desc {
+  margin-top: 2px;
+  font-size: 13px;
+  /* legible secondary: ~5.3:1 on white. iOS secondaryLabel (#8a8a8e) is only
+     ~3.4:1 and reads as faint at 13px — bump toward ink so it stays readable. */
+  color: #6b6b70;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.Toast-act {
+  flex: 0 0 auto;
+  appearance: none;
+  border: none;
+  background: var(--cream-bg-2, rgba(118, 118, 128, 0.12));
+  color: var(--accent, #007aff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: transform 0.14s var(--ease), filter 0.2s ease;
+}
+.Toast-act:hover { filter: brightness(0.97); }
+.Toast-act:active { transform: scale(0.96); }
+
+.Toast-x {
+  flex: 0 0 auto;
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft, #8a8a8e);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.14s var(--ease), background 0.2s ease;
+}
+.Toast-x::before { content: ""; position: absolute; inset: -7px; } /* ≥40px hit area */
+.Toast-x:hover { background: var(--cream-bg-2, rgba(118, 118, 128, 0.12)); }
+.Toast-x:active { transform: scale(0.96); }
+.Toast[data-front="true"]:hover .Toast-x,
+.Toaster[data-expanded] .Toast-x { opacity: 1; }
+
+.Toast-act:focus-visible,
+.Toast-x:focus-visible {
+  outline: 2px solid var(--accent, #007aff);
+  outline-offset: 2px;
+  opacity: 1; /* a keyboard user tabbing to a hidden close button must see it */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Toast { transition: opacity 0.2s ease; } /* keep fades, drop motion */
+}
+@media (hover: none) {
+  .Toast-x { opacity: 1; } /* touch: no hover, always show close */
+}
+
+/* Rich colors — tint the whole surface per type (icon disc turns solid white). */
+.Toaster--rich .Toast--success { background: #ecfdf3; color: #0a5c2e; }
+.Toaster--rich .Toast--error { background: #fef1f1; color: #8a1c14; }
+.Toaster--rich .Toast--info { background: #eff4ff; color: #0a3d91; }
+.Toaster--rich .Toast--warning { background: #fff7eb; color: #8a4b00; }
+.Toaster--rich .Toast .Toast-title { color: inherit; }
+.Toaster--rich .Toast .Toast-desc { color: inherit; opacity: 0.7; }

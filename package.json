@@ -1,0 +1,23 @@
+{
+  "name": "velvet-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Velvet UI — native-like swipeable sheets for the web. Spring physics + WAAPI.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4317",
+    "shots": "node scripts/screenshot.mjs"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "puppeteer": "^25.1.0",
+    "sharp": "^0.33.5",
+    "vite": "^5.4.11"
+  }
+}

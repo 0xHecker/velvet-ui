@@ -1,0 +1,33 @@
+.Lightbox-backdrop {
+  background: #000;
+}
+.Lightbox-content {
+  position: relative;
+  width: min(78vw, 560px);
+  aspect-ratio: 4 / 3;
+}
+.Lightbox-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff7a59 0%, #d62976 45%, #5b51d8 100%);
+  box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.6);
+}
+.Lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: rgba(40, 40, 44, 0.55);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}

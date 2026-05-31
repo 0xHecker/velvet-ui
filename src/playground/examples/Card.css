@@ -1,0 +1,41 @@
+.Card2-content {
+  box-sizing: border-box;
+  width: min(86vw, 360px);
+  background: var(--cream-surface);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.4);
+}
+.Card2-cover {
+  height: 200px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: linear-gradient(150deg, #34c759 0%, #0a84ff 100%);
+  color: #fff;
+}
+.Card2-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+.Card2-coverTitle {
+  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.Card2-body {
+  padding: 18px 20px 20px;
+}
+.Card2-desc {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.Card2-body .Btn {
+  width: 100%;
+}

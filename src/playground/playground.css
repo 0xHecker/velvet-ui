@@ -1,0 +1,378 @@
+:root {
+  /* ---- Silk palette: grayscale on white (Tailwind slate/gray), like silkhq.com ---- */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --ink: #030712; /* gray-950 — display headings */
+  --ink-strong: #111827; /* gray-900 — section headings */
+  --ink-body: #334155; /* slate-700 — prose */
+  --muted: #6b7280; /* gray-500 — subtitles, meta */
+  --line: #e5e7eb; /* gray-200 — borders */
+  --line-soft: #f1f5f9; /* slate-100 */
+  --fill: #f3f4f6; /* gray-100 — pills, hover, eyebrow */
+  --fill-2: #f8fafc; /* slate-50 — code header */
+  --accent: #030712; /* near-black carries CTAs (no color accent, like Silk) */
+  --accent-ink: #ffffff;
+  --link: #2563eb;
+
+  /* Back-compat aliases — the sheet examples + toast reference these names. */
+  --cream-bg: var(--bg);
+  --cream-bg-2: var(--fill);
+  --cream-surface: var(--surface);
+  --cream-line: var(--line);
+  --ink-soft: var(--muted);
+  --grabber: #cbd5e1; /* slate-300 */
+  --ios-shadow: 0 1px 2px rgba(2, 6, 23, 0.04), 0 14px 34px -14px rgba(2, 6, 23, 0.14);
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --nav-h: 57px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: var(--font-sans);
+  color: var(--ink-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv05", "cv11";
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+/* ---- Top navigation bar (Silk: left tabs · center wordmark · right pill) ---- */
+.Nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--nav-h);
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.Nav-left {
+  display: flex;
+  gap: 4px;
+}
+.Nav-brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-align: center;
+}
+.Nav-right {
+  display: flex;
+  justify-content: flex-end;
+}
+.Nav-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.Nav-tab:hover {
+  color: var(--ink-strong);
+}
+.Nav-tab[aria-selected="true"] {
+  color: var(--ink);
+  background: var(--fill);
+}
+.Nav-tab:focus-visible,
+.Nav-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.Nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.Nav-cta svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.Nav-cta:hover {
+  background: var(--fill);
+  border-color: #d1d5db;
+}
+
+.Page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+/* ---- Hero ---- */
+.Hero {
+  position: relative;
+  padding: 88px 0 56px;
+  text-align: center;
+}
+/* Faint diagonal cross-hatch framing the hero, masked away behind the text. */
+.Hero::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 560px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6;
+  background-image: repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 23px),
+    repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 23px);
+  -webkit-mask-image: radial-gradient(78% 100% at 50% 0%, transparent 36%, #000 76%);
+  mask-image: radial-gradient(78% 100% at 50% 0%, transparent 36%, #000 76%);
+}
+.Hero-eyebrow {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink-strong);
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--fill);
+  margin-bottom: 30px;
+}
+.Hero-title {
+  margin: 0 auto 22px;
+  max-width: 16ch;
+  font-size: clamp(40px, 6.4vw, 64px);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+/* Silk's signature: emphasis words set in italic Source Serif 4. */
+.Hero-title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.Hero-sub {
+  margin: 0 auto;
+  max-width: 600px;
+  font-size: clamp(18px, 2.2vw, 21px);
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.Hero-sub strong {
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+.Hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+/* ---- Buttons ---- */
+.Btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--fill);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 10px 16px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: transform 0.12s var(--ease), background 0.18s ease, border-color 0.18s ease,
+    filter 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.Btn:hover {
+  background: #e9ebef;
+}
+.Btn:active {
+  transform: scale(0.97);
+}
+.Btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.Btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.Btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.Btn--primary:hover {
+  background: #1f2937;
+  filter: none;
+}
+.Btn--soft {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.Btn--soft:hover {
+  background: var(--fill);
+}
+/* Pill CTAs with a trailing chevron, used in the hero (Silk style). */
+.Btn--pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: 16px;
+}
+.Btn--pill svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- Gallery ---- */
+.Gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 22px;
+}
+.Card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 12px 12px 16px;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.03);
+  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), border-color 0.4s var(--ease);
+}
+.Card:hover {
+  transform: translateY(-3px);
+  border-color: #dfe3e9;
+  box-shadow: var(--ios-shadow);
+}
+/* Each card preview gets a soft Silk-style colour wash. */
+.Card-preview {
+  position: relative;
+  height: 168px;
+  border-radius: 13px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(165deg, #d7f5ec, #b8e6f0);
+}
+.Card:nth-child(6n + 2) .Card-preview {
+  background: linear-gradient(165deg, #d6f5dd, #bfe9c9);
+}
+.Card:nth-child(6n + 3) .Card-preview {
+  background: linear-gradient(165deg, #ffe0e0, #ffd0cf);
+}
+.Card:nth-child(6n + 4) .Card-preview {
+  background: linear-gradient(165deg, #e3e9ff, #d4ddff);
+}
+.Card:nth-child(6n + 5) .Card-preview {
+  background: linear-gradient(165deg, #f0e6ff, #e2d6fb);
+}
+.Card:nth-child(6n + 6) .Card-preview {
+  background: linear-gradient(165deg, #fdeccf, #fde0c0);
+}
+.Card-mockSheet {
+  width: 76%;
+  height: 66%;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 34px -18px rgba(2, 6, 23, 0.28);
+  position: relative;
+}
+.Card-mockSheet::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 5px;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+.Card-meta {
+  padding: 16px 8px 4px;
+}
+.Card-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-strong);
+}
+.Card-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.Card-action {
+  padding: 14px 8px 4px;
+  margin-top: auto;
+}
+.Card-action .Btn {
+  width: 100%;
+}
+
+/* ---- Footer ---- */
+.Footer {
+  margin-top: 72px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Card {
+    transition: none;
+  }
+}

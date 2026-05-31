@@ -1,0 +1,74 @@
+.Player-view {
+  height: var(--velvet-100lvh);
+}
+.Player-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  height: 70lvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.Player-bg {
+  border-radius: 22px 22px 0 0;
+  background: var(--cream-surface);
+  box-shadow: 0 -16px 44px -18px rgba(0, 0, 0, 0.2);
+}
+.Player-handle {
+  margin: 7px 0 8px;
+  background: var(--grabber);
+}
+.Player-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 8px;
+}
+.Player-art {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff5e3a, #ff2d55);
+  flex: 0 0 auto;
+}
+.Player-meta {
+  flex: 1;
+  min-width: 0;
+}
+.Player-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.Player-artist {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.Player-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--cream-bg-2);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+.Player-full {
+  padding: 12px 22px;
+  text-align: center;
+}
+.Player-desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}

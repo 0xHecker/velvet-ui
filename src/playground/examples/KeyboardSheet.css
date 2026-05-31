@@ -1,0 +1,60 @@
+.Keyboard-view {
+  height: var(--velvet-100lvh);
+}
+.Keyboard-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  padding: 10px 22px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.Keyboard-bg {
+  border-radius: 24px 24px 0 0;
+  background: var(--cream-surface);
+  box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.2);
+}
+.Keyboard-handle {
+  margin: 6px 0 16px;
+  background: var(--grabber);
+}
+.Keyboard-body {
+  width: 100%;
+  max-width: 460px;
+}
+.Keyboard-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+.Keyboard-desc {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.Keyboard-composer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.Keyboard-input {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: var(--cream-bg);
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  outline: none;
+}
+.Keyboard-input:focus {
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+.Keyboard-send {
+  flex: 0 0 auto;
+}

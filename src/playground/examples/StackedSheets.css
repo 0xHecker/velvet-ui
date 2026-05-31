@@ -1,0 +1,47 @@
+.Stack-view {
+  height: var(--velvet-100lvh);
+}
+
+.Stack-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 520px;
+  padding: 10px 24px calc(30px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transform-origin: 50% 0;
+}
+
+.Stack-bg {
+  border-radius: 28px 28px 0 0;
+  background: var(--cream-surface);
+  box-shadow: 0 -20px 50px -20px rgba(60, 45, 30, 0.18), 0 -0.5px 0 0 rgba(60, 50, 38, 0.06);
+}
+
+.Stack-handle {
+  margin: 8px 0 16px;
+  background: var(--cream-line);
+}
+
+.Stack-title {
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.Stack-desc {
+  margin: 0 0 22px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 380px;
+}
+
+.Stack-content .Btn {
+  width: 100%;
+  max-width: 300px;
+}
