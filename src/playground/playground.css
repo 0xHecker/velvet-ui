@@ -137,6 +137,9 @@ body {
   margin: 0 auto;
   padding: 0 24px 96px;
 }
+.Page--docs {
+  max-width: 1280px;
+}
 
 /* ---- Hero ---- */
 .Hero {

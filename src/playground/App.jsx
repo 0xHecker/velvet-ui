@@ -76,7 +76,7 @@ export const App = () => {
         </div>
       </nav>
 
-      <div className="Page">
+      <div className={`Page${view === "docs" ? " Page--docs" : ""}`}>
         {view === "docs" ? (
           <Docs />
         ) : (

@@ -622,8 +622,10 @@ const View = forwardRef(function View(
 
     const onDown = (e) => {
       if (!swipe || e.button || !activeRef.current) return;
-      // Touch scrolls the container natively; only mouse/pen need manual drag.
-      if (e.pointerType && e.pointerType !== "mouse" && e.pointerType !== "pen") return;
+      // Modal sheets scroll natively on touch; only mouse/pen drag there. A
+      // non-modal sheet's scroller is click-through (pointer-events:none), so
+      // native touch scroll can't reach it — drive touch via the manual drag too.
+      if (inertOutside && e.pointerType && e.pointerType !== "mouse" && e.pointerType !== "pen") return;
       if (springCtrlRef.current) springCtrlRef.current.cancel();
       animatingRef.current = false;
       dragStartRef.current = { pos: clientAxis(e), scroll: offOf(el, axis), p: progressOf() };
@@ -636,18 +638,33 @@ const View = forwardRef(function View(
       window.addEventListener("pointercancel", onCancel);
     };
 
+    const onWheel = (e) => {
+      // Non-modal scrollers are click-through, so native wheel never reaches them.
+      // Drive the travel manually so the panel can be swiped (e.g. a mini-player).
+      if (inertOutside || animatingRef.current) return;
+      const max = maxOf(el, axis);
+      const cur = offOf(el, axis);
+      const next = Math.max(0, Math.min(max, cur + (axis === "y" ? e.deltaY : e.deltaX)));
+      if (next !== cur) {
+        e.preventDefault();
+        setOff(el, axis, next); // fires onScroll → travel + snap/dismiss
+      }
+    };
+
     el.addEventListener("pointerdown", onDown);
+    el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("scrollend", onScrollEnd); // native, instant scroll-end decision
     return () => {
       draggingRef.current = false;
       movedRef.current = false;
       el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("wheel", onWheel);
       el.removeEventListener("scrollend", onScrollEnd);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
     };
-  }, [axis, openAtMax, swipe, swipeDismissal, hasDetents, snapToDetent, openOff, travelOf, onScrollEnd, progressOf, reportTravel, setPresented, onTravelStart]);
+  }, [axis, openAtMax, swipe, swipeDismissal, hasDetents, snapToDetent, openOff, travelOf, onScrollEnd, progressOf, reportTravel, setPresented, onTravelStart, inertOutside]);
 
   // Register a debug handle so tests can freeze travel at an exact progress.
   useEffect(() => {
