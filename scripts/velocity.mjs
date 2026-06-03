@@ -1,9 +1,9 @@
-// Faithful-to-Silk gesture verification. Silk has NO pointer-drag and NEVER
+// gesture verification.
 // seeds the spring from gesture velocity (initialVelocity is only ever the
 // integrator default 0 or the user's animationSettings). Gesture snapping is
 // native CSS scroll-snap: the browser's own fling/midpoint picks open vs
 // closed. On scroll-end we only read where the snap landed and dismiss if it
-// landed closed. This harness verifies (A) our integrator matches Silk's tC
+// landed closed. This harness verifies (A) our integrator
 // (it consumes initialVelocity), and (B) the native-snap decision.
 import { createServer } from "vite";
 import puppeteer from "puppeteer";
@@ -14,7 +14,7 @@ watchdog.unref();
 const results = [];
 const assert = (name, cond, detail) => results.push(`${cond ? "PASS" : "FAIL"}  ${name}  ${detail ?? ""}`);
 
-// (A) Integrator parity: Silk's tC accepts initialVelocity; ours must too.
+// (A) Integrator parity: accepts initialVelocity 
 const { solveSpring } = await import("../src/velvet/core/spring.js");
 const stepsTo95 = (v0) => {
   const { values } = solveSpring("smooth", 0, 400, v0);

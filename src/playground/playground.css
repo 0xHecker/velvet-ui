@@ -1,5 +1,5 @@
 :root {
-  /* ---- Silk palette: grayscale on white (Tailwind slate/gray), like silkhq.com ---- */
+  /* ---- palette: grayscale on white (Tailwind slate/gray) ---- */
   --bg: #ffffff;
   --surface: #ffffff;
   --ink: #030712; /* gray-950 — display headings */
@@ -10,7 +10,7 @@
   --line-soft: #f1f5f9; /* slate-100 */
   --fill: #f3f4f6; /* gray-100 — pills, hover, eyebrow */
   --fill-2: #f8fafc; /* slate-50 — code header */
-  --accent: #030712; /* near-black carries CTAs (no color accent, like Silk) */
+  --accent: #030712; /* near-black carries CTAs (no color accent) */
   --accent-ink: #ffffff;
   --link: #2563eb;
 

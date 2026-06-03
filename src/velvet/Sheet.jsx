@@ -429,7 +429,7 @@ const View = forwardRef(function View(
     isLongRef.current = openAtMax && maxOf(el, axis) > clientOf(el, axis) + 1;
     // Detents snap in JS (native snap off). A long sheet keeps native mandatory
     // snap but realigns "open" to the content's start; its tall content (snap
-    // area > viewport) then scrolls freely above open — exactly like Silk.
+    // area > viewport) then scrolls freely above openß.
     if (hasDetents) el.setAttribute("data-velvet-freescroll", "");
     else el.removeAttribute("data-velvet-freescroll");
     if (isLongRef.current) el.setAttribute("data-velvet-long", "");
@@ -484,7 +484,7 @@ const View = forwardRef(function View(
   // ---- Native scroll travel: wheel / trackpad / touch drive the scroller
   // natively, and native CSS scroll-snap (mandatory + snap-align) flings the
   // panel to the nearest snap point — open or closed — using the browser's own
-  // momentum/physics, exactly like Silk. We never compute velocity or run a
+  // momentum/physics, exactly like. We never compute velocity or run a
   // competing spring; on scroll-end we only read where the snap landed and, for
   // a plain sheet snapped past the midpoint toward closed, dismiss. Detent/long
   // sheets turn native snap off and snap in JS. ----

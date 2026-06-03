@@ -1,4 +1,4 @@
-// Spring physics — Silk's model: a fixed-timestep (dt = 1ms) semi-implicit Euler
+// Spring physics: a fixed-timestep (dt = 1ms) semi-implicit Euler
 // integration of a damped harmonic oscillator. Stiffness is scaled by 1e-6 and
 // damping by 1e-3 so integer-millisecond steps produce natural motion. It emits a
 // normalized progress array (0..~1) and the settle duration in ms. Consumed two ways:
@@ -27,7 +27,7 @@ const resolve = (settings) => {
 const prefersReduced = () =>
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Silk's integrator. Returns { values: number[0..~1], duration: ms }.
+// Returns { values: number[0..~1], duration: ms }.
 export const solveSpring = (settings, fromPos = 0, toPos = 1, v0) => {
   const cfg = resolve(settings);
   const distance = Math.abs(toPos - fromPos);
@@ -105,7 +105,7 @@ export const springScroll = (el, axis, target, settings, { onUpdate, onComplete,
   };
 };
 
-// Sample the spring into a WAAPI linear() easing (decimated by 8, like Silk) plus
+// Sample the spring into a WAAPI linear() easing (decimated by 8) plus
 // the physics duration. `from`/`to` are the real pixel distance the curve settles over.
 export const springEasing = (settings, { from = 0, to = 300, v0 } = {}) => {
   const { values, duration } = solveSpring(settings, from, to, v0);

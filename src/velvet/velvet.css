@@ -1,5 +1,5 @@
 /* Velvet UI — structural styles.
-   Components ship unstyled (like Silk): these are only the structural rules and
+   Components ship unstyled (likeß): these are only the structural rules and
    the scroll-snap machinery that make the Sheet travel. Visual styling lives in
    your own CSS. Semantic data-velvet attributes drive everything. */
 
@@ -128,7 +128,7 @@
 }
 /* A long sheet's "open" is the content's start (top) aligned to the viewport
    edge; its tall content (snap area larger than the viewport) scrolls freely
-   above open, while the open/closed boundary still snaps natively — like Silk. */
+   above open, while the open/closed boundary still snaps natively. */
 [data-velvet="scroll"][data-velvet-long] [data-velvet="content-area"] {
   scroll-snap-align: start;
 }

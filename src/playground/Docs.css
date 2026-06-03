@@ -107,7 +107,7 @@
   color: var(--ink-strong);
 }
 
-/* ---- Code block (header bar + Copy, like Silk) ---- */
+/* ---- Code block (header bar + Copy) ---- */
 .Code {
   border: 1px solid var(--line);
   border-radius: 12px;
