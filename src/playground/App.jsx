@@ -82,6 +82,8 @@ export const App = () => {
         ) : (
           <>
             <header className="Hero">
+              <div className="Hero-glow" aria-hidden />
+              <div className="Hero-wash" aria-hidden />
               <div className="Hero-eyebrow">Sheets, toasts, and motion</div>
               <h1 className="Hero-title">
                 Swipeable sheets that feel <em>native</em>

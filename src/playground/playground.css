@@ -21,14 +21,15 @@
   --cream-line: var(--line);
   --ink-soft: var(--muted);
   --grabber: #cbd5e1; /* slate-300 */
-  --ios-shadow: 0 1px 2px rgba(2, 6, 23, 0.04), 0 14px 34px -14px rgba(2, 6, 23, 0.14);
+  --ios-shadow: 0 1px 3px rgba(2, 6, 23, 0.04), 0 16px 32px -12px rgba(2, 6, 23, 0.12);
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --nav-h: 57px;
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   font-family: var(--font-sans);
   color: var(--ink-body);
@@ -50,7 +51,7 @@ body {
   min-height: 100vh;
 }
 
-/* ---- Top navigation bar (Silk: left tabs · center wordmark · right pill) ---- */
+/* ---- Top navigation bar ---- */
 .Nav {
   position: sticky;
   top: 0;
@@ -91,7 +92,7 @@ body {
   padding: 6px 12px;
   border-radius: 9px;
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
+  transition: color 160ms var(--ease), background 160ms var(--ease), transform 160ms var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
 .Nav-tab:hover {
@@ -120,7 +121,7 @@ body {
   border-radius: 999px;
   background: var(--surface);
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: transform 160ms var(--ease), background 180ms ease, border-color 180ms ease;
 }
 .Nav-cta svg {
   width: 15px;
@@ -130,6 +131,9 @@ body {
 .Nav-cta:hover {
   background: var(--fill);
   border-color: #d1d5db;
+}
+.Nav-cta:active {
+  transform: scale(0.96);
 }
 
 .Page {
@@ -144,10 +148,11 @@ body {
 /* ---- Hero ---- */
 .Hero {
   position: relative;
-  padding: 88px 0 56px;
+  padding: 120px 0 80px;
   text-align: center;
+  overflow: hidden;
 }
-/* Faint diagonal cross-hatch framing the hero, masked away behind the text. */
+/* Concentric rings radiating from the top — clean, spatial, velocity. */
 .Hero::before {
   content: "";
   position: absolute;
@@ -155,49 +160,94 @@ body {
   top: -1px;
   transform: translateX(-50%);
   width: 100vw;
-  height: 560px;
+  height: 580px;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.6;
-  background-image: repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 23px),
-    repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 23px);
-  -webkit-mask-image: radial-gradient(78% 100% at 50% 0%, transparent 36%, #000 76%);
-  mask-image: radial-gradient(78% 100% at 50% 0%, transparent 36%, #000 76%);
+  opacity: 0.55;
+  background-image:
+    repeating-radial-gradient(circle at 50% 0%, transparent 0 48px, var(--line) 48px 49px);
+  -webkit-mask-image: radial-gradient(78% 100% at 50% 0%, transparent 30%, #000 78%);
+  mask-image: radial-gradient(78% 100% at 50% 0%, transparent 30%, #000 78%);
+}
+/* Warm glow at the top — big and luminous. */
+.Hero::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -120px;
+  transform: translateX(-50%);
+  width: 1100px;
+  height: 600px;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(253, 186, 116, 0.38) 0%, rgba(252, 211, 77, 0.22) 30%, transparent 65%);
+  filter: blur(60px);
+}
+/* Fresh glow at the bottom — big and luminous. */
+.Hero-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -100px;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 450px;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 100%, rgba(167, 243, 208, 0.32) 0%, rgba(199, 210, 254, 0.18) 40%, transparent 70%);
+  filter: blur(60px);
+}
+/* Center wash that ties top and bottom together. */
+.Hero-wash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 1200px;
+  height: 500px;
+  z-index: -3;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, rgba(254, 240, 230, 0.45) 0%, rgba(240, 248, 255, 0.25) 50%, transparent 75%);
+  filter: blur(80px);
 }
 .Hero-eyebrow {
-  display: inline-block;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink-strong);
-  padding: 7px 15px;
+  padding: 8px 18px;
   border-radius: 999px;
-  background: var(--fill);
-  margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  margin-bottom: 32px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .Hero-title {
-  margin: 0 auto 22px;
+  margin: 0 auto 28px;
   max-width: 16ch;
-  font-size: clamp(40px, 6.4vw, 64px);
-  line-height: 1.05;
+  font-size: clamp(48px, 7vw, 80px);
+  line-height: 0.95;
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   color: var(--ink);
   text-wrap: balance;
 }
-/* Silk's signature: emphasis words set in italic Source Serif 4. */
+/* Emphasis words set in italic serif. */
 .Hero-title em {
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 .Hero-sub {
   margin: 0 auto;
-  max-width: 600px;
-  font-size: clamp(18px, 2.2vw, 21px);
-  line-height: 1.5;
-  font-weight: 500;
+  max-width: 520px;
+  font-size: clamp(16px, 1.8vw, 19px);
+  line-height: 1.6;
+  font-weight: 400;
   color: var(--muted);
   text-wrap: pretty;
 }
@@ -208,8 +258,8 @@ body {
 .Hero-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-top: 34px;
+  gap: 14px;
+  margin-top: 40px;
 }
 
 /* ---- Buttons ---- */
@@ -225,15 +275,15 @@ body {
   padding: 10px 16px;
   border-radius: 11px;
   cursor: pointer;
-  transition: transform 0.12s var(--ease), background 0.18s ease, border-color 0.18s ease,
-    filter 0.18s ease;
+  transition: transform 160ms var(--ease), background 180ms ease, border-color 180ms ease,
+    filter 180ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 .Btn:hover {
   background: #e9ebef;
 }
 .Btn:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 .Btn:focus-visible {
   outline: 2px solid var(--accent);
@@ -247,26 +297,30 @@ body {
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);
+  box-shadow: 0 1px 2px rgba(3, 7, 18, 0.08), 0 4px 12px -2px rgba(3, 7, 18, 0.12);
 }
 .Btn--primary:hover {
   background: #1f2937;
   filter: none;
+  box-shadow: 0 2px 4px rgba(3, 7, 18, 0.1), 0 8px 20px -4px rgba(3, 7, 18, 0.14);
 }
 .Btn--soft {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--ink);
   border-color: var(--line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .Btn--soft:hover {
   background: var(--fill);
 }
-/* Pill CTAs with a trailing chevron, used in the hero (Silk style). */
+/* Pill CTAs with a trailing chevron, used in the hero. */
 .Btn--pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   border-radius: 999px;
-  padding: 12px 22px;
+  padding: 13px 26px;
   font-size: 16px;
 }
 .Btn--pill svg {
@@ -288,14 +342,14 @@ body {
   border-radius: 20px;
   padding: 12px 12px 16px;
   box-shadow: 0 1px 2px rgba(2, 6, 23, 0.03);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), border-color 0.4s var(--ease);
+  transition: transform 320ms var(--ease), box-shadow 320ms var(--ease), border-color 320ms var(--ease);
 }
 .Card:hover {
-  transform: translateY(-3px);
-  border-color: #dfe3e9;
-  box-shadow: var(--ios-shadow);
+  transform: translateY(-4px);
+  border-color: #d1d5db;
+  box-shadow: 0 12px 40px -16px rgba(2, 6, 23, 0.12), 0 4px 12px -4px rgba(2, 6, 23, 0.06);
 }
-/* Each card preview gets a soft Silk-style colour wash. */
+/* Each card preview gets a light, fresh wash. */
 .Card-preview {
   position: relative;
   height: 168px;
@@ -304,22 +358,22 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: linear-gradient(165deg, #d7f5ec, #b8e6f0);
+  background: linear-gradient(165deg, #d1fae5, #a7f3d0);
 }
 .Card:nth-child(6n + 2) .Card-preview {
-  background: linear-gradient(165deg, #d6f5dd, #bfe9c9);
+  background: linear-gradient(165deg, #fce7f3, #fbcfe8);
 }
 .Card:nth-child(6n + 3) .Card-preview {
-  background: linear-gradient(165deg, #ffe0e0, #ffd0cf);
+  background: linear-gradient(165deg, #e0e7ff, #c7d2fe);
 }
 .Card:nth-child(6n + 4) .Card-preview {
-  background: linear-gradient(165deg, #e3e9ff, #d4ddff);
+  background: linear-gradient(165deg, #fef3c7, #fde68a);
 }
 .Card:nth-child(6n + 5) .Card-preview {
-  background: linear-gradient(165deg, #f0e6ff, #e2d6fb);
+  background: linear-gradient(165deg, #dcfce7, #bbf7d0);
 }
 .Card:nth-child(6n + 6) .Card-preview {
-  background: linear-gradient(165deg, #fdeccf, #fde0c0);
+  background: linear-gradient(165deg, #ffedd5, #fed7aa);
 }
 .Card-mockSheet {
   width: 76%;
@@ -375,7 +429,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .Card {
+  .Card,
+  .Nav-tab,
+  .Nav-cta,
+  .Btn {
     transition: none;
   }
 }
