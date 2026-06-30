@@ -1,6 +1,6 @@
 .Toaster {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--velvet-z-toast);
   width: 360px;
   max-width: calc(100vw - 32px);
   list-style: none;

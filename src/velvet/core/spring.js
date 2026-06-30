@@ -59,20 +59,24 @@ export const solveSpring = (settings, fromPos = 0, toPos = 1, v0) => {
 export const springScroll = (el, axis, target, settings, { onUpdate, onComplete, v0 = 0 } = {}) => {
   const cfg = resolve(settings);
   const prop = axis === "x" ? "scrollLeft" : "scrollTop";
-  const start = el[prop];
-  const delta = target - start;
   const skip = cfg.skip != null ? cfg.skip : prefersReduced();
   const finish = () => {
     el[prop] = target;
     onUpdate && onUpdate(target);
     onComplete && onComplete();
   };
-  if (skip || delta === 0) {
+  if (skip) {
+    finish();
+    return { cancel() {} };
+  }
+  const timeScale = (typeof window !== "undefined" && window.__VELVET_TIME_SCALE) || 1;
+  const start = el[prop];
+  const delta = target - start;
+  if (delta === 0) {
     finish();
     return { cancel() {} };
   }
   const { values, duration } = solveSpring(settings, start, target, v0);
-  const timeScale = (typeof window !== "undefined" && window.__VELVET_TIME_SCALE) || 1;
   const prevSnap = el.style.scrollSnapType;
   el.style.scrollSnapType = "none";
   let raf = 0;
@@ -100,7 +104,11 @@ export const springScroll = (el, axis, target, settings, { onUpdate, onComplete,
       cancelled = true;
       clearTimeout(delayTimer);
       cancelAnimationFrame(raf);
-      el.style.scrollSnapType = prevSnap;
+      // NOTE: deliberately does NOT restore scrollSnapType. Cancel happens during a
+      // handoff (new gesture / dismiss / unmount); re-arming mandatory snap here would
+      // let the browser re-snap a mid-travel offset to the nearest point — the dismissal
+      // "flicker". Resting snap is re-armed by the present effect's onComplete (open /
+      // detent) and on natural spring completion; the next owner sets it otherwise.
     },
   };
 };

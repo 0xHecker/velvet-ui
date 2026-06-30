@@ -402,6 +402,8 @@ const View = forwardRef(function View(
         if (Math.abs(stops[i] - p) < Math.abs(stops[idx] - p)) idx = i; // open: nearest higher detent
     } else if (p < stops[active] - 0.04) {
       if (swipeDismissal !== false) {
+        el.style.scrollSnapType = "none";
+        el.style.overflow = "hidden";
         fastExitRef.current = true;
         activeRef.current = false;
         setPresented(false); // dismissable: close instantly, no snapping
@@ -416,7 +418,10 @@ const View = forwardRef(function View(
     animatingRef.current = true; // settle on the active detent
     springCtrlRef.current = springScroll(el, axis, offsetForProgress(stops[idx]), "snappy", {
       onUpdate: () => reportTravel(progressOf()),
-      onComplete: () => (animatingRef.current = false),
+      onComplete: () => {
+        animatingRef.current = false;
+        el.style.overflow = ""; // re-enable native scrolling if a dismiss had frozen it
+      },
     });
   }, [axis, activeDetent, offsetForProgress, progressOf, reportTravel, setActiveDetent, setPresented, swipeDismissal, travelOf]);
 
@@ -425,6 +430,14 @@ const View = forwardRef(function View(
   useIso(() => {
     const el = scrollRef.current;
     if (!el) return;
+    // Take scroll-snap OFF before any reflow below. The previous effect's cleanup
+    // cancels the prior spring, and springScroll.cancel() re-arms mandatory snap;
+    // the computeDetents()/maxOf() reads that follow force a layout, and the browser
+    // would then re-snap a mid-travel offset to the NEAREST snap point — the panel
+    // jumps back toward open and then springs closed (the drag-down "flicker").
+    // The spring owns the travel; mandatory snap is re-armed only once we rest
+    // open / at a detent (see onComplete).
+    el.style.scrollSnapType = "none";
     const stops = computeDetents();
     isLongRef.current = openAtMax && maxOf(el, axis) > clientOf(el, axis) + 1;
     // Detents snap in JS (native snap off). A long sheet keeps native mandatory
@@ -442,6 +455,10 @@ const View = forwardRef(function View(
 
     if (presented && prev === 0) lastFocused.current = document.activeElement;
     activeRef.current = presented;
+
+    // Already closed and staying closed (e.g. a detent reset to 0 after dismiss):
+    // nothing to animate, so skip the spring.
+    if (!presented && prev === 0 && target === 0) return;
 
     if (typeof window !== "undefined" && window.__VELVET_DEBUG && presented) {
       animatingRef.current = true;
@@ -472,8 +489,10 @@ const View = forwardRef(function View(
         if (target === 0) {
           restoreFocus(lastFocused.current);
           finishExit();
-        } else if (prev === 0) {
-          focusFirst(viewRef.current);
+        } else {
+          el.style.scrollSnapType = ""; // resting open/detent: re-arm native snap for swipe
+          el.style.overflow = ""; // and re-enable native scrolling (a dismiss may have frozen it)
+          if (prev === 0) focusFirst(viewRef.current);
         }
       },
     });
@@ -493,6 +512,10 @@ const View = forwardRef(function View(
     clearTimeout(scrollEndTimer.current);
     if (hasDetents) snapToDetent();
     else if (swipeDismissal && progressOf() < 0.7) {
+      if (scrollRef.current) {
+        scrollRef.current.style.scrollSnapType = "none";
+        scrollRef.current.style.overflow = "hidden";
+      }
       activeRef.current = false;
       setPresented(false); // native snap landed at closed → dismiss
     }
@@ -518,6 +541,15 @@ const View = forwardRef(function View(
         threshold = stops[a] - 0.06;
       }
       if (p < threshold) {
+        // Hand off to the spring cleanly: kill snap AND freeze native scrolling so the
+        // browser's residual fling momentum can't keep writing scrollTop and fight the
+        // dismiss spring (which produced an up-then-down rebound). overflow:hidden stops
+        // momentum while scrollTop stays programmatically settable; the node unmounts on
+        // close so nothing needs restoring.
+        if (scrollRef.current) {
+          scrollRef.current.style.scrollSnapType = "none";
+          scrollRef.current.style.overflow = "hidden";
+        }
         fastExitRef.current = true;
         activeRef.current = false;
         setPresented(false);
@@ -584,6 +616,8 @@ const View = forwardRef(function View(
           if (swipeDismissal !== false) {
             fastExitRef.current = true;
             activeRef.current = false;
+            setOff(el, axis, closedOff()); // synchronous close — see plain-sheet note below
+            reportTravel(progressOf());
             setPresented(false);
             return;
           }
@@ -601,7 +635,13 @@ const View = forwardRef(function View(
       if (!cancelled && swipeDismissal && towardClosed > 0.3) {
         fastExitRef.current = true;
         activeRef.current = false;
-        setPresented(false); // gesture dismiss — exit spring runs from here
+        // Settle the scroll at closed up front so the present effect's exit "spring"
+        // is zero-distance and finishes synchronously. A real async exit spring here
+        // could have its completion (finishExit → unmount) dropped on a fast flick,
+        // stranding the sheet mounted-but-closed; the synchronous finish lands reliably.
+        setOff(el, axis, closedOff());
+        reportTravel(progressOf());
+        setPresented(false);
         return;
       }
       animatingRef.current = true; // settle back to open, then restore the native-snap baseline
@@ -610,13 +650,16 @@ const View = forwardRef(function View(
         onComplete: () => {
           animatingRef.current = false;
           el.style.scrollSnapType = "";
+          el.style.overflow = "";
         },
       });
     };
-    function onUp() {
+    function onUp(e) {
+      try { el.releasePointerCapture(e.pointerId); } catch {}
       endDrag(false);
     }
-    function onCancel() {
+    function onCancel(e) {
+      try { el.releasePointerCapture(e.pointerId); } catch {}
       endDrag(true);
     }
 

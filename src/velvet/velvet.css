@@ -6,6 +6,12 @@
 :root {
   /* Full viewport height that survives mobile URL-bar collapse. */
   --velvet-100lvh: max(100%, 100vh);
+
+  /* Stacking layers. Sheets must float above page chrome (nav); toasts float
+     above everything. */
+  --velvet-z-nav: 10;
+  --velvet-z-sheet: 100;
+  --velvet-z-toast: 9999;
 }
 @supports (height: 1dvh) {
   :root {
@@ -20,6 +26,7 @@
   height: 100%;
   width: 100%;
   overflow: clip;
+  z-index: var(--velvet-z-sheet);
   /* The view itself is click-through; only content + backdrop catch pointers. */
   pointer-events: none;
 }
