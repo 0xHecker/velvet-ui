@@ -15,7 +15,8 @@ npm install
 npm run dev      # Vite dev server — open the printed URL
 ```
 
-The playground (`src/playground`) is a cream-palette gallery of every example.
+The playground (`src/playground`) is a gallery of every pattern, staged as real
+product demos (booking, music, commerce, chat, and more — photos by Pexels).
 
 ## Install in your app
 

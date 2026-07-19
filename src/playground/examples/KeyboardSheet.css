@@ -5,7 +5,7 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 560px;
-  padding: 10px 22px calc(24px + env(safe-area-inset-bottom));
+  padding: 10px 22px calc(20px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -16,24 +16,66 @@
   box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.2);
 }
 .Keyboard-handle {
-  margin: 6px 0 16px;
+  margin: 6px auto 14px;
   background: var(--grabber);
 }
 .Keyboard-body {
   width: 100%;
   max-width: 460px;
 }
-.Keyboard-title {
-  margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+.Keyboard-threadHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--cream-line);
 }
-.Keyboard-desc {
-  margin: 0 0 18px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ink-soft);
+.Keyboard-threadHead img {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.Keyboard-threadHead div {
+  display: flex;
+  flex-direction: column;
+}
+.Keyboard-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.Keyboard-status {
+  font-size: 12.5px;
+  color: #16a34a;
+  font-weight: 500;
+}
+.Keyboard-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+}
+.Keyboard-bubble {
+  max-width: 78%;
+  font-size: 14.5px;
+  line-height: 1.45;
+  padding: 9px 13px;
+  border-radius: 18px;
+}
+.Keyboard-bubble--in {
+  align-self: flex-start;
+  background: var(--cream-bg-2);
+  color: var(--ink);
+  border-bottom-left-radius: 6px;
+}
+.Keyboard-bubble--out {
+  align-self: flex-end;
+  background: var(--ink);
+  color: #fff;
+  border-bottom-right-radius: 6px;
 }
 .Keyboard-composer {
   display: flex;
@@ -43,18 +85,37 @@
 .Keyboard-input {
   flex: 1;
   appearance: none;
-  border: none;
+  border: 1px solid var(--cream-line);
   background: var(--cream-bg);
   border-radius: 999px;
-  padding: 12px 18px;
+  padding: 11px 17px;
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--ink);
   outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 .Keyboard-input:focus {
-  box-shadow: 0 0 0 2px var(--accent) inset;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(3, 7, 18, 0.08);
 }
 .Keyboard-send {
-  flex: 0 0 auto;
+  flex: none;
+  appearance: none;
+  border: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 160ms var(--ease), background 160ms ease;
+}
+.Keyboard-send:hover {
+  background: #1f2937;
+}
+.Keyboard-send:active {
+  transform: scale(0.9);
 }

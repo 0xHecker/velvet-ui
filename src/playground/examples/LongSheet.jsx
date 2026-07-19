@@ -1,38 +1,123 @@
 import { Sheet } from "../../velvet/index.js";
+import { px } from "../px.js";
+import { IconBook, IconClock, IconFlame, IconUsers } from "../icons.jsx";
 import "./LongSheet.css";
 
-const paragraphs = [
-  "Welcome aboard. This sheet rides on the same spring engine as the rest — open it and the content scrolls on the very same surface that carries it in and out.",
-  "Scroll down to read on. The panel stays put once it's fully open; only the content moves under it.",
-  "When you reach the top and keep pulling down, the sheet hands the motion back to its travel and closes — one continuous gesture, no seams.",
-  "Everything here is unstyled by default; the cream palette is applied entirely from the example stylesheet, not the library.",
-  "Travel progress, detents, and scroll progress all share one physics model, so motion feels consistent across every surface.",
-  "Resize the window and the geometry recomputes — open always rests at one viewport, and the content scrolls beyond it.",
-  "The spring is a fixed-timestep integrator: stiffness pulls toward the target, damping bleeds off velocity, and the curve settles on its own.",
-  "Because the easing is derived from real physics, programmatic travel and gesture travel feel like the same material.",
-  "Backdrops dim in step with travel, so the world behind the panel fades exactly as fast as the panel arrives.",
-  "Detents are extra rest stops for opening; closing never stops at them — it just dismisses, like this long sheet.",
-  "Triggers are plain buttons. Press one to present, dismiss, step, or scroll — the action is declarative and easy to read.",
-  "Keyboard focus moves into the panel on open and returns to the opener on close, so nothing is lost along the way.",
-  "Reduced-motion preferences are respected: when set, animations are skipped and the panel simply appears at its destination.",
-  "Nothing here depends on a fixed height — give it a little content or a lot, and it adapts.",
-  "Pull down from the top whenever you like to send it away.",
-  "That's the whole idea — building blocks that behave like the native components you already trust.",
+const INGREDIENTS = [
+  "2 cups all-purpose flour",
+  "2 tbsp brown sugar",
+  "1 tbsp baking powder",
+  "½ tsp fine sea salt",
+  "1¾ cups buttermilk",
+  "2 large eggs",
+  "4 tbsp brown butter, cooled",
+  "1 tsp vanilla extract",
+];
+
+const STEPS = [
+  {
+    title: "Brown the butter",
+    body: "Melt butter over medium heat until it foams, smells nutty, and turns amber. Set aside to cool — this is the whole flavor of the dish.",
+  },
+  {
+    title: "Whisk the dry goods",
+    body: "Flour, sugar, baking powder, and salt in a large bowl. Make a well in the center for the wet ingredients.",
+  },
+  {
+    title: "Combine, don’t overmix",
+    body: "Whisk buttermilk, eggs, vanilla, and the cooled brown butter. Pour into the well and fold until just combined — lumps are welcome.",
+  },
+  {
+    title: "Rest the batter",
+    body: "Ten minutes on the counter. The baking powder gets a head start and the griddle gets time to reach an even heat.",
+  },
+  {
+    title: "Griddle low and slow",
+    body: "A knob of butter, medium-low heat, ⅓ cup per pancake. Flip once, when the edges set and bubbles hold their shape.",
+  },
+  {
+    title: "Serve immediately",
+    body: "Maple syrup warmed with a pinch of salt, extra brown butter, and whatever fruit is in season.",
+  },
+];
+
+const TIPS = [
+  "No buttermilk? Milk with a spoon of lemon juice, rested five minutes, gets you 95% there.",
+  "The first pancake is for the cook. Always. The griddle is still finding its temperature.",
+  "Batter keeps two days in the fridge — thin it with a splash of milk before cooking.",
+  "Frozen blueberries go in straight from the freezer, pressed into the wet side after pouring.",
+  "For crispy edges, let the butter in the pan go one shade past melted before the batter lands.",
+  "Leftovers reheat best in a toaster, never a microwave — the edges stay crisp.",
 ];
 
 export const LongSheet = () => (
   <Sheet.Root>
-    <Sheet.Trigger className="Btn">Open Long Sheet</Sheet.Trigger>
+    <Sheet.Trigger className="Btn">
+      <IconBook /> Open recipe
+    </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="LongSheet-view">
+      <Sheet.View className="Recipe-view">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
-        <Sheet.Content className="LongSheet-content">
-          <Sheet.BleedingBackground className="LongSheet-bg" />
-          <Sheet.Handle className="LongSheet-handle" />
-          <Sheet.Title className="LongSheet-title">Field Notes</Sheet.Title>
-          {paragraphs.map((p, i) => (
-            <p key={i} className="LongSheet-para">{p}</p>
-          ))}
+        <Sheet.Content className="Recipe-content">
+          <Sheet.BleedingBackground className="Recipe-bg" />
+          <Sheet.Handle className="Recipe-handle" />
+          <div className="Recipe-hero">
+            <img src={px(376464, 1080, 560)} alt="Brown butter pancakes" />
+          </div>
+          <div className="Recipe-body">
+            <span className="Recipe-kicker">Weekend brunch</span>
+            <Sheet.Title className="Recipe-title">Brown Butter Pancakes</Sheet.Title>
+            <Sheet.Description className="Recipe-desc">
+              Nutty, caramel-edged, and impossibly fluffy — the only pancake recipe worth
+              memorizing. Pull down from the top anytime to get back to browsing.
+            </Sheet.Description>
+
+            <div className="Recipe-stats">
+              <span>
+                <IconClock size={14} /> 35 min
+              </span>
+              <span>
+                <IconFlame size={14} /> Easy
+              </span>
+              <span>
+                <IconUsers size={14} /> Serves 4
+              </span>
+            </div>
+
+            <h3 className="Recipe-h">Ingredients</h3>
+            <ul className="Recipe-ingredients">
+              {INGREDIENTS.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+
+            <h3 className="Recipe-h">Method</h3>
+            <ol className="Recipe-steps">
+              {STEPS.map((s, idx) => (
+                <li key={s.title} className="Recipe-step">
+                  <span className="Recipe-stepNum">{idx + 1}</span>
+                  <div>
+                    <strong>{s.title}</strong>
+                    <p>{s.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <h3 className="Recipe-h">Notes from the kitchen</h3>
+            <ul className="Recipe-tips">
+              {TIPS.map((t, i) => (
+                <li key={i} className="Recipe-tip">
+                  {t}
+                </li>
+              ))}
+            </ul>
+
+            <div className="Recipe-footer">
+              <img src={px(302899, 320, 200)} alt="" />
+              <p>Pairs well with a slow latte. Recipe by the Velvet test kitchen.</p>
+            </div>
+          </div>
         </Sheet.Content>
       </Sheet.View>
     </Sheet.Portal>

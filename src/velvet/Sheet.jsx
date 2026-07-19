@@ -78,10 +78,22 @@ const unlockScroll = () => {
 
 // ---- Context --------------------------------------------------------------
 const SheetCtx = createContext(null);
+const SheetPreviewCtx = createContext(null);
 const useSheet = () => {
   const ctx = useContext(SheetCtx);
   if (!ctx) throw new Error("Velvet Sheet sub-components must be used within <Sheet.Root>");
   return ctx;
+};
+
+// Gallery previews run the exact same Sheet trees inside a bounded local
+// viewport. The environment controls each nested Root by depth while keeping
+// all of the real travel, detent, and SheetStack behavior intact.
+const PreviewEnvironment = ({ container, layers, onLayerPresentedChange, children }) => {
+  const value = useMemo(
+    () => ({ container, layers, onLayerPresentedChange }),
+    [container, layers, onLayerPresentedChange]
+  );
+  return <SheetPreviewCtx.Provider value={value}>{children}</SheetPreviewCtx.Provider>;
 };
 
 // Subscribe an element to the Sheet's travel progress. Layout effect so it
@@ -146,10 +158,19 @@ const Root = ({
   sheetRole = "dialog",
   license,
 }) => {
+  const parentSheet = useContext(SheetCtx);
+  const preview = useContext(SheetPreviewCtx);
+  const depth = (parentSheet?.depth ?? -1) + 1;
+  const controlledPresented = preview
+    ? Boolean(preview.layers?.[depth])
+    : presentedProp;
+  const controlledPresentedChange = preview
+    ? (next) => preview.onLayerPresentedChange?.(depth, next)
+    : onPresentedChange;
   const [presented, setPresented] = useControllable(
-    presentedProp,
+    controlledPresented,
     defaultPresented,
-    onPresentedChange
+    controlledPresentedChange
   );
   const [activeDetent, setActiveDetent] = useControllable(
     activeDetentProp,
@@ -213,6 +234,8 @@ const Root = ({
       hasDescription,
       detentCount,
       lastFocused,
+      preview,
+      depth,
     }),
     [
       presented,
@@ -227,6 +250,8 @@ const Root = ({
       descriptionId,
       defaultActiveDetent,
       defaultPresented,
+      preview,
+      depth,
     ]
   );
 
@@ -235,9 +260,11 @@ const Root = ({
 
 // ---- Portal ---------------------------------------------------------------
 const Portal = ({ children, container }) => {
-  const { mounted } = useSheet();
+  const { mounted, preview } = useSheet();
   if (!mounted) return null;
-  return createPortal(children, container || document.body);
+  const target = container || preview?.container;
+  if (preview && !target) return null;
+  return createPortal(children, target || document.body);
 };
 
 // ---- View -----------------------------------------------------------------
@@ -281,6 +308,13 @@ const View = forwardRef(function View(
     hasDescription,
     lastFocused,
   } = sheet;
+
+  const isPreview = Boolean(sheet.preview);
+  if (isPreview) {
+    swipe = false;
+    swipeDismissal = false;
+    inertOutside = false;
+  }
 
   const track = tracks || contentPlacement || "bottom";
   const { axis, openAtMax } = TRACK[track] || TRACK.bottom;
@@ -453,7 +487,7 @@ const View = forwardRef(function View(
     prevDetentRef.current = target;
     const offset = offsetForProgress(stops[target]);
 
-    if (presented && prev === 0) lastFocused.current = document.activeElement;
+    if (presented && prev === 0 && !isPreview) lastFocused.current = document.activeElement;
     activeRef.current = presented;
 
     // Already closed and staying closed (e.g. a detent reset to 0 after dismiss):
@@ -487,12 +521,12 @@ const View = forwardRef(function View(
       onComplete: () => {
         animatingRef.current = false;
         if (target === 0) {
-          restoreFocus(lastFocused.current);
+          if (!isPreview) restoreFocus(lastFocused.current);
           finishExit();
         } else {
           el.style.scrollSnapType = ""; // resting open/detent: re-arm native snap for swipe
           el.style.overflow = ""; // and re-enable native scrolling (a dismiss may have frozen it)
-          if (prev === 0) focusFirst(viewRef.current);
+          if (prev === 0 && !isPreview) focusFirst(viewRef.current);
         }
       },
     });
@@ -711,6 +745,7 @@ const View = forwardRef(function View(
 
   // Register a debug handle so tests can freeze travel at an exact progress.
   useEffect(() => {
+    if (isPreview) return undefined;
     const api = {
       freeze: (p) => {
         const el = scrollRef.current;
@@ -738,7 +773,7 @@ const View = forwardRef(function View(
       const i = activeViews.indexOf(api);
       if (i >= 0) activeViews.splice(i, 1);
     };
-  }, [axis, openAtMax, openOff, offsetForProgress, progressOf, reportTravel]);
+  }, [axis, isPreview, openAtMax, openOff, offsetForProgress, progressOf, reportTravel]);
 
   // Body scroll lock for modal sheets (ref-counted across stacked sheets).
   useEffect(() => {
@@ -749,6 +784,7 @@ const View = forwardRef(function View(
 
   // Escape key.
   useEffect(() => {
+    if (isPreview) return undefined;
     const onKey = (e) => {
       if (e.key !== "Escape") return;
       const behavior = { nativePreventDefault: true, dismiss: sheetRole !== "alertdialog" };
@@ -760,7 +796,7 @@ const View = forwardRef(function View(
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onEscapeKeyDown, sheetRole, setPresented]);
+  }, [isPreview, onEscapeKeyDown, sheetRole, setPresented]);
 
   // Click outside: a click on the scroll container but not on the panel.
   const onScrollClick = useCallback(
@@ -791,6 +827,7 @@ const View = forwardRef(function View(
       asChild={asChild}
       ref={composedView}
       data-velvet="view"
+      data-velvet-preview={isPreview ? "" : undefined}
       data-velvet-track={track}
       data-velvet-modal={inertOutside ? "true" : "false"}
       className={className}
@@ -933,7 +970,7 @@ const Trigger = forwardRef(function Trigger(
   { className, style, asChild, action = "present", children, onPress, ...rest },
   forwardedRef
 ) {
-  const { presented, setPresented, activeDetent, setActiveDetent, detentCount } = useSheet();
+  const { presented, setPresented, activeDetent, setActiveDetent, detentCount, preview } = useSheet();
   const handle = (e) => {
     if (onPress) onPress(e);
     const isStep = action === "step" || (action && action.type === "step");
@@ -961,6 +998,7 @@ const Trigger = forwardRef(function Trigger(
       ref={forwardedRef}
       type="button"
       data-velvet-trigger=""
+      data-velvet-preview-trigger={preview ? "" : undefined}
       className={className}
       style={style}
       onClick={handle}
@@ -1030,6 +1068,7 @@ const Outlet = forwardRef(function Outlet(
 });
 
 export const Sheet = {
+  PreviewEnvironment,
   Root,
   Portal,
   View,

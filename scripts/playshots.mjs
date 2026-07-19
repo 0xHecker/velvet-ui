@@ -1,4 +1,4 @@
-// Screenshot the redesigned playground (Sheets / Toasts / Docs) at Silk's width.
+// Screenshot the redesigned playground (Sheets / Toasts / Docs)
 import { createServer } from "vite";
 import puppeteer from "puppeteer";
 import { mkdirSync } from "node:fs";

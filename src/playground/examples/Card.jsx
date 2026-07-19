@@ -1,9 +1,13 @@
 import { Sheet } from "../../velvet/index.js";
+import { px } from "../px.js";
+import { IconBook, IconChevronR, IconClock } from "../icons.jsx";
 import "./Card.css";
 
 export const Card = () => (
   <Sheet.Root>
-    <Sheet.Trigger className="Btn">Open Card</Sheet.Trigger>
+    <Sheet.Trigger className="Btn">
+      <IconBook /> Read article
+    </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View className="Card2-view" contentPlacement="center">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.5 }} />
@@ -15,17 +19,27 @@ export const Card = () => (
           }}
         >
           <div className="Card2-cover">
-            <span className="Card2-kicker">FEATURED</span>
-            <Sheet.Title className="Card2-coverTitle">Designing Motion</Sheet.Title>
+            <img src={px(196644, 900, 520)} alt="Interface sketches on a notebook" />
+            <span className="Card2-kicker">Featured · Motion</span>
           </div>
           <div className="Card2-body">
+            <Sheet.Title className="Card2-title">Designing Motion That Feels Real</Sheet.Title>
             <Sheet.Description className="Card2-desc">
-              Tap-to-expand cards scale up from a thumbnail into a full sheet — the App Store–style
-              detail view, on the web.
+              Great interfaces don't animate — they move. The difference is physics: velocity,
+              springs, and gestures that keep their momentum instead of restarting it.
             </Sheet.Description>
-            <Sheet.Trigger action="dismiss" className="Btn Btn--primary">
-              Done
-            </Sheet.Trigger>
+            <div className="Card2-byline">
+              <img src={px(415829, 96, 96)} alt="Hana Yuki" />
+              <div className="Card2-author">
+                <strong>Hana Yuki</strong>
+                <span>
+                  <IconClock size={12} /> 6 min read
+                </span>
+              </div>
+              <Sheet.Trigger action="dismiss" className="Btn Btn--primary Card2-cta">
+                Read <IconChevronR size={14} />
+              </Sheet.Trigger>
+            </div>
           </div>
         </Sheet.Content>
       </Sheet.View>

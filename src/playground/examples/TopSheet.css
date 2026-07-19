@@ -1,45 +1,87 @@
 .TopSheet-view {
   height: var(--velvet-100lvh);
 }
-
 .TopSheet-content {
   box-sizing: border-box;
   width: 100%;
-  max-width: 560px;
-  padding: calc(20px + env(safe-area-inset-top)) 24px 8px;
+  max-width: 460px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px 8px;
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
-
 .TopSheet-bg {
-  border-radius: 0 0 28px 28px;
-  background: var(--cream-surface);
-  box-shadow: 0 20px 50px -20px rgba(60, 45, 30, 0.18), 0 0.5px 0 0 rgba(60, 50, 38, 0.06);
+  border-radius: 0 0 24px 24px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 24px 50px -20px rgba(2, 6, 23, 0.35);
 }
-
-.TopSheet-body {
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
+.TopSheet-row {
+  display: flex;
+  gap: 12px;
 }
-
-.TopSheet-title {
-  margin: 0 0 10px;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ink);
+.TopSheet-avatar {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  object-fit: cover;
 }
-
-.TopSheet-desc {
-  margin: 0 0 22px;
-  font-size: 15.5px;
-  line-height: 1.55;
+.TopSheet-meta {
+  flex: 1;
+  min-width: 0;
+}
+.TopSheet-appRow {
+  margin-bottom: 3px;
+}
+.TopSheet-app {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--ink-soft);
 }
-
+.TopSheet-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.TopSheet-desc {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.TopSheet-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 13px;
+}
+.TopSheet-action {
+  flex: 1;
+  appearance: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--cream-bg-2);
+  border-radius: 10px;
+  padding: 9px 0;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms var(--ease);
+}
+.TopSheet-action:hover {
+  background: #e9ebef;
+}
+.TopSheet-action:active {
+  transform: scale(0.97);
+}
 .TopSheet-handle {
-  margin: 16px 0 6px;
-  background: var(--cream-line);
+  margin: 10px auto 2px;
+  background: #d8dce2;
 }

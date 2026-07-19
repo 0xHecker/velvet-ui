@@ -1,64 +1,147 @@
-.DetentSheet-view {
+.Queue-view {
   height: var(--velvet-100lvh);
 }
-
-.DetentSheet-content {
+.Queue-content {
   box-sizing: border-box;
   width: 100%;
-  max-width: 560px;
-  height: 88lvh;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 8px;
+  padding: 8px 0 calc(14px + env(safe-area-inset-bottom));
 }
-
-.DetentSheet-bg {
-  border-radius: 28px 28px 0 0;
-  background: var(--cream-surface);
-  box-shadow: 0 -20px 50px -20px rgba(60, 45, 30, 0.18), 0 -0.5px 0 0 rgba(60, 50, 38, 0.06);
+.Queue-bg {
+  border-radius: 24px 24px 0 0;
+  background: #101013;
+  box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.55);
 }
-
-.DetentSheet-handle {
-  margin: 8px 0 14px;
-  background: var(--cream-line);
+.Queue-handle {
+  margin: 6px auto 12px;
+  background: #3a3a40;
 }
-
-.DetentSheet-body {
-  width: 100%;
-  max-width: 460px;
-  padding: 0 24px;
-}
-
-.DetentSheet-head {
+.Queue-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  padding: 0 22px 14px;
 }
-
-.DetentSheet-title {
+.Queue-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--ink);
+  color: #fafafa;
 }
-
-.DetentSheet-expand {
-  padding: 7px 14px;
-  font-size: 14px;
+.Queue-sub {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #8b8b93;
 }
-
-.DetentSheet-list {
+.Queue-expand {
+  appearance: none;
+  border: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #1e1e22;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms var(--ease);
+}
+.Queue-expand:hover {
+  background: #2a2a30;
+}
+.Queue-expand:active {
+  transform: scale(0.9);
+}
+.Queue-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 12px;
+  /* No inner scroller — one unified scroll carries list + swipe gesture. */
+  display: flex;
+  flex-direction: column;
 }
-
-.DetentSheet-item {
-  padding: 14px 4px;
-  border-bottom: 1px solid var(--cream-line);
-  font-size: 15.5px;
-  color: var(--ink-soft);
+.Queue-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background 160ms ease;
+}
+.Queue-item:hover {
+  background: #1a1a1f;
+}
+.Queue-item[data-playing] {
+  background: #1a1a1f;
+}
+.Queue-art {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+.Queue-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.Queue-meta strong {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fafafa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.Queue-meta span {
+  font-size: 12.5px;
+  color: #8b8b93;
+}
+.Queue-time {
+  font-size: 12.5px;
+  color: #8b8b93;
+  font-variant-numeric: tabular-nums;
+}
+/* Fake equalizer bars for the playing row — pure CSS. */
+.Queue-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 16px;
+}
+.Queue-eq i {
+  width: 3px;
+  border-radius: 2px;
+  background: #e879f9;
+  animation: QueueEq 900ms ease-in-out infinite;
+}
+.Queue-eq i:nth-child(1) {
+  height: 60%;
+}
+.Queue-eq i:nth-child(2) {
+  height: 100%;
+  animation-delay: 240ms;
+}
+.Queue-eq i:nth-child(3) {
+  height: 40%;
+  animation-delay: 480ms;
+}
+@keyframes QueueEq {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .Queue-eq i {
+    animation: none;
+  }
 }

@@ -1,0 +1,254 @@
+/* Gallery previews render the real example components on a larger logical
+   viewport, then scale that viewport into the card. Nothing inside this file
+   recreates a sheet: it only supplies the page behind it and its local host. */
+
+.DemoPreview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.DemoPreview-canvas {
+  position: relative;
+  flex: none;
+  width: 200%;
+  height: 200%;
+  overflow: hidden;
+  transform: scale(0.5);
+  transform-origin: 50% 100%;
+  background: #f4f6f8;
+  color: var(--ink);
+  container-type: size;
+  --velvet-100lvh: 100cqh;
+}
+
+/* A preview View is local to the logical canvas instead of the browser. */
+.DemoPreview-canvas [data-velvet="view"][data-velvet-preview] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  overflow: clip;
+  pointer-events: none;
+}
+.DemoPreview-canvas [data-velvet="view"][data-velvet-preview],
+.DemoPreview-canvas [data-velvet="view"][data-velvet-preview] * {
+  pointer-events: none !important;
+  user-select: none;
+}
+.DemoPreview-canvas > [data-velvet-preview-trigger] {
+  display: none !important;
+}
+
+/* Viewport-sized examples use the preview host's width, never the browser's. */
+.DemoPreview-canvas [data-velvet-preview].Page-view,
+.DemoPreview-canvas [data-velvet-preview] .Page-content {
+  width: 100cqw;
+}
+.DemoPreview-canvas [data-velvet-preview] .Modal-content {
+  width: min(calc(100% - 40px), 400px);
+}
+.DemoPreview-canvas [data-velvet-preview] .Card2-content,
+.DemoPreview-canvas [data-velvet-preview] .Lightbox-content {
+  width: min(86%, var(--preview-content-max, 640px));
+}
+.DemoPreview-canvas [data-velvet-preview] .Card2-content {
+  --preview-content-max: 380px;
+}
+
+/* The app surface behind the real sheet. */
+.DemoBackdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 8%, rgba(114, 137, 218, 0.16), transparent 34%),
+    linear-gradient(145deg, #fafbfc, #edf1f5);
+}
+.DemoBackdrop[data-theme="dark"] {
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 76% 4%, rgba(99, 102, 241, 0.2), transparent 34%),
+    linear-gradient(145deg, #17191f, #0c0d11);
+}
+.DemoBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 56%, rgba(15, 23, 42, 0.035));
+}
+.DemoBackdrop-app {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.DemoBackdrop-app > strong {
+  font-size: 13px;
+  letter-spacing: -0.015em;
+}
+.DemoBackdrop-mark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #101827;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow: 0 7px 16px -9px rgba(15, 23, 42, 0.6);
+}
+.DemoBackdrop-people {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 8px;
+}
+.DemoBackdrop-people i {
+  width: 25px;
+  height: 25px;
+  margin-left: -8px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background-position: center;
+  background-size: cover;
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-people i {
+  border-color: #17191f;
+}
+.DemoBackdrop-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr) 190px;
+  gap: 18px;
+  padding: 30px;
+}
+.DemoBackdrop-copy,
+.DemoBackdrop-feature,
+.DemoBackdrop-rail {
+  min-width: 0;
+  border: 1px solid rgba(15, 23, 42, 0.075);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.36);
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-copy,
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-feature,
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-rail {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+}
+.DemoBackdrop-copy {
+  padding: 24px 26px;
+}
+.DemoBackdrop-copy > span,
+.DemoBackdrop-rail > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #7e8795;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.DemoBackdrop-copy h4 {
+  margin: 0;
+  max-width: 15ch;
+  font-size: 27px;
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+}
+.DemoBackdrop-copy p {
+  margin: 9px 0 0;
+  color: #7e8795;
+  font-size: 12px;
+}
+.DemoBackdrop-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 22px;
+}
+.DemoBackdrop-actions i {
+  width: 58px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e1e5eb;
+}
+.DemoBackdrop-actions i:first-child {
+  width: 92px;
+  background: #111827;
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions i {
+  background: rgba(255, 255, 255, 0.11);
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions i:first-child {
+  background: rgba(255, 255, 255, 0.76);
+}
+.DemoBackdrop-feature {
+  overflow: hidden;
+}
+.DemoBackdrop-feature img {
+  display: block;
+  width: 100%;
+  height: 142px;
+  object-fit: cover;
+}
+.DemoBackdrop-feature div {
+  padding: 14px 16px 16px;
+}
+.DemoBackdrop-feature strong,
+.DemoBackdrop-feature span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.DemoBackdrop-feature strong {
+  font-size: 13px;
+}
+.DemoBackdrop-feature span {
+  margin-top: 3px;
+  color: #8b93a1;
+  font-size: 10.5px;
+}
+.DemoBackdrop-rail {
+  padding: 20px;
+}
+.DemoBackdrop-rail > strong {
+  display: block;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+.DemoBackdrop-rail > i {
+  display: block;
+  height: 34px;
+  margin-top: 8px;
+  border-radius: 10px;
+  background: #eef1f5;
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-rail > i {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Keep the real preview visually stable while its spring is idle. */
+.Card[data-preview-open] .DemoBackdrop {
+  filter: saturate(0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .DemoPreview-canvas [data-velvet-preview] {
+    scroll-behavior: auto;
+  }
+}

@@ -13,57 +13,114 @@
   box-shadow: 0 -12px 40px -18px rgba(0, 0, 0, 0.3);
 }
 .PageBottom-handle {
-  margin: 8px 0 4px;
+  margin: 8px auto 4px;
   background: var(--grabber);
 }
 .PageBottom-head {
   width: 100%;
   max-width: 640px;
-  display: flex;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 8px 18px 12px;
   border-bottom: 1px solid var(--cream-line);
 }
 .PageBottom-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 16.5px;
+  font-weight: 700;
   letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--ink);
 }
+.PageBottom-cancel,
 .PageBottom-done {
   appearance: none;
   border: none;
   background: none;
-  color: var(--accent);
   font: inherit;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15.5px;
   cursor: pointer;
   padding: 4px;
+  color: var(--ink-soft);
+}
+.PageBottom-cancel {
+  justify-self: start;
+}
+.PageBottom-done {
+  justify-self: end;
+  font-weight: 700;
+  color: var(--ink);
+}
+.PageBottom-toolbar {
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--cream-line);
+}
+.PageBottom-toolbar button {
+  appearance: none;
+  border: none;
+  background: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--ink-strong);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.PageBottom-toolbar button:hover {
+  background: var(--cream-bg-2);
+}
+.PageBottom-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--cream-line);
+  margin: 0 6px;
 }
 .PageBottom-body {
   width: 100%;
   max-width: 640px;
+  box-sizing: border-box;
+  flex: 1;
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   overflow: hidden;
 }
-.PageBottom-desc {
-  margin: 0 0 4px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ink-soft);
+.PageBottom-titleField {
+  appearance: none;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  padding: 6px 2px;
+}
+.PageBottom-titleField::placeholder {
+  color: #c4c9d1;
 }
 .PageBottom-field {
-  background: var(--cream-bg);
-  border-radius: 12px;
-  padding: 14px 16px;
-  font-size: 16px;
+  appearance: none;
+  border: none;
+  outline: none;
+  resize: none;
+  background: none;
+  font: inherit;
+  font-size: 15.5px;
+  line-height: 1.65;
   color: var(--ink-soft);
-}
-.PageBottom-field--tall {
+  padding: 6px 2px;
   flex: 1;
 }

@@ -1,50 +1,186 @@
 .Sidebar-view {
-  width: 100vw;
   height: var(--velvet-100lvh);
 }
-
 .Sidebar-content {
   box-sizing: border-box;
-  height: var(--velvet-100lvh);
-  width: 320px;
-  max-width: 84vw;
-  padding: calc(28px + env(safe-area-inset-top)) 26px 28px;
+  width: min(340px, 88vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
-
 .Sidebar-bg {
   background: var(--cream-surface);
-  box-shadow: -20px 0 50px -20px rgba(60, 45, 30, 0.18), -0.5px 0 0 0 rgba(60, 50, 38, 0.06);
+  box-shadow: -30px 0 60px -30px rgba(60, 45, 30, 0.35);
 }
-
 .Sidebar-body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 22px 18px calc(18px + env(safe-area-inset-bottom));
 }
-
+.Sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 6px 18px;
+  color: var(--ink-soft);
+}
+.Sidebar-logo {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.Sidebar-brandMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .Sidebar-title {
-  margin: 0 0 22px;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
-
+.Sidebar-plan {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
 .Sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
 }
-
 .Sidebar-link {
-  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
   border-radius: 10px;
-  font-size: 15.5px;
+  font-size: 14.5px;
+  font-weight: 500;
   color: var(--ink-soft);
   text-decoration: none;
+  transition: background 160ms ease, color 160ms ease;
 }
 .Sidebar-link:hover {
-  background: var(--cream-bg);
+  background: var(--cream-bg-2);
   color: var(--ink);
+}
+.Sidebar-link[data-active="true"] {
+  background: var(--cream-bg-2);
+  color: var(--ink);
+  font-weight: 600;
+}
+.Sidebar-link span {
+  flex: 1;
+}
+.Sidebar-badge {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--cream-bg-2);
+  border: 1px solid var(--cream-line);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.Sidebar-link[data-active="true"] .Sidebar-badge {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.Sidebar-section {
+  margin-top: 22px;
+  padding: 16px 6px 0;
+  border-top: 1px solid var(--cream-line);
+}
+.Sidebar-sectionLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.Sidebar-members {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+}
+.Sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid var(--cream-surface);
+  margin-left: -8px;
+}
+.Sidebar-avatar:first-child {
+  margin-left: 0;
+}
+.Sidebar-more {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.Sidebar-user {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 6px 0;
+  border-top: 1px solid var(--cream-line);
+}
+.Sidebar-userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.Sidebar-userMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.Sidebar-userMeta strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.Sidebar-userMeta span {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.Sidebar-close {
+  appearance: none;
+  border: none;
+  background: var(--cream-bg-2);
+  color: var(--ink-soft);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms var(--ease);
+}
+.Sidebar-close:hover {
+  color: var(--ink);
+}
+.Sidebar-close:active {
+  transform: scale(0.9);
 }

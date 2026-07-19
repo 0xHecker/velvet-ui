@@ -5,51 +5,57 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 480px;
-  height: 70lvh;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 .Player-bg {
   border-radius: 22px 22px 0 0;
-  background: var(--cream-surface);
-  box-shadow: 0 -16px 44px -18px rgba(0, 0, 0, 0.2);
+  background: #101013;
+  box-shadow: 0 -16px 44px -18px rgba(0, 0, 0, 0.55);
 }
 .Player-handle {
-  margin: 7px 0 8px;
-  background: var(--grabber);
+  margin: 7px auto 8px;
+  background: #3a3a40;
 }
 .Player-bar {
   width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px 8px;
+  padding: 2px 16px 10px;
 }
 .Player-art {
   width: 46px;
   height: 46px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #ff5e3a, #ff2d55);
-  flex: 0 0 auto;
+  object-fit: cover;
+  flex: none;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
 }
 .Player-meta {
   flex: 1;
   min-width: 0;
 }
 .Player-title {
+  display: block;
   margin: 0;
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: #fafafa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .Player-artist {
   margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ink-soft);
+  font-size: 12.5px;
+  color: #8b8b93;
 }
-.Player-icon {
-  flex: 0 0 auto;
+.Player-iconBtn {
+  flex: none;
   width: 34px;
   height: 34px;
   display: grid;
@@ -57,18 +63,124 @@
   appearance: none;
   border: none;
   border-radius: 999px;
-  background: var(--cream-bg-2);
-  color: var(--ink);
-  font-size: 14px;
+  background: transparent;
+  color: #d4d4d8;
   cursor: pointer;
+  transition: background 160ms ease, transform 160ms var(--ease);
+}
+.Player-iconBtn:hover {
+  background: #1e1e22;
+}
+.Player-iconBtn:active {
+  transform: scale(0.88);
 }
 .Player-full {
-  padding: 12px 22px;
-  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 26px calc(22px + env(safe-area-inset-bottom));
+}
+.Player-bigArt {
+  width: min(64vw, 250px);
+  aspect-ratio: 1;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.6);
 }
 .Player-desc {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--ink-soft);
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: #8b8b93;
+  max-width: 340px;
+}
+.Player-progress {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: #8b8b93;
+  font-variant-numeric: tabular-nums;
+}
+.Player-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: #2a2a30;
+  overflow: hidden;
+}
+.Player-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #e879f9;
+}
+.Player-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+}
+.Player-ctl {
+  appearance: none;
+  border: none;
+  background: none;
+  color: #a1a1aa;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, transform 160ms var(--ease);
+}
+.Player-ctl:hover {
+  color: #fafafa;
+  background: #1e1e22;
+}
+.Player-ctl:active {
+  transform: scale(0.88);
+}
+.Player-playMain {
+  appearance: none;
+  border: none;
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fafafa;
+  color: #101013;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -8px rgba(255, 255, 255, 0.25);
+  transition: transform 160ms var(--ease);
+}
+.Player-playMain:active {
+  transform: scale(0.92);
+}
+.Player-like {
+  appearance: none;
+  border: 1px solid #2a2a30;
+  background: transparent;
+  color: #d4d4d8;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.Player-like:hover {
+  background: #1a1a1f;
 }

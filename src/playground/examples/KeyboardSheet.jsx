@@ -1,9 +1,13 @@
 import { Sheet } from "../../velvet/index.js";
+import { px } from "../px.js";
+import { IconMessage, IconSend } from "../icons.jsx";
 import "./KeyboardSheet.css";
 
 export const KeyboardSheet = () => (
   <Sheet.Root>
-    <Sheet.Trigger className="Btn">Open Keyboard Sheet</Sheet.Trigger>
+    <Sheet.Trigger className="Btn">
+      <IconMessage /> Open conversation
+    </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View className="Keyboard-view" nativeEdgeSwipePrevention>
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
@@ -11,15 +15,30 @@ export const KeyboardSheet = () => (
           <Sheet.BleedingBackground className="Keyboard-bg" />
           <Sheet.Handle className="Keyboard-handle" />
           <div className="Keyboard-body">
-            <Sheet.Title className="Keyboard-title">New message</Sheet.Title>
-            <Sheet.Description className="Keyboard-desc">
-              The composer stays pinned above the on-screen keyboard — the sheet resizes to the
-              visible viewport, so nothing is ever covered.
-            </Sheet.Description>
+            <div className="Keyboard-threadHead">
+              <img src={px(733872, 96, 96)} alt="Ava Laurent" />
+              <div>
+                <Sheet.Title className="Keyboard-title">Ava Laurent</Sheet.Title>
+                <span className="Keyboard-status">Online — replies fast</span>
+              </div>
+            </div>
+
+            <div className="Keyboard-thread">
+              <div className="Keyboard-bubble Keyboard-bubble--in">
+                Did you see the new gallery? The booking sheet feels straight out of iOS.
+              </div>
+              <div className="Keyboard-bubble Keyboard-bubble--out">
+                Just tried it — the swipe-down momentum is unreal.
+              </div>
+              <div className="Keyboard-bubble Keyboard-bubble--in">
+                Right? And the composer never hides under the keyboard.
+              </div>
+            </div>
+
             <div className="Keyboard-composer">
-              <input className="Keyboard-input" placeholder="Write a reply…" aria-label="Reply" />
-              <Sheet.Trigger action="dismiss" className="Btn Btn--primary Keyboard-send">
-                Send
+              <input className="Keyboard-input" placeholder="Message Ava…" aria-label="Message Ava" />
+              <Sheet.Trigger action="dismiss" className="Keyboard-send" aria-label="Send">
+                <IconSend size={16} />
               </Sheet.Trigger>
             </div>
           </div>

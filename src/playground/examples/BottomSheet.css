@@ -1,55 +1,180 @@
-.BottomSheet-view {
+.Booking-view {
   height: var(--velvet-100lvh);
 }
-
-.BottomSheet-content {
+.Booking-content {
   box-sizing: border-box;
   width: 100%;
   max-width: 560px;
-  padding: 10px 24px calc(28px + env(safe-area-inset-bottom));
+  padding: 10px 0 calc(20px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
-
-.BottomSheet-bg {
+.Booking-bg {
   border-radius: 28px 28px 0 0;
   background: var(--cream-surface);
   box-shadow:
     0 -0.5px 0 0 rgba(60, 50, 38, 0.06),
     0 -20px 50px -20px rgba(60, 45, 30, 0.18);
 }
-
-.BottomSheet-handle {
-  margin: 8px 0 18px;
-  background: var(--cream-line);
+.Booking-handle {
+  margin: 8px auto 14px;
+  background: #d8dce2;
 }
-
-.BottomSheet-body {
+.Booking-scroll {
+  /* No inner scroller — the sheet's own unified scroll carries both the
+     content and the swipe-to-dismiss gesture. */
+}
+.Booking-hero {
+  position: relative;
+  margin: 0 16px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.Booking-img {
+  display: block;
   width: 100%;
-  max-width: 420px;
-  text-align: center;
+  height: 218px;
+  object-fit: cover;
 }
-
-.BottomSheet-title {
-  margin: 0 0 10px;
-  font-size: 22px;
-  font-weight: 600;
+.Booking-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 6px 11px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px -4px rgba(2, 6, 23, 0.25);
+}
+.Booking-heroActions {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 8px;
+}
+.Booking-roundBtn {
+  appearance: none;
+  border: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px -4px rgba(2, 6, 23, 0.25);
+  cursor: pointer;
+  transition: transform 160ms var(--ease);
+}
+.Booking-roundBtn:active {
+  transform: scale(0.9);
+}
+.Booking-body {
+  padding: 18px 24px 0;
+}
+.Booking-titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.Booking-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
-
-.BottomSheet-desc {
-  margin: 0 0 26px;
-  font-size: 15.5px;
-  line-height: 1.55;
+.Booking-rating {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.Booking-rating svg {
+  color: #f59e0b;
+}
+.Booking-loc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  font-size: 14px;
   color: var(--ink-soft);
 }
-
-.BottomSheet-actions {
-  display: flex;
+.Booking-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 16px;
 }
-.BottomSheet-actions .Btn {
-  flex: 1;
+.Booking-fact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--cream-line);
+  border-radius: 14px;
+  color: var(--ink);
+}
+.Booking-fact div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.Booking-fact strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.Booking-fact span {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.Booking-priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cream-line);
+}
+.Booking-price {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.Booking-price strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-right: 4px;
+}
+.Booking-total {
+  display: block;
+  font-size: 12.5px;
+  text-decoration: underline;
+  margin-top: 2px;
+}
+.Booking-reserve {
+  flex: none;
+  padding: 13px 34px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+.Booking-note {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-soft);
 }

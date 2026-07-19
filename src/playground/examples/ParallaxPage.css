@@ -5,7 +5,7 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 560px;
-  height: calc(var(--velvet-100lvh) - 28px);
+  min-height: calc(var(--velvet-100lvh) - 28px);
   display: flex;
   flex-direction: column;
   background: var(--cream-surface);
@@ -15,45 +15,115 @@
 }
 .Parallax-hero {
   position: relative;
-  height: 230px;
+  height: 250px;
+  flex: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding-bottom: 18px;
 }
 .Parallax-heroImg {
   position: absolute;
   left: 0;
   right: 0;
-  top: -40px;
-  height: calc(100% + 110px);
-  background: linear-gradient(160deg, #4a90d9 0%, #6f6bd8 50%, #9b59b6 100%);
+  top: -60px;
+  height: calc(100% + 130px);
+  background-size: cover;
+  background-position: center 35%;
+}
+.Parallax-heroScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.55));
 }
 .Parallax-handle {
   position: relative;
-  margin: 8px 0 auto;
-  background: rgba(255, 255, 255, 0.7);
+  margin: 8px auto auto;
+  background: rgba(255, 255, 255, 0.65);
+}
+.Parallax-heroText {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 24px 18px;
+  text-align: left;
+}
+.Parallax-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
 }
 .Parallax-title {
+  display: block;
   position: relative;
-  margin: 0;
+  margin: 4px 0 0;
   color: #fff;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 .Parallax-body {
-  padding: 22px 24px;
+  padding: 20px 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+}
+.Parallax-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.Parallax-gallery img {
+  width: 100%;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.Parallax-quote {
+  margin: 0;
+  padding: 4px 0 4px 16px;
+  border-left: 3px solid #a7f3d0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.Parallax-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.Parallax-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  background: var(--cream-bg-2);
+  border: 1px solid var(--cream-line);
+  padding: 6px 11px;
+  border-radius: 999px;
 }
 .Parallax-desc {
   margin: 0;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
+  color: var(--ink-strong);
+  font-weight: 500;
+}
+.Parallax-p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.7;
   color: var(--ink-soft);
+}
+.Parallax-close {
+  align-self: flex-start;
+  margin-top: 4px;
 }
