@@ -26,7 +26,7 @@ try {
   browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
-  await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
+  await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1, hasTouch: true });
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
 
@@ -42,25 +42,39 @@ try {
   check("opens to intermediate detent", p1 > 0.55 && p1 < 0.78, `progress=${p1.toFixed(2)}`);
 
   // Step up → full detent (~1).
-  await page.click(".DetentSheet-expand");
+  await page.click(
+    '[data-velvet="view"]:not([data-velvet-preview]) .DetentSheet-expand'
+  );
   await idle();
   const p2 = await progress();
   check("step up reaches full detent", p2 > 0.92, `progress=${p2.toFixed(2)}`);
 
-  // Real drag from full: grab the handle (near the viewport top) and pull down →
-  // dismiss. Regression guard: a text-selection drag used to fire pointercancel
-  // here, so the sheet wouldn't budge from full.
-  const g = await page.$eval('[data-velvet="content"]', (el) => {
-    const r = el.getBoundingClientRect();
-    return { cx: Math.round(r.x + r.width / 2), top: Math.round(r.y) };
+  // Real compositor swipe from full → dismiss. Mouse-drag emulation is
+  // deliberately not used; Sheet's authoritative gesture path is native
+  // scroll-snap.
+  const g = await page.$eval(
+    '[data-velvet="view"]:not([data-velvet-preview]) [data-velvet="content"]',
+    (el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        x: Math.round(r.x + r.width / 2),
+        y: Math.round(r.y + Math.min(120, r.height / 2)),
+      };
+    }
+  );
+  const cdp = await page.createCDPSession();
+  await cdp.send("Input.synthesizeScrollGesture", {
+    x: g.x,
+    y: g.y,
+    xDistance: 0,
+    yDistance: 900,
+    speed: 4200,
+    gestureSourceType: "touch",
+    repeatCount: 0,
   });
-  await page.mouse.move(g.cx, g.top + 14);
-  await page.mouse.down();
-  for (let i = 1; i <= 20; i++) await page.mouse.move(g.cx, g.top + 14 + i * 16, { steps: 1 });
-  await page.mouse.up();
   await page.waitForFunction(() => window.__velvet.count() === 0, { timeout: 5000 }).catch(() => {});
   const count = await page.evaluate(() => window.__velvet.count());
-  check("drag down from full dismisses", count === 0, `count=${count}`);
+  check("native swipe down from full dismisses", count === 0, `count=${count}`);
 
   console.log(pass ? "\nALL PASS\n" : "\nFAILED\n");
 } catch (e) {

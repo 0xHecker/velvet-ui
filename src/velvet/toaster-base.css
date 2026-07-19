@@ -1,0 +1,167 @@
+/* Structural toast styles. Visual surface, color, type, and shadow choices
+   live in Toaster.css and are included by the optional styles.css entry. */
+.Toaster {
+  position: fixed;
+  z-index: var(--velvet-z-toast, 9999);
+  width: var(--velvet-toast-width, 360px);
+  max-width: calc(100vw - 32px);
+  height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  --velvet-toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.Toaster--bottom-right {
+  right: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-right));
+  bottom: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-bottom));
+}
+.Toaster--bottom-left {
+  bottom: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-bottom));
+  left: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-left));
+}
+.Toaster--bottom-center {
+  bottom: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.Toaster--top-right {
+  top: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-top));
+  right: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-right));
+}
+.Toaster--top-left {
+  top: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-top));
+  left: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-left));
+}
+.Toaster--top-center {
+  top: max(var(--velvet-toast-offset, 24px), env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.Toast {
+  position: absolute;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--velvet-toast-content-gap, 12px);
+  transition:
+    transform 0.42s var(--velvet-toast-ease),
+    opacity 0.3s var(--velvet-toast-ease);
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+}
+.Toaster--bottom-right .Toast,
+.Toaster--bottom-left .Toast,
+.Toaster--bottom-center .Toast {
+  bottom: 0;
+  transform-origin: bottom center;
+}
+.Toaster--top-right .Toast,
+.Toaster--top-left .Toast,
+.Toaster--top-center .Toast {
+  top: 0;
+  transform-origin: top center;
+}
+.Toast[data-exiting="true"] {
+  transition:
+    transform 0.3s var(--velvet-toast-ease),
+    opacity 0.22s var(--velvet-toast-ease);
+}
+.Toast[data-dragging],
+.Toast[data-swipe-out] {
+  transition: none;
+}
+.Toast::before,
+.Toast::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 22px;
+  content: "";
+}
+.Toast::before { bottom: 100%; }
+.Toast::after { top: 100%; }
+.Toast-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+}
+.Toast-spinner {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: velvet-spin 0.6s linear infinite;
+}
+.Toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.Toast-act,
+.Toast-cancel,
+.Toast-x {
+  flex: 0 0 auto;
+}
+.Toast-x {
+  position: relative;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+}
+.Toast-x::before {
+  position: absolute;
+  inset: -7px;
+  content: "";
+}
+.Toast[data-front="true"]:hover .Toast-x,
+.Toaster[data-expanded] .Toast-x,
+.Toast:focus-within .Toast-x,
+.Toast-x:focus-visible {
+  opacity: 1;
+}
+
+/* Announcement nodes stay in the accessibility tree but never enter the
+   moving visual stack. This rule is structural and must also ship unstyled. */
+.Toast-liveRegion {
+  position: fixed !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Toast {
+    transition: opacity 0.2s ease;
+  }
+}
+
+@media (max-width: 520px) {
+  .Toaster {
+    width: auto;
+    right: max(16px, env(safe-area-inset-right));
+    left: max(16px, env(safe-area-inset-left));
+    max-width: none;
+  }
+  .Toaster--top-center,
+  .Toaster--bottom-center {
+    transform: none;
+  }
+}
+
+@keyframes velvet-spin {
+  to { transform: rotate(360deg); }
+}

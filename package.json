@@ -1,24 +1,90 @@
 {
   "name": "velvet-ui",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
   "description": "Velvet UI — native-like swipeable sheets for the web. Spring physics + WAAPI.",
+  "keywords": [
+    "react",
+    "sheet",
+    "bottom-sheet",
+    "toast",
+    "swipe",
+    "scroll-snap",
+    "headless-ui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xHecker/velvet-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0xHecker/velvet-ui/issues"
+  },
+  "homepage": "https://github.com/0xHecker/velvet-ui#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./sheet": {
+      "types": "./dist/sheet.d.ts",
+      "import": "./dist/sheet.js",
+      "require": "./dist/sheet.cjs"
+    },
+    "./toast": {
+      "types": "./dist/toast.d.ts",
+      "import": "./dist/toast.js",
+      "require": "./dist/toast.cjs"
+    },
+    "./base.css": "./dist/base.css",
+    "./velvet.css": "./dist/base.css",
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview --port 4317",
+    "build": "npm run build:demo && npm run build:lib",
+    "build:demo": "vite build --outDir demo-dist",
+    "build:lib": "vite build --config vite.lib.config.js",
+    "types:check": "tsc -p tsconfig.types.json && tsc -p tsconfig.nodenext.json",
+    "typecheck": "npm run build:lib && npm run types:check",
+    "verify:package": "node --input-type=module --eval \"const root=await import('velvet-ui'); const sheet=await import('velvet-ui/sheet'); const toast=await import('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('velvet-ui'); const sheet=require('velvet-ui/sheet'); const toast=require('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('CJS export identity mismatch')\"",
+    "verify:sheet": "node scripts/sheet-api.mjs && node scripts/gesture-boundaries.mjs && node scripts/preview-hover.mjs && node scripts/stacking.mjs && node scripts/detent.mjs && node scripts/drag.mjs",
+    "verify:toast": "node scripts/toast.mjs && node scripts/toast-drag.mjs",
+    "verify": "npm run build && npm run types:check && npm run verify:package && npm run verify:sheet && npm run verify:toast",
+    "test": "npm run verify",
+    "prepack": "npm run typecheck",
+    "pack:check": "npm pack --dry-run",
+    "preview": "vite preview --outDir demo-dist --port 4317",
     "shots": "node scripts/screenshot.mjs"
   },
-  "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  },
   "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
     "puppeteer": "^25.2.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-grab": "^0.1.44",
     "sharp": "^0.33.5",
+    "typescript": "^5.9.3",
     "vite": "^5.4.11"
   }
 }

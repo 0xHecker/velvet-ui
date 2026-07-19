@@ -1,5 +1,3 @@
-import "./velvet.css";
-
 export { Sheet } from "./Sheet.jsx";
 export { Scroll } from "./Scroll.jsx";
 export { SheetStack } from "./SheetStack.jsx";

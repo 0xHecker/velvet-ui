@@ -1,0 +1,75 @@
+/* Optional Velvet sheet skin. The motion/portal/snap mechanics live in
+   base.css; this file only supplies visual defaults for Sheet.Panel and the
+   standard backdrop/handle. Product classes can override every token. */
+:root {
+  --velvet-panel-background: #fff;
+  --velvet-panel-foreground: #171923;
+  --velvet-panel-radius: 24px;
+  --velvet-panel-padding: 20px;
+  --velvet-panel-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 16px 48px -20px rgba(15, 23, 42, 0.35);
+}
+
+[data-velvet="backdrop"] {
+  --velvet-backdrop-background: #000;
+}
+
+[data-velvet="handle"] {
+  --velvet-handle-background: color-mix(in srgb, currentColor 24%, transparent);
+}
+
+[data-velvet-panel] {
+  width: min(100%, 40rem);
+  max-height: calc(var(--velvet-100lvh) - 16px);
+  overflow: auto;
+  padding: var(--velvet-panel-padding);
+  background: var(--velvet-panel-background);
+  color: var(--velvet-panel-foreground);
+  box-shadow: var(--velvet-panel-shadow);
+}
+
+[data-velvet-panel] > [data-velvet="handle"] {
+  display: block;
+  margin: -8px auto 16px;
+}
+
+[data-velvet-placement="bottom"] > [data-velvet-panel] {
+  border-radius: var(--velvet-panel-radius) var(--velvet-panel-radius) 0 0;
+}
+[data-velvet-placement="top"] > [data-velvet-panel] {
+  border-radius: 0 0 var(--velvet-panel-radius) var(--velvet-panel-radius);
+}
+[data-velvet-placement="left"] > [data-velvet-panel] {
+  width: min(92vw, 26rem);
+  height: 100%;
+  max-height: none;
+  border-radius: 0 var(--velvet-panel-radius) var(--velvet-panel-radius) 0;
+}
+[data-velvet-placement="right"] > [data-velvet-panel] {
+  width: min(92vw, 26rem);
+  height: 100%;
+  max-height: none;
+  border-radius: var(--velvet-panel-radius) 0 0 var(--velvet-panel-radius);
+}
+[data-velvet-placement="center"] > [data-velvet-panel] {
+  width: min(calc(100vw - 32px), 32rem);
+  border-radius: var(--velvet-panel-radius);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --velvet-panel-background: #18191d;
+    --velvet-panel-foreground: #f7f7f8;
+    --velvet-panel-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.24),
+      0 20px 56px -20px rgba(0, 0, 0, 0.72);
+  }
+}
+
+@media (max-width: 520px) {
+  :root {
+    --velvet-panel-radius: 20px;
+    --velvet-panel-padding: 18px;
+  }
+}

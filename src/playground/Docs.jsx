@@ -10,84 +10,74 @@ pnpm add velvet-ui
 yarn add velvet-ui`;
 
 const quickStartCode = `import { Sheet } from "velvet-ui";
-import "velvet-ui/velvet.css";
+import "velvet-ui/styles.css";
 
 export function Example() {
   return (
-    <Sheet.Root>
+    <Sheet>
       <Sheet.Trigger className="btn">Open</Sheet.Trigger>
 
-      <Sheet.Portal>
-        <Sheet.View className="view">
-          <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
-
-          <Sheet.Content className="panel">
-            <Sheet.Handle />
-            <Sheet.Title>A native-like sheet</Sheet.Title>
-            <Sheet.Description>
-              Swipe it down, flick it, or tap outside to close.
-            </Sheet.Description>
-            <Sheet.Trigger action="dismiss" className="btn">Got it</Sheet.Trigger>
-          </Sheet.Content>
-        </Sheet.View>
-      </Sheet.Portal>
-    </Sheet.Root>
+      <Sheet.Panel side="bottom" className="panel">
+        <Sheet.Title>A native-like sheet</Sheet.Title>
+        <Sheet.Description>
+          Swipe it down, flick it, or tap outside to close.
+        </Sheet.Description>
+        <Sheet.Close className="btn">Got it</Sheet.Close>
+      </Sheet.Panel>
+    </Sheet>
   );
 }`;
 
 const controlledCode = `const [open, setOpen] = useState(false);
 
-<Sheet.Root presented={open} onPresentedChange={setOpen}>
+<Sheet open={open} onOpenChange={setOpen}>
   {/* ... */}
-</Sheet.Root>
+</Sheet>
 
 // Open or close it from anywhere in your app.
 <button onClick={() => setOpen(true)}>Open from outside</button>`;
 
 const placementCode = `// The edge the sheet travels from.
-<Sheet.View contentPlacement="bottom" />   {/* default */}
-<Sheet.View contentPlacement="top" />
-<Sheet.View contentPlacement="left" />
-<Sheet.View contentPlacement="right" />
-<Sheet.View contentPlacement="center" />   {/* modals, lightboxes */}`;
+<Sheet.Panel side="bottom" />   {/* default */}
+<Sheet.Panel side="top" />
+<Sheet.Panel side="left" />
+<Sheet.Panel side="right" />
+<Sheet.Panel side="center" />   {/* modals, lightboxes */}`;
 
 const detentsCode = `// One rest stop at 60% of the large viewport height.
-<Sheet.Root defaultActiveDetent={1}>
-  <Sheet.View detents="60lvh">{/* ... */}</Sheet.View>
-</Sheet.Root>
+<Sheet defaultSnap={1}>
+  <Sheet.Panel snapPoints="60lvh">{/* ... */}</Sheet.Panel>
+</Sheet>
 
 // Several stops. The index is 1-based:
 //   0 = closed, 1 = "40lvh", 2 = "80lvh", 3 = fully open.
-<Sheet.Root defaultActiveDetent={1}>
-  <Sheet.View detents={["40lvh", "80lvh"]}>{/* ... */}</Sheet.View>
-</Sheet.Root>
+<Sheet defaultSnap={1}>
+  <Sheet.Panel snapPoints={["40lvh", "80lvh"]}>{/* ... */}</Sheet.Panel>
+</Sheet>
 
-// Move between detents with a Trigger.
-<Sheet.Trigger action={{ type: "step", direction: "up" }}>Expand</Sheet.Trigger>
-<Sheet.Trigger action={{ type: "step", direction: "down" }}>Collapse</Sheet.Trigger>
-<Sheet.Trigger action={{ type: "step", detent: 2 }}>Go to stop 2</Sheet.Trigger>`;
+// Move between snap points with an intent-revealing Step.
+<Sheet.Step direction="up">Expand</Sheet.Step>
+<Sheet.Step direction="down">Collapse</Sheet.Step>
+<Sheet.Step snapTo={2}>Go to stop 2</Sheet.Step>`;
 
 const persistentCode = `// A persistent mini-player: a swipe down collapses it to the
-// mini detent instead of dismissing. Only an explicit action closes it.
-<Sheet.Root defaultActiveDetent={1}>
-  <Sheet.View
-    detents="94px"
-    swipeDismissal={false}   // a downward swipe collapses, never dismisses
-    inertOutside={false}     // non-modal: the page stays interactive
-    onEscapeKeyDown={{ dismiss: false }}
+// mini snap instead of dismissing. Sheet.Close or Escape still closes it.
+<Sheet defaultSnap={1}>
+  <Sheet.Panel
+    snapPoints="94px"
+    dismissible={false} // a downward swipe collapses, never dismisses
+    modal={false}       // non-modal: the page stays interactive
   >
-    <Sheet.Content>
-      {/* mini bar + expanded body */}
-      <Sheet.Trigger action={{ type: "step", direction: "up" }}>Expand</Sheet.Trigger>
-      <Sheet.Trigger action="dismiss">Close</Sheet.Trigger>
-    </Sheet.Content>
-  </Sheet.View>
-</Sheet.Root>`;
+    {/* mini bar + expanded body */}
+    <Sheet.Step direction="up">Expand</Sheet.Step>
+    <Sheet.Close>Close</Sheet.Close>
+  </Sheet.Panel>
+</Sheet>`;
 
 const dismissalCode = `<Sheet.View
-  swipe={true}             // enable drag and swipe gestures (default)
-  swipeDismissal={true}    // a swipe toward closed can dismiss (default)
-  inertOutside={true}      // modal: lock the page and treat outside as inert (default)
+  draggable={true}       // enable drag and swipe gestures (default)
+  dismissible={true}     // a swipe toward closed can dismiss (default)
+  modal={true}           // lock the page and treat outside as inert (default)
 
   // Keep a click on the backdrop from closing the sheet.
   onClickOutside={{ dismiss: false }}
@@ -99,7 +89,7 @@ const dismissalCode = `<Sheet.View
 />
 
 // alertdialog ignores outside-click and Escape dismissal by default.
-<Sheet.Root sheetRole="alertdialog">{/* ... */}</Sheet.Root>`;
+<Sheet sheetRole="alertdialog">{/* ... */}</Sheet>`;
 
 const travelCode = `// Each property is [from, to], a function of progress, or a literal.
 // progress runs 0 (closed) to 1 (open).
@@ -125,17 +115,14 @@ const springCode = `// Presets: gentle · smooth (default) · snappy · brisk ·
   exitingAnimationSettings="brisk"
 />
 
-// Override a preset.
-<Sheet.View enteringAnimationSettings={{ preset: "snappy", stiffness: 420 }} />
-
-// Or define the spring outright.
+// Presets are atomic. Define the spring outright to tune individual values.
 <Sheet.View
-  enteringAnimationSettings={{ stiffness: 380, damping: 32, mass: 0.9 }}
+  enteringAnimationSettings={{ easing: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
 />`;
 
-const triggerCode = `<Sheet.Trigger>Open</Sheet.Trigger>                  {/* action="present" (default) */}
-<Sheet.Trigger action="dismiss">Close</Sheet.Trigger>
-<Sheet.Trigger action={{ type: "step", direction: "up" }}>Expand</Sheet.Trigger>
+const triggerCode = `<Sheet.Trigger>Open</Sheet.Trigger>                  {/* action="open" (default) */}
+<Sheet.Close>Close</Sheet.Close>
+<Sheet.Step direction="up">Expand</Sheet.Step>
 
 // asChild lets you keep your own element and styles.
 <Sheet.Trigger asChild>
@@ -211,16 +198,20 @@ toast.dismiss(id);
 toast.dismiss();`;
 
 const toastPromiseCode = `toast.promise(saveSettings(), {
-  loading: "Saving…",
-  success: "Settings saved",
-  error: "Could not save",
+  loading: { message: "Saving…", description: "Draft 4" },
+  success: { message: "Settings saved", duration: 2500 },
+  error: { message: "Could not save", duration: 6000 },
+  finally: () => setSaving(false),
 });
 
 // success and error can read the resolved or rejected value.
 toast.promise(uploadFile(file), {
   loading: "Uploading…",
-  success: (res) => \`Uploaded \${res.name}\`,
-  error: (err) => err.message,
+  success: (res) => ({ message: \`Uploaded \${res.name}\`, description: "Ready" }),
+  error: (err) => ({
+    message: "Upload failed",
+    description: err instanceof Error ? err.message : String(err),
+  }),
 });`;
 
 const scrollCode = `import { Scroll } from "velvet-ui";
@@ -256,22 +247,24 @@ const stackCode = `import { Sheet, SheetStack } from "velvet-ui";
 /* -------------------------------------------------------------- prop tables */
 
 const rootProps = [
-  ["presented", "boolean", "", "Controlled open state. Pair with onPresentedChange."],
-  ["defaultPresented", "boolean", "false", "Uncontrolled initial open state."],
-  ["onPresentedChange", "(presented) => void", "", "Called when the sheet opens or closes."],
-  ["defaultActiveDetent", "number", "", "Detent index to open at. 1-based, see Detents."],
-  ["activeDetent", "number", "", "Controlled detent index."],
-  ["onActiveDetentChange", "(index) => void", "", "Called when the active detent changes."],
+  ["open", "boolean", "", "Controlled open state. Pair with onOpenChange."],
+  ["defaultOpen", "boolean", "false", "Uncontrolled initial open state."],
+  ["onOpenChange", "(open) => void", "", "Called when the sheet opens or closes."],
+  ["defaultSnap", "number", "", "Initial snap index. 1-based, see Snap points."],
+  ["snap", "number", "", "Controlled snap index."],
+  ["onSnapChange", "(index) => void", "", "Called when the active snap changes."],
+  ["established aliases", "presented / activeDetent", "", "The earlier names remain supported for backward compatibility."],
   ["sheetRole", '"dialog" | "alertdialog"', '"dialog"', "ARIA role. alertdialog keeps outside-click and Escape from dismissing by default."],
   ["license", "string", "", "Accepted for API parity. No runtime effect."],
 ];
 
 const viewProps = [
-  ["contentPlacement", '"bottom" | "top" | "left" | "right" | "center"', '"bottom"', "Edge the sheet travels from."],
-  ["detents", "string | string[]", "", "Intermediate rest stops as CSS lengths, e.g. \"60lvh\"."],
-  ["swipe", "boolean", "true", "Enable drag and swipe gestures."],
-  ["swipeDismissal", "boolean", "true", "Whether a swipe toward closed can dismiss. false makes the sheet persistent."],
-  ["inertOutside", "boolean", "true", "Modal by default: locks page scroll and treats the outside as inert. false keeps the page interactive."],
+  ["side", '"bottom" | "top" | "left" | "right" | "center"', '"bottom"', "Edge the sheet travels from."],
+  ["snapPoints", "string | string[]", "", "Intermediate rest stops as CSS lengths, e.g. \"60lvh\"."],
+  ["draggable", "boolean", "true", "Enable native drag and swipe gestures."],
+  ["dismissible", "boolean", "true", "Whether a swipe toward closed can dismiss. false makes the sheet persistent."],
+  ["modal", "boolean", "true", "Locks page scroll and treats the outside as inert. false keeps the page interactive."],
+  ["established aliases", "contentPlacement / detents / swipe / swipeDismissal / inertOutside", "", "Earlier names remain supported."],
   ["enteringAnimationSettings", "Spring", '"smooth"', "Spring used when opening."],
   ["exitingAnimationSettings", "Spring", '"smooth"', "Spring used when closing."],
   ["onTravel", "({ progress }) => void", "", "Fires as travel progress changes."],
@@ -294,19 +287,24 @@ const contentProps = [
 ];
 
 const triggerProps = [
-  ["action", '"present" | "dismiss" | "step" | StepSpec', '"present"', "What pressing the trigger does. StepSpec = { type: \"step\", direction?, detent? }."],
+  ["action", '"open" | "close" | "toggle" | "step" | StepSpec', '"open"', "What pressing the trigger does. present/dismiss remain supported aliases."],
+  ["snapTo", "number", "", "Move directly to a snap index. Sheet.Step offers the clearest shorthand."],
   ["onPress", "(event) => void", "", "Called before the action runs."],
   ["asChild", "boolean", "false", "Render your own element instead of a button."],
 ];
 
 const toasterProps = [
-  ["position", '"top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"', '"bottom-right"', "Where the stack sits."],
+  ["position", '"top|bottom" + "left|center|right|start|end"', '"bottom-right"', "Where the stack sits. start/end follow RTL."],
   ["duration", "number", "4000", "Default visible time in ms. A per-toast duration wins."],
   ["gap", "number", "14", "Pixels between toasts when the stack is expanded."],
   ["stack", "boolean", "true", "Collapse into a stack and expand on hover. false keeps a list."],
+  ["expand", "boolean", "false", "Keep the stack expanded. Focus also expands it automatically."],
+  ["visibleToasts", "number", "3", "Maximum active toasts mounted at once; overflow waits in a queue."],
   ["closeButton", "boolean", "true", "Show a close button on dismissable toasts."],
   ["richColors", "boolean", "false", "Tint toasts by variant."],
-  ["swipeDirections", '("top" | "bottom" | "left" | "right")[]', "from position", "Directions a toast can be flicked away."],
+  ["swipeDirections", '("top" | "bottom" | "left" | "right" | "start" | "end")[]', "from position", "Directions a toast can be flicked away."],
+  ["hotkey", "string[] | null", '["altKey", "KeyT"]', "Focus the front toast. null disables the shortcut."],
+  ["classNames / toastOptions / unstyled", "styling hooks", "", "Style every slot or opt out of the default skin."],
 ];
 
 const toastMethods = [
@@ -314,7 +312,8 @@ const toastMethods = [
   ["toast.success / error / info / warning / message", "Variant toasts with the same signature."],
   ["toast.loading(message, options?)", "A spinner toast with duration set to Infinity."],
   ["toast.custom(content, options?)", "Render arbitrary content. content may be (id) => ReactNode."],
-  ["toast.promise(promise, { loading, success, error })", "Track a promise. success and error may be functions of the value."],
+  ["toast.update(id, patch)", "Update an active toast in place."],
+  ["toast.promise(promise, { loading, success, error, finally })", "Track a promise. Each phase can return rich message/description/duration options."],
   ["toast.dismiss(id?)", "Dismiss one toast, or all of them when id is omitted."],
 ];
 
@@ -325,6 +324,10 @@ const toastOpts = [
   ["action", "{ label, onClick }", "", "A button rendered inside the toast."],
   ["icon", "ReactNode", "", "Override the leading glyph."],
   ["dismissible", "boolean", "true", "Whether it can be swiped away or closed."],
+  ["important", "boolean", "false", "Announce through the assertive live region."],
+  ["cancel", "{ label, onClick }", "", "Optional secondary action."],
+  ["onDismiss / onAutoClose", "(toast, detail) => void", "", "Lifecycle callbacks with a dismissal reason."],
+  ["className / classNames / style / unstyled", "styling hooks", "", "Per-toast overrides compatible with any styling system."],
 ];
 
 const scrollProps = [
@@ -347,10 +350,11 @@ const utilityExports = [
 ];
 
 const anatomy = [
-  ["Sheet.Root", "Owns presentation and detent state. Provides context to every part."],
-  ["Sheet.Trigger", "A button that presents, dismisses, or steps between detents."],
+  ["Sheet / Sheet.Root", "Owns open and snap state. Both forms are the same component."],
+  ["Sheet.Panel", "Common-case portal, view, backdrop, content, and handle composition."],
+  ["Sheet.Trigger / Close / Step", "Intent-revealing controls for opening, closing, or changing snap points."],
   ["Sheet.Portal", "Renders the sheet into a portal at the document root."],
-  ["Sheet.View", "The travel surface. Holds placement, detents, gestures, and modality."],
+  ["Sheet.View", "The advanced travel surface. Holds placement, snap points, gestures, and modality."],
   ["Sheet.Backdrop", "The dimming layer behind the panel."],
   ["Sheet.Content", "The panel itself."],
   ["Sheet.BleedingBackground", "A background that bleeds past the panel edges as it travels."],
@@ -370,7 +374,7 @@ const SECTIONS = [
   { id: "anatomy", label: "Anatomy", group: "Sheet" },
   { id: "open-state", label: "Open state", group: "Sheet" },
   { id: "placement", label: "Placement", group: "Sheet" },
-  { id: "detents", label: "Detents", group: "Sheet" },
+  { id: "detents", label: "Snap points", group: "Sheet" },
   { id: "dismissal", label: "Dismissal and modality", group: "Sheet" },
   { id: "travel-animation", label: "Travel animation", group: "Sheet" },
   { id: "springs", label: "Spring settings", group: "Sheet" },
@@ -568,10 +572,12 @@ export const Docs = () => {
           Styling
         </h2>
         <p className="Docs-p">
-          Import the structural stylesheet once, near the entry point of your app. It carries the
-          scroll-snap machinery and nothing about color or shape, so it will not fight your design.
+          Import one explicit CSS entry near your app root. <code>base.css</code> carries only
+          layout and scroll-snap machinery; <code>styles.css</code> adds Velvet&apos;s optional skin.
         </p>
-        <CodeBlock lang="ts">{`import "velvet-ui/velvet.css";`}</CodeBlock>
+        <CodeBlock lang="ts">{`import "velvet-ui/base.css";   // unstyled
+// or
+import "velvet-ui/styles.css"; // optional default theme`}</CodeBlock>
         <p className="Docs-p">
           Every part forwards <code>className</code> and <code>style</code>, and accepts{" "}
           <code>asChild</code> to render your own element instead of the default tag.
@@ -582,8 +588,8 @@ export const Docs = () => {
           Sheet quick start
         </h2>
         <p className="Docs-p">
-          Compose the parts. Each one maps to a role, and only <code>Sheet.Root</code>,{" "}
-          <code>Sheet.View</code>, and <code>Sheet.Content</code> are required.
+          Use <code>Sheet.Panel</code> for the common path. It composes the portal, view,
+          backdrop, content, and handle while every primitive remains available.
         </p>
         <CodeBlock lang="tsx">{quickStartCode}</CodeBlock>
 
@@ -600,7 +606,7 @@ export const Docs = () => {
         </h2>
         <p className="Docs-p">
           Leave it uncontrolled and let a <code>Sheet.Trigger</code> drive it, or control it
-          yourself with <code>presented</code> and <code>onPresentedChange</code> to open it from
+          yourself with <code>open</code> and <code>onOpenChange</code> to open it from
           anywhere.
         </p>
         <CodeBlock lang="tsx">{controlledCode}</CodeBlock>
@@ -610,27 +616,27 @@ export const Docs = () => {
           Placement
         </h2>
         <p className="Docs-p">
-          <code>contentPlacement</code> sets the edge the sheet travels from. Use{" "}
+          <code>side</code> sets the edge the sheet travels from. Use{" "}
           <code>center</code> for dialogs and lightboxes that scale into the middle of the screen.
         </p>
         <CodeBlock lang="tsx">{placementCode}</CodeBlock>
 
         {/* ----------------------------------------------------- Detents */}
         <h2 className="Docs-h2" id="detents">
-          Detents
+          Snap points
         </h2>
         <p className="Docs-p">
-          Detents are intermediate rest stops between closed and fully open. Give{" "}
-          <code>detents</code> a CSS length, or an array of them, and the sheet measures each
-          against its travel to find the stop. The active detent is a 1-based index:{" "}
+          Snap points are intermediate rest stops between closed and fully open. Give{" "}
+          <code>snapPoints</code> a CSS length, or an array of them, and the sheet measures each
+          against its travel to find the stop. The active snap is a 1-based index:{" "}
           <code>0</code> is closed, <code>1</code> is the first stop, and the last index is fully
           open.
         </p>
         <CodeBlock lang="tsx">{detentsCode}</CodeBlock>
         <p className="Docs-p">
-          Opening snaps to a detent. Closing never stops at one: a swipe toward closed dismisses,
-          exactly like a sheet with no detents. To keep a sheet from dismissing, set{" "}
-          <code>swipeDismissal={`{false}`}</code> and it collapses to the next lower detent
+          Opening snaps to a visible stop. Closing never stops at one: a swipe toward closed dismisses,
+          exactly like a sheet with no snap points. To keep a sheet from dismissing, set{" "}
+          <code>dismissible={`{false}`}</code> and it collapses to the next lower snap point
           instead.
         </p>
         <CodeBlock lang="tsx">{persistentCode}</CodeBlock>
@@ -670,8 +676,8 @@ export const Docs = () => {
         </h2>
         <p className="Docs-p">
           <code>enteringAnimationSettings</code> and <code>exitingAnimationSettings</code> accept a
-          preset name, a preset with overrides, or a full spring definition. The same shape works
-          anywhere a spring is expected.
+          preset name or a full spring definition. Presets are atomic; use
+          <code> easing=&quot;spring&quot;</code> in an object when tuning individual values.
         </p>
         <CodeBlock lang="tsx">{springCode}</CodeBlock>
         <PropTable
@@ -714,7 +720,7 @@ export const Docs = () => {
         <h2 className="Docs-h2" id="sheet-api">
           Sheet API
         </h2>
-        <h3 className="Docs-h3">Sheet.Root</h3>
+        <h3 className="Docs-h3">Sheet / Sheet.Root</h3>
         <PropTable rows={rootProps} />
         <h3 className="Docs-h3">Sheet.View</h3>
         <PropTable rows={viewProps} />
@@ -735,8 +741,8 @@ export const Docs = () => {
         </h2>
         <p className="Docs-p">
           Render one <code>&lt;Toaster /&gt;</code> near the root of your app, then call{" "}
-          <code>toast()</code> from anywhere. Toasts stack, expand on hover, and dismiss with a
-          flick.
+          <code>toast()</code> from client code. Toasts stack, expand on hover or focus, queue,
+          and dismiss with a flick. <kbd>Alt</kbd>+<kbd>T</kbd> focuses the front toast.
         </p>
         <CodeBlock lang="tsx">{toastQuickStartCode}</CodeBlock>
 
@@ -763,6 +769,7 @@ export const Docs = () => {
   duration={5000}
   gap={12}
   stack
+  visibleToasts={3}
   richColors
   closeButton
   swipeDirections={["top", "right"]}
@@ -784,8 +791,8 @@ export const Docs = () => {
         </h2>
         <p className="Docs-p">
           <code>toast.promise</code> shows a loading toast, then swaps it for a success or error
-          message when the promise settles. The success and error messages may be functions of the
-          resolved or rejected value.
+          message when the promise settles. Each phase can return a message, description, duration,
+          and action; success and error functions receive the settled value.
         </p>
         <CodeBlock lang="tsx">{toastPromiseCode}</CodeBlock>
 

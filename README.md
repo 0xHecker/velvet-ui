@@ -1,144 +1,323 @@
 # Velvet UI
 
-Native-feeling, swipeable overlay components for the web — bottom sheets, modals,
-sidebars, top sheets, detent sheets, toasts, and stacked sheets — built on one
-spring-physics motion model and a small compound-component API.
+Native-feeling sheets and production-ready toasts for React 18 and 19. Sheet
+gestures use the browser's scroll-snap momentum; programmatic travel uses a
+fixed-timestep spring sampled into WAAPI.
 
-The motion is driven by a fixed-timestep damped-spring integrator and the browser's
-own scroll-snap engine, so swipes carry real momentum and respect the OS scroll
-direction. Components ship unstyled; you bring the CSS.
-
-## Run the playground
+## Install
 
 ```bash
-npm install
-npm run dev      # Vite dev server — open the printed URL
+npm install velvet-ui
 ```
 
-The playground (`src/playground`) is a gallery of every pattern, staged as real
-product demos (booking, music, commerce, chat, and more — photos by Pexels).
+Choose one CSS entry at your application root:
 
-## Install in your app
+```tsx
+// Functional layout only. No surfaces, colors, shadows, or typography.
+import "velvet-ui/base.css";
 
-The library lives in `src/velvet`. It works on **React 18 and 19** (it uses no
-React-19-only APIs). Import what you need and the structural CSS:
-
-```jsx
-import { Sheet } from "./velvet"; // pulls in velvet.css via the barrel
+// Or: base styles plus Velvet's optional sheet and toast skin.
+import "velvet-ui/styles.css";
 ```
 
-## Components
+JavaScript imports have no CSS side effects. Tailwind, CSS Modules,
+styled-components, vanilla CSS, and other styling systems can all use the same
+unstyled primitives.
 
-### `Sheet`
-A swipeable overlay. Compose the parts you need:
+## Sheet quick start
 
-```jsx
+`Sheet` is both the root component and a compound namespace. `Sheet.Panel` is
+the concise path: it composes the portal, travel view, backdrop, content, and
+handle while leaving the lower-level parts available.
+
+```tsx
+import { Sheet } from "velvet-ui/sheet";
+import "velvet-ui/styles.css";
+
+export function ProfileSheet() {
+  return (
+    <Sheet>
+      <Sheet.Trigger>Edit profile</Sheet.Trigger>
+
+      <Sheet.Panel
+        side="bottom"
+        className="profile-sheet"
+        backdropProps={{ className: "profile-backdrop" }}
+      >
+        <Sheet.Title>Edit profile</Sheet.Title>
+        <Sheet.Description>
+          Changes sync across your devices.
+        </Sheet.Description>
+
+        <ProfileForm />
+        <Sheet.Close>Done</Sheet.Close>
+      </Sheet.Panel>
+    </Sheet>
+  );
+}
+```
+
+`Sheet.Panel` defaults to a backdrop, a handle, a body portal, bottom
+placement, modal behavior, and swipe dismissal. Each can be changed or
+disabled:
+
+```tsx
+<Sheet.Panel
+  side="right"
+  snapPoints={["24rem", "90dvw"]}
+  modal={false}
+  dismissible={false}
+  draggable
+  portal={false}
+  backdrop={false}
+  handle={false}
+  viewProps={{ enteringAnimationSettings: "snappy" }}
+>
+  {/* ... */}
+</Sheet.Panel>
+```
+
+### Controlled state and snap points
+
+```tsx
+const [open, setOpen] = useState(false);
+const [snap, setSnap] = useState(1);
+
+<Sheet
+  open={open}
+  onOpenChange={setOpen}
+  snap={snap}
+  onSnapChange={setSnap}
+>
+  <Sheet.Trigger>Open queue</Sheet.Trigger>
+  <Sheet.Panel side="bottom" snapPoints={["96px", "55dvh"]}>
+    <Sheet.Step direction="up">Expand</Sheet.Step>
+    <Sheet.Step snapTo={1}>Collapse</Sheet.Step>
+    <Sheet.Close>Close</Sheet.Close>
+  </Sheet.Panel>
+</Sheet>
+```
+
+Snap indexes are 1-based. `0` is closed; the final index is fully open.
+With snap points, `dismissible={false}` keeps a persistent sheet at its lowest
+visible stop instead of letting a swipe dismiss it. Escape and `Sheet.Close`
+can still dismiss it.
+
+### Advanced composition
+
+Use the primitives when the backdrop, content, or animated outlets need a
+different DOM arrangement:
+
+```tsx
 <Sheet.Root>
   <Sheet.Trigger>Open</Sheet.Trigger>
   <Sheet.Portal>
-    <Sheet.View contentPlacement="bottom">
+    <Sheet.View
+      side="center"
+      tracks={["top", "bottom"]}
+      enteringAnimationSettings="snappy"
+    >
       <Sheet.Backdrop />
-      <Sheet.Content>
-        <Sheet.Handle />
-        <Sheet.Title>Title</Sheet.Title>
-        <Sheet.Description>Body</Sheet.Description>
-        <Sheet.Trigger action="dismiss">Close</Sheet.Trigger>
+      <Sheet.Content className="dialog">
+        <Sheet.Title>Invite teammates</Sheet.Title>
+        <Sheet.Description>Choose a workspace role.</Sheet.Description>
+        <Sheet.Close>Cancel</Sheet.Close>
       </Sheet.Content>
     </Sheet.View>
   </Sheet.Portal>
 </Sheet.Root>
 ```
 
-| Part | Notes |
+The established API remains supported. Modern aliases map directly onto it:
+
+| Modern | Established alias |
 | --- | --- |
-| `Root` | Owns state. Props: `presented` / `defaultPresented` / `onPresentedChange`, `activeDetent` / `defaultActiveDetent` / `onActiveDetentChange`, `sheetRole`. |
-| `Portal` | Renders into `document.body` (or `container`) while mounted. |
-| `View` | The fixed overlay + travel mechanism. Props: `contentPlacement` (`"bottom" \| "top" \| "left" \| "right" \| "center"`), `detents` (CSS length or array, e.g. `"58lvh"`), `swipe`, `swipeDismissal`, `inertOutside`, `enteringAnimationSettings`, `exitingAnimationSettings`, `onTravel`, `onClickOutside`, `onEscapeKeyDown`. |
-| `Backdrop` | Dimming layer. `travelAnimation` (defaults to opacity tracking travel). |
-| `Content` | The panel. `travelAnimation`, `stackingAnimation`. |
-| `BleedingBackground` | Panel-sized background layer (rounded corners, shadow). |
-| `Handle` | A grab/dismiss affordance (`action="dismiss"`). |
-| `Trigger` | A button. `action`: `"present" \| "dismiss" \| "step" \| { type: "step", direction?: "up" \| "down", detent?: number }`. |
-| `Title` / `Description` | Wire `aria-labelledby` / `aria-describedby`. |
-| `Outlet` | Animate any element from this sheet's `travelAnimation` / `stackingAnimation`. |
+| `open`, `defaultOpen`, `onOpenChange` | `presented`, `defaultPresented`, `onPresentedChange` |
+| `snap`, `defaultSnap`, `onSnapChange` | `activeDetent`, `defaultActiveDetent`, `onActiveDetentChange` |
+| `side` | `contentPlacement` |
+| `snapPoints` | `detents` |
+| `draggable` | `swipe` |
+| `dismissible` | `swipeDismissal` |
+| `modal` | `inertOutside` |
 
-**Tracks** — `contentPlacement` picks where the panel rests and which way it swipes:
-`bottom` (default), `top`, `left`, `right`, and `center` (a modal that rests centered).
+If both forms are supplied, the established prop wins. This keeps upgrades
+backward-compatible while new code uses familiar React naming.
 
-**Detents** — pass `detents` to add intermediate rest stops. Detent `0` is closed,
-`n` is fully open. Control with `activeDetent` or step via a `Trigger`.
+### Motion customization
 
-**travelAnimation / stackingAnimation** — a map of CSS properties to either a
-`[from, to]` tuple, a `({ progress, tween }) => value` function, or a literal:
+```tsx
+<Sheet.View
+  enteringAnimationSettings="snappy"
+  exitingAnimationSettings={{
+    easing: "spring",
+    stiffness: 350,
+    damping: 30,
+    mass: 0.65,
+  }}
+>
+  <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.4] }} />
+  <Sheet.Content
+    travelAnimation={{
+      opacity: ({ progress }) => Math.min(progress * 2, 1),
+      scale: ({ tween }) => tween(0.96, 1),
+    }}
+  />
+</Sheet.View>
+```
 
-```jsx
-<Sheet.Content
-  travelAnimation={{ opacity: ({ progress }) => progress, transform: ({ tween }) => `scale(${tween(0.94, 1)})` }}
+Available presets are `gentle`, `smooth`, `snappy`, `brisk`, `bouncy`, and
+`elastic`. Presets are atomic; to tune individual values, use a full object
+with `easing: "spring"`. Reduced-motion preferences skip spring travel by
+default.
+
+## Toasts
+
+Render one `Toaster`, then call `toast` from any client component or event
+handler.
+
+```tsx
+import { Toaster, toast } from "velvet-ui/toast";
+
+export function App() {
+  return (
+    <>
+      <Routes />
+      <Toaster position="bottom-end" visibleToasts={3} />
+    </>
+  );
+}
+
+toast.success("Saved", {
+  description: "Everything is up to date.",
+  action: {
+    label: "Undo",
+    onClick: () => undo(),
+  },
+});
+```
+
+### Update and promise flows
+
+Reusing an id updates a toast in place. `toast.update` is the explicit form.
+
+```tsx
+const id = toast.loading("Uploading…");
+toast.update(id, {
+  type: "success",
+  message: "Uploaded",
+  duration: 3000,
+});
+
+await toast.promise(saveDraft(), {
+  loading: { message: "Saving…", description: "Draft 4" },
+  success: (draft) => ({
+    message: `${draft.name} saved`,
+    duration: 2500,
+  }),
+  error: (error) => ({
+    message: "Could not save",
+    description: error instanceof Error ? error.message : String(error),
+    duration: 6000,
+  }),
+  finally: () => setSaving(false),
+});
+```
+
+Available commands are `toast`, `toast.success`, `toast.error`, `toast.info`,
+`toast.warning`, `toast.message`, `toast.loading`, `toast.custom`,
+`toast.update`, `toast.promise`, and `toast.dismiss`.
+
+Toast behavior includes:
+
+- immediate neighboring reflow while a toast exits;
+- dynamic-height measurement for loading-to-result updates;
+- a visible queue cap with promotion when a slot opens;
+- timers paused by hover, keyboard focus, or a hidden tab;
+- distance-and-velocity swipe dismissal with elastic wrong-way resistance;
+- pointer-cancel recovery and mid-spring re-grab;
+- logical `start`/`end` positions and swipe directions in RTL;
+- separate polite and assertive live announcers so visual reordering is not
+  announced twice;
+- <kbd>Alt</kbd>+<kbd>T</kbd> to focus the front toast and <kbd>Escape</kbd> to
+  dismiss a focused toast.
+
+### Toast styling
+
+Use `className`, `style`, `classNames`, `toastOptions`, or per-toast overrides.
+`unstyled` removes Velvet's skin while retaining positioning and motion.
+
+```tsx
+<Toaster
+  unstyled
+  className="fixed z-50"
+  classNames={{
+    toast: "rounded-xl border bg-white p-4 shadow-xl",
+    title: "font-medium",
+    description: "text-sm text-slate-600",
+    action: "rounded-md bg-slate-900 px-3 py-2 text-white",
+  }}
 />
 ```
 
-### `Scroll`
-A scroll container with progress reporting and an imperative API.
+Stable hooks include `data-slot`, `data-state`, `data-type`, `data-position`,
+`data-dragging`, and `data-unstyled`. Theme tokens start with
+`--velvet-toast-`, including width, offset, radius, surface, foreground,
+muted color, accent, and shadow.
 
-```jsx
-const ref = useRef(null);
-<Scroll.Root componentRef={ref}>
-  <Scroll.View axis="y" scrollGestureTrap onScrollProgress={({ progress }) => {}}>
-    <Scroll.Content>{/* … */}</Scroll.Content>
-  </Scroll.View>
-</Scroll.Root>;
-// ref.current.scrollTo({ progress: 0 });  scrollBy({ distance });  getProgress();
-```
+## Styling-library integration
 
-### `SheetStack`
-Coordinates stacked sheets. Lower sheets animate (via `stackingAnimation`) as the
-sheet above them travels in/out. Wrap sheets (sibling or nested) in `SheetStack.Root`.
+- **Tailwind / utility CSS:** pass classes directly; use data variants such as
+  `data-[state=exiting]:opacity-0`.
+- **CSS Modules / vanilla CSS:** target your classes or stable `data-*` hooks.
+- **styled-components / Emotion:** every DOM primitive forwards `className`,
+  `style`, and refs; wrap `Sheet.Panel`, `Sheet.Content`, or `Sheet.Trigger`
+  normally.
+- **Custom elements:** `asChild` merges Velvet behavior onto your element.
 
-### Supporting primitives
-`VisuallyHidden`, `AutoFocusTarget` (focused on open), `Fixed` (stays put while a
-sheet travels), `Island` (interactive region), `ExternalOverlay.Root` (third-party
-overlay compatibility).
+`base.css` contains the structural scroll-snap, portal, stack, toast placement,
+and visually-hidden announcer rules. `styles.css` adds the optional default
+sheet surface, backdrop, handle, toast skin, responsive safe-area offsets, and
+dark-mode tokens.
 
-### Hooks & utilities
-`createComponentId`, `useClientMediaQuery(query)`, `updateThemeColor(color)`,
-`useThemeColorDimmingOverlay({ elementRef, dimmingColor })`, and `SPRING_PRESETS`.
+## Accessibility and SSR
 
-## Animation settings
+`Sheet.Title` and `Sheet.Description` wire the dialog name and description.
+Modal sheets restore focus and keep the outside inert. Escape and outside-click
+behavior remain configurable; `alertdialog` is non-dismissible by default.
 
-`enteringAnimationSettings` / `exitingAnimationSettings` (and `Scroll` animations)
-accept a preset name, a spring config, or a timing object:
+Portals return an empty server result instead of reading `document`, so sheets
+can be present in SSR trees. The imperative `toast` store is client process
+state; call it from client code, not while rendering a server request.
 
-```jsx
-"smooth"                                  // preset (default)
-{ preset: "snappy", skip: false }
-{ easing: "spring", stiffness: 300, damping: 34, mass: 1 }
-```
+## Package exports
 
-Presets (stiffness / damping / mass): `gentle` 560/68/1.85 · `smooth` 580/60/1.35 ·
-`snappy` 350/34/0.9 · `brisk` 350/28/0.65 · `bouncy` 240/19/0.7 · `elastic` 260/20/1.
-`prefers-reduced-motion` skips animation by default.
+| Import | Contents |
+| --- | --- |
+| `velvet-ui` | Full public API |
+| `velvet-ui/sheet` | `Sheet`, `SheetStack`, spring presets |
+| `velvet-ui/toast` | `Toaster`, `toast` |
+| `velvet-ui/base.css` | Unstyled structural CSS |
+| `velvet-ui/velvet.css` | Backward-compatible alias of `base.css` |
+| `velvet-ui/styles.css` | Structural CSS + optional default theme |
 
-## How the motion works
+The package ships ESM, CommonJS, source maps, and TypeScript declarations, with
+React and React DOM as peer dependencies.
 
-- **Swipe** rides the browser's native scroll-snap (smooth, OS-correct direction,
-  free momentum). A panel's travel distance is one scroll range.
-- **Programmatic open / close / step** is spring-driven: a fixed-timestep
-  semi-implicit Euler integrator samples the curve and drives the scroll offset.
-- **Backdrop / content** animate from the shared travel progress, so dimming and
-  motion stay in lock-step.
-
-## Verification
-
-Headless Puppeteer harnesses (each boots Vite in-process, no flakiness):
+## Development and verification
 
 ```bash
-node scripts/drag.mjs        # gesture physics + interactivity (5 checks)
-node scripts/detent.mjs      # detent rest / step / dismiss (3 checks)
-node scripts/scroll.mjs      # Scroll travel + imperative scrollTo (2 checks)
-node scripts/stacking.mjs    # SheetStack lower-sheet scaling (1 check)
-node scripts/screenshot.mjs [--shot <id>] [--mobile]   # freeze-checkpoint screenshots
+npm install
+npm run dev
+npm run verify
+
+node scripts/gesture-boundaries.mjs
+node scripts/preview-hover.mjs
+node scripts/stacking.mjs
+node scripts/sheet-api.mjs
+node scripts/toast.mjs
+node scripts/toast-drag.mjs
+npm run pack:check
 ```
 
-`window.__velvet` exposes debug hooks (`freeze(p)`, `progress()`, `idle()`,
-`count()`, `setTimeScale(n)`); set `window.__VELVET_DEBUG = true` to mount a sheet
-open without animation for deterministic screenshots.
+The gallery lives in `src/playground`. Motion tests use real browser scroll,
+pointer, and keyboard paths through Puppeteer.

@@ -1,74 +1,123 @@
+/* Toast layout and optional default skin. Import this stylesheet explicitly;
+   Toaster.jsx deliberately has no CSS side effect. Set `unstyled` to retain
+   positioning/stacking while removing the surface, typography, and controls. */
 .Toaster {
-  position: fixed;
-  z-index: var(--velvet-z-toast);
-  width: 360px;
-  max-width: calc(100vw - 32px);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  height: 0; /* toasts are positioned against this anchor */
-  --ease: cubic-bezier(0.22, 1, 0.36, 1); /* strong ease-out */
-}
-.Toaster--bottom-right { bottom: 24px; right: 24px; }
-.Toaster--bottom-left { bottom: 24px; left: 24px; }
-.Toaster--bottom-center { bottom: 24px; left: 50%; transform: translateX(-50%); }
-.Toaster--top-right { top: 24px; right: 24px; }
-.Toaster--top-left { top: 24px; left: 24px; }
-.Toaster--top-center { top: 24px; left: 50%; transform: translateX(-50%); }
-
-.Toast {
-  position: absolute;
-  left: 0;
-  right: 0;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 14px 13px 15px;
-  background: var(--cream-surface, #fff);
-  border-radius: 15px;
-  /* layered transparent shadows read as natural depth on any background */
-  box-shadow:
+  --velvet-toast-width: 360px;
+  --velvet-toast-offset: 24px;
+  --velvet-toast-stack-gap: 14px;
+  --velvet-toast-content-gap: 12px;
+  --velvet-toast-radius: 15px;
+  --velvet-toast-background: var(--cream-surface, #fff);
+  --velvet-toast-foreground: var(--ink, #1c1c1e);
+  --velvet-toast-muted: #6b6b70;
+  --velvet-toast-accent: var(--accent, #007aff);
+  --velvet-toast-control-background: var(--cream-bg-2, rgba(118, 118, 128, 0.12));
+  --velvet-toast-shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 4px 10px -2px rgba(0, 0, 0, 0.08),
     0 16px 30px -12px rgba(0, 0, 0, 0.22);
-  transition: transform 0.42s var(--ease), opacity 0.3s var(--ease);
-  will-change: transform;
-  touch-action: none;
+  --velvet-toast-success: #34c759;
+  --velvet-toast-error: #ff3b30;
+  --velvet-toast-info: #007aff;
+  --velvet-toast-warning: #ff9500;
+  --velvet-toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  z-index: var(--velvet-z-toast, 1000);
+  width: var(--velvet-toast-width);
+  max-width: calc(100vw - 32px);
+  height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  outline: none;
+}
+.Toaster--bottom-right {
+  right: max(var(--velvet-toast-offset), env(safe-area-inset-right));
+  bottom: max(var(--velvet-toast-offset), env(safe-area-inset-bottom));
+}
+.Toaster--bottom-left {
+  bottom: max(var(--velvet-toast-offset), env(safe-area-inset-bottom));
+  left: max(var(--velvet-toast-offset), env(safe-area-inset-left));
+}
+.Toaster--bottom-center {
+  bottom: max(var(--velvet-toast-offset), env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.Toaster--top-right {
+  top: max(var(--velvet-toast-offset), env(safe-area-inset-top));
+  right: max(var(--velvet-toast-offset), env(safe-area-inset-right));
+}
+.Toaster--top-left {
+  top: max(var(--velvet-toast-offset), env(safe-area-inset-top));
+  left: max(var(--velvet-toast-offset), env(safe-area-inset-left));
+}
+.Toaster--top-center {
+  top: max(var(--velvet-toast-offset), env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.Toast {
+  position: absolute;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--velvet-toast-content-gap);
+  min-width: 0;
+  transition:
+    transform 0.42s var(--velvet-toast-ease),
+    opacity 0.3s var(--velvet-toast-ease);
+  will-change: transform, opacity;
   -webkit-user-select: none;
   user-select: none;
   cursor: grab;
+  outline: none;
+}
+.Toast:not([data-unstyled]) {
+  padding: 13px 14px 13px 15px;
+  border-radius: var(--velvet-toast-radius);
+  background: var(--velvet-toast-background);
+  color: var(--velvet-toast-foreground);
+  box-shadow: var(--velvet-toast-shadow);
 }
 .Toaster--bottom-right .Toast,
 .Toaster--bottom-left .Toast,
-.Toaster--bottom-center .Toast { bottom: 0; transform-origin: bottom center; }
+.Toaster--bottom-center .Toast {
+  bottom: 0;
+  transform-origin: bottom center;
+}
 .Toaster--top-right .Toast,
 .Toaster--top-left .Toast,
-.Toaster--top-center .Toast { top: 0; transform-origin: top center; }
-.Toast:active { cursor: grabbing; }
-/* Exit is snappier than the entrance (asymmetric): the system responds fast
-   once a toast is on its way out. */
-.Toast[data-exiting="true"] {
-  transition: transform 0.3s var(--ease), opacity 0.22s var(--ease);
+.Toaster--top-center .Toast {
+  top: 0;
+  transform-origin: top center;
 }
-/* Bridge the gaps between toasts and the offset toward the placement edge, so
-   hover stays continuous across the whole stack. */
+.Toast:active { cursor: grabbing; }
+.Toast[data-dragging],
+.Toast[data-swipe-out] { transition: none; }
+
+/* Bridge both the configured gap and the collapsed offset so hover/focus does
+   not flicker while the pointer crosses between stacked items. */
 .Toast::before,
 .Toast::after {
   content: "";
   position: absolute;
-  left: 0;
   right: 0;
-  height: 22px;
+  left: 0;
+  height: calc(var(--velvet-toast-stack-gap) + 8px);
 }
 .Toast::before { bottom: 100%; }
 .Toast::after { top: 100%; }
-/* Custom toasts render the caller's own UI — no chrome. */
+
+/* Custom content owns its chrome even when global unstyled is false. */
 .Toast--custom {
-  background: none;
-  box-shadow: none;
   padding: 0;
   border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .Toast-icon {
@@ -77,106 +126,159 @@
   height: 22px;
   display: grid;
   place-items: center;
+}
+.Toast:not([data-unstyled]) .Toast-icon {
   border-radius: 999px;
+  background: #8a8a8e;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  color: #fff;
-  background: #8a8a8e;
 }
-.Toast--success .Toast-icon { background: #34c759; }
-.Toast--error .Toast-icon { background: #ff3b30; }
-.Toast--info .Toast-icon { background: #007aff; }
-.Toast--warning .Toast-icon { background: #ff9500; }
-.Toast--loading .Toast-icon { background: transparent; }
+.Toast:not([data-unstyled]).Toast--success .Toast-icon { background: var(--velvet-toast-success); }
+.Toast:not([data-unstyled]).Toast--error .Toast-icon { background: var(--velvet-toast-error); }
+.Toast:not([data-unstyled]).Toast--info .Toast-icon { background: var(--velvet-toast-info); }
+.Toast:not([data-unstyled]).Toast--warning .Toast-icon { background: var(--velvet-toast-warning); }
+.Toast:not([data-unstyled]).Toast--loading .Toast-icon { background: transparent; }
 
 .Toast-spinner {
   width: 16px;
   height: 16px;
+  border: 2px solid color-mix(in srgb, var(--velvet-toast-foreground) 20%, transparent);
+  border-top-color: var(--velvet-toast-accent);
   border-radius: 999px;
-  border: 2px solid rgba(60, 60, 67, 0.2);
-  border-top-color: var(--accent, #111827);
   animation: velvet-spin 0.6s linear infinite;
 }
 @keyframes velvet-spin { to { transform: rotate(360deg); } }
 
 .Toast-body { flex: 1; min-width: 0; }
-.Toast-title {
+.Toast:not([data-unstyled]) .Toast-title {
+  color: var(--velvet-toast-foreground);
   font-size: 14.5px;
   font-weight: 590;
-  color: var(--ink, #1c1c1e);
-  letter-spacing: -0.01em;
   line-height: 1.3;
+  letter-spacing: -0.01em;
   text-wrap: pretty;
 }
-.Toast-desc {
+.Toast:not([data-unstyled]) .Toast-desc {
   margin-top: 2px;
+  color: var(--velvet-toast-muted);
   font-size: 13px;
-  /* legible secondary: ~5.3:1 on white. iOS secondaryLabel (#8a8a8e) is only
-     ~3.4:1 and reads as faint at 13px — bump toward ink so it stays readable. */
-  color: #6b6b70;
   line-height: 1.35;
   text-wrap: pretty;
 }
 
-.Toast-act {
-  flex: 0 0 auto;
-  appearance: none;
-  border: none;
-  background: var(--cream-bg-2, rgba(118, 118, 128, 0.12));
-  color: var(--accent, #007aff);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 7px 12px;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: transform 0.14s var(--ease), filter 0.2s ease;
-}
-.Toast-act:hover { filter: brightness(0.97); }
-.Toast-act:active { transform: scale(0.96); }
-
+.Toast-act,
+.Toast-cancel,
 .Toast-x {
   flex: 0 0 auto;
+  appearance: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.Toast:not([data-unstyled]) .Toast-act,
+.Toast:not([data-unstyled]) .Toast-cancel {
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: var(--velvet-toast-control-background);
+  color: var(--velvet-toast-accent);
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.14s var(--velvet-toast-ease), filter 0.2s ease;
+}
+.Toast:not([data-unstyled]) .Toast-cancel { color: var(--velvet-toast-muted); }
+.Toast:not([data-unstyled]) .Toast-act:hover,
+.Toast:not([data-unstyled]) .Toast-cancel:hover { filter: brightness(0.97); }
+.Toast:not([data-unstyled]) .Toast-act:active,
+.Toast:not([data-unstyled]) .Toast-cancel:active { transform: scale(0.96); }
+
+.Toast-x {
   position: relative;
   width: 26px;
   height: 26px;
   display: grid;
   place-items: center;
-  appearance: none;
-  border: none;
+  opacity: 0;
+}
+.Toast:not([data-unstyled]) .Toast-x {
   border-radius: 999px;
   background: none;
-  color: var(--ink-soft, #8a8a8e);
+  color: var(--velvet-toast-muted);
   font-size: 11px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease, transform 0.14s var(--ease), background 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.14s var(--velvet-toast-ease),
+    background 0.2s ease;
 }
-.Toast-x::before { content: ""; position: absolute; inset: -7px; } /* ≥40px hit area */
-.Toast-x:hover { background: var(--cream-bg-2, rgba(118, 118, 128, 0.12)); }
-.Toast-x:active { transform: scale(0.96); }
+.Toast-x::before { content: ""; position: absolute; inset: -7px; }
+.Toast:not([data-unstyled]) .Toast-x:hover { background: var(--velvet-toast-control-background); }
+.Toast:not([data-unstyled]) .Toast-x:active { transform: scale(0.96); }
 .Toast[data-front="true"]:hover .Toast-x,
-.Toaster[data-expanded] .Toast-x { opacity: 1; }
+.Toaster[data-expanded] .Toast-x,
+.Toast:focus-within .Toast-x { opacity: 1; }
 
+.Toast:focus-visible,
 .Toast-act:focus-visible,
+.Toast-cancel:focus-visible,
 .Toast-x:focus-visible {
-  outline: 2px solid var(--accent, #007aff);
+  outline: 2px solid var(--velvet-toast-accent);
   outline-offset: 2px;
-  opacity: 1; /* a keyboard user tabbing to a hidden close button must see it */
+}
+.Toast-act:focus-visible,
+.Toast-cancel:focus-visible,
+.Toast-x:focus-visible { opacity: 1; }
+
+/* Rich colors only affect the optional skin. */
+.Toaster--rich .Toast:not([data-unstyled]).Toast--success {
+  --velvet-toast-background: #ecfdf3;
+  --velvet-toast-foreground: #0a5c2e;
+  --velvet-toast-muted: #276b45;
+}
+.Toaster--rich .Toast:not([data-unstyled]).Toast--error {
+  --velvet-toast-background: #fef1f1;
+  --velvet-toast-foreground: #8a1c14;
+  --velvet-toast-muted: #8a4039;
+}
+.Toaster--rich .Toast:not([data-unstyled]).Toast--info {
+  --velvet-toast-background: #eff4ff;
+  --velvet-toast-foreground: #0a3d91;
+  --velvet-toast-muted: #365d9a;
+}
+.Toaster--rich .Toast:not([data-unstyled]).Toast--warning {
+  --velvet-toast-background: #fff7eb;
+  --velvet-toast-foreground: #8a4b00;
+  --velvet-toast-muted: #815923;
+}
+
+/* Live announcements are deliberately separate from the moving visual list;
+   changing transforms/order therefore cannot cause duplicate announcements. */
+.Toast-liveRegion {
+  position: fixed !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .Toast { transition: opacity 0.2s ease; } /* keep fades, drop motion */
+  .Toast { transition: opacity 0.16s ease; }
+  .Toast-spinner { animation-duration: 1.2s; }
 }
 @media (hover: none) {
-  .Toast-x { opacity: 1; } /* touch: no hover, always show close */
+  .Toast-x { opacity: 1; }
 }
-
-/* Rich colors — tint the whole surface per type (icon disc turns solid white). */
-.Toaster--rich .Toast--success { background: #ecfdf3; color: #0a5c2e; }
-.Toaster--rich .Toast--error { background: #fef1f1; color: #8a1c14; }
-.Toaster--rich .Toast--info { background: #eff4ff; color: #0a3d91; }
-.Toaster--rich .Toast--warning { background: #fff7eb; color: #8a4b00; }
-.Toaster--rich .Toast .Toast-title { color: inherit; }
-.Toaster--rich .Toast .Toast-desc { color: inherit; opacity: 0.7; }
+@media (max-width: 520px) {
+  .Toaster {
+    width: auto;
+    right: max(16px, env(safe-area-inset-right));
+    left: max(16px, env(safe-area-inset-left));
+    max-width: none;
+  }
+  .Toaster--top-center,
+  .Toaster--bottom-center { transform: none; }
+}

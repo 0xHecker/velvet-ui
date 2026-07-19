@@ -59,6 +59,7 @@ const phaseStats = (samples) => {
   let maxJump = 0;
   let turns = 0;
   let direction = 0;
+  let extreme = positions[0] ?? 0;
   const jumps = [];
   for (let index = 1; index < positions.length; index++) {
     const delta = positions[index] - positions[index - 1];
@@ -66,10 +67,28 @@ const phaseStats = (samples) => {
     if (Math.abs(delta) >= 24) {
       jumps.push([index, Math.round(positions[index - 1]), Math.round(positions[index])]);
     }
-    if (Math.abs(delta) < 0.75) continue;
-    const next = Math.sign(delta);
-    if (direction && next !== direction) turns++;
-    direction = next;
+    // The preview canvas is rendered at half scale. Count a reversal only
+    // after it travels at least one rendered pixel away from the prior
+    // extremum; raw subpixel raster jitter must not become a flaky extra turn.
+    const position = positions[index];
+    if (!direction) {
+      if (Math.abs(position - extreme) >= 2) {
+        direction = Math.sign(position - extreme);
+        extreme = position;
+      }
+    } else if (direction > 0) {
+      if (position > extreme) extreme = position;
+      else if (extreme - position >= 2) {
+        turns++;
+        direction = -1;
+        extreme = position;
+      }
+    } else if (position < extreme) extreme = position;
+    else if (position - extreme >= 2) {
+      turns++;
+      direction = 1;
+      extreme = position;
+    }
   }
   return { frames: positions.length, maxJump, turns, jumps: jumps.slice(0, 8) };
 };

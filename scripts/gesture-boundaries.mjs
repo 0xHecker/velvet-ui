@@ -364,6 +364,30 @@ const runDismissalUnlock = async (page, client) => {
     reopened.count === 1 && reopened.progress > 0.99,
     JSON.stringify(reopened),
   );
+
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 8000 });
+  for (let index = 0; index < 5; index++) {
+    await page.$eval(
+      '[data-shot="bottom-sheet"] .Card-trigger [data-velvet-trigger]',
+      (element) => element.click(),
+    );
+    await sleep(40);
+    await page.keyboard.press("Escape");
+    await sleep(80);
+  }
+  await sleep(900);
+  const rapid = await state(page);
+  const pageInteractive = await page.$eval('[data-shot="bottom-sheet"] .Card-preview', (element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit === element || element.contains(hit);
+  });
+  check(
+    "rapid open/Escape cycles end closed with no interaction ghost",
+    rapid.count === 0 && pageInteractive,
+    `${JSON.stringify(rapid)} clickable=${pageInteractive}`,
+  );
 };
 
 try {

@@ -347,20 +347,38 @@ const useControllable = (controlled, defaultValue, onChange) => {
 const Root = ({
   children,
   presented: presentedProp,
-  defaultPresented = false,
-  onPresentedChange,
+  defaultPresented: defaultPresentedProp,
+  onPresentedChange: onPresentedChangeProp,
   activeDetent: activeDetentProp,
-  defaultActiveDetent,
-  onActiveDetentChange,
+  defaultActiveDetent: defaultActiveDetentProp,
+  onActiveDetentChange: onActiveDetentChangeProp,
+  // Modern aliases. The established names above remain authoritative whenever
+  // they have a value, so adopting aliases cannot change an existing tree.
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  snap: snapProp,
+  defaultSnap,
+  onSnapChange,
   sheetRole = "dialog",
   license,
 }) => {
+  const externalPresented = presentedProp !== undefined ? presentedProp : openProp;
+  const defaultPresented =
+    defaultPresentedProp !== undefined ? defaultPresentedProp : (defaultOpen ?? false);
+  const onPresentedChange =
+    onPresentedChangeProp !== undefined ? onPresentedChangeProp : onOpenChange;
+  const externalActiveDetent = activeDetentProp !== undefined ? activeDetentProp : snapProp;
+  const defaultActiveDetent =
+    defaultActiveDetentProp !== undefined ? defaultActiveDetentProp : defaultSnap;
+  const onActiveDetentChange =
+    onActiveDetentChangeProp !== undefined ? onActiveDetentChangeProp : onSnapChange;
   const parentSheet = useContext(SheetCtx);
   const preview = useContext(SheetPreviewCtx);
   const depth = (parentSheet?.depth ?? -1) + 1;
   const controlledPresented = preview
     ? Boolean(preview.layers?.[depth])
-    : presentedProp;
+    : externalPresented;
   const controlledPresentedChange = preview
     ? (next) => preview.onLayerPresentedChange?.(depth, next)
     : onPresentedChange;
@@ -370,7 +388,7 @@ const Root = ({
     controlledPresentedChange
   );
   const [activeDetent, setActiveDetent] = useControllable(
-    activeDetentProp,
+    externalActiveDetent,
     defaultActiveDetent ?? (defaultPresented ? 1 : 0),
     onActiveDetentChange
   );
@@ -526,7 +544,7 @@ const Root = ({
 // ---- Portal ---------------------------------------------------------------
 const Portal = ({ children, container }) => {
   const { mounted, preview } = useSheet();
-  if (!mounted) return null;
+  if (!mounted || typeof document === "undefined") return null;
   const target = container || preview?.container;
   if (preview && !target) return null;
   return createPortal(children, target || document.body);
@@ -543,16 +561,21 @@ const View = forwardRef(function View(
     className,
     style,
     asChild,
-    contentPlacement,
+    contentPlacement: contentPlacementProp,
+    side,
     tracks,
-    detents,
-    swipe = true,
-    swipeDismissal = true,
+    detents: detentsProp,
+    snapPoints,
+    swipe: swipeProp,
+    draggable,
+    swipeDismissal: swipeDismissalProp,
+    dismissible: dismissibleProp,
     swipeOvershoot = true,
     swipeTrap,
     snapOutAcceleration = "auto",
     snapToEndDetentsAcceleration = "auto",
-    inertOutside = true,
+    inertOutside: inertOutsideProp,
+    modal: modalProp,
     enteringAnimationSettings,
     exitingAnimationSettings,
     steppingAnimationSettings,
@@ -567,6 +590,13 @@ const View = forwardRef(function View(
   },
   forwardedRef
 ) {
+  const contentPlacement =
+    contentPlacementProp !== undefined ? contentPlacementProp : side;
+  const detents = detentsProp !== undefined ? detentsProp : snapPoints;
+  const swipe = swipeProp !== undefined ? swipeProp : (draggable ?? true);
+  const swipeDismissal =
+    swipeDismissalProp !== undefined ? swipeDismissalProp : (dismissibleProp ?? true);
+  const inertOutside = inertOutsideProp !== undefined ? inertOutsideProp : (modalProp ?? true);
   const sheet = useSheet();
   const {
     presented,
@@ -2161,19 +2191,43 @@ const Handle = forwardRef(function Handle(
 
 // ---- Trigger --------------------------------------------------------------
 const Trigger = forwardRef(function Trigger(
-  { className, style, asChild, action = "present", children, onPress, ...rest },
+  {
+    className,
+    style,
+    asChild,
+    action: actionProp,
+    snapTo,
+    children,
+    onPress,
+    ...rest
+  },
   forwardedRef
 ) {
   const { requestAction, preview } = useSheet();
+  const action =
+    actionProp !== undefined
+      ? actionProp
+      : snapTo !== undefined
+        ? { type: "step", detent: snapTo }
+        : "present";
   const handle = (e) => {
     if (onPress) onPress(e);
-    const isStep = action === "step" || (action && action.type === "step");
-    if (action === "present") requestAction({ type: "present" });
-    else if (action === "dismiss") requestAction({ type: "dismiss" });
-    else if (isStep) {
+    const actionType = typeof action === "string" ? action : action?.type;
+    const isStep = actionType === "step";
+    if (actionType === "present" || actionType === "open") {
+      requestAction({ type: "present" });
+    } else if (actionType === "dismiss" || actionType === "close") {
+      requestAction({ type: "dismiss" });
+    } else if (isStep) {
       const spec = action === "step" ? {} : action;
-      requestAction({ type: "step", detent: spec.detent, direction: spec.direction });
-    } else requestAction({ type: "toggle" });
+      requestAction({
+        type: "step",
+        detent: spec.detent ?? spec.snapTo,
+        direction: spec.direction,
+      });
+    } else {
+      requestAction({ type: "toggle" });
+    }
   };
   return (
     <Polymorph
@@ -2190,6 +2244,28 @@ const Trigger = forwardRef(function Trigger(
     >
       {children}
     </Polymorph>
+  );
+});
+
+// Intent-revealing action conveniences. They intentionally reuse Trigger so
+// focus, preview routing, polymorphism and event behavior stay identical.
+const Close = forwardRef(function Close(
+  { action: _action, snapTo: _snapTo, ...props },
+  forwardedRef
+) {
+  return <Trigger {...props} ref={forwardedRef} action="dismiss" />;
+});
+
+const Step = forwardRef(function Step(
+  { action: _action, snapTo, detent, direction, ...props },
+  forwardedRef
+) {
+  return (
+    <Trigger
+      {...props}
+      ref={forwardedRef}
+      action={{ type: "step", detent: snapTo ?? detent, direction }}
+    />
   );
 });
 
@@ -2251,17 +2327,97 @@ const Outlet = forwardRef(function Outlet(
   );
 });
 
-export const Sheet = {
+// Common-case composition. Behavioral props are routed only to View, portal
+// props only to Portal, and the remaining DOM/component props to Content. The
+// primitive parts remain available for layouts that need a different tree.
+const Panel = forwardRef(function Panel(
+  {
+    children,
+    side,
+    snapPoints,
+    modal,
+    dismissible,
+    draggable,
+    portal = true,
+    container,
+    portalProps,
+    viewProps,
+    backdrop = true,
+    backdropProps,
+    handle = true,
+    handleProps,
+    contentProps: explicitContentProps,
+    ...contentProps
+  },
+  forwardedRef
+) {
+  const { mounted } = useSheet();
+  // Portal normally owns the mount/unmount gate. Preserve that exact
+  // lifecycle when consumers opt into inline rendering so a closed panel
+  // cannot leave a fixed scroll runway or backdrop in the document.
+  if (!portal && !mounted) return null;
+
+  const backdropNode =
+    backdrop === false || backdrop == null
+      ? null
+      : backdrop === true
+        ? <Backdrop {...backdropProps} />
+        : backdrop;
+  const handleNode =
+    handle === false || handle == null
+      ? null
+      : handle === true
+        ? <Handle {...handleProps} />
+        : handle;
+  const view = (
+    <View
+      side={side}
+      snapPoints={snapPoints}
+      modal={modal}
+      dismissible={dismissible}
+      draggable={draggable}
+      {...viewProps}
+    >
+      {backdropNode}
+      <Content
+        {...contentProps}
+        {...explicitContentProps}
+        ref={forwardedRef}
+        data-velvet-panel=""
+      >
+        {handleNode}
+        {children}
+      </Content>
+    </View>
+  );
+
+  if (!portal) return view;
+  const portalContainer =
+    container !== undefined ? container : portalProps?.container;
+  return (
+    <Portal {...portalProps} container={portalContainer}>
+      {view}
+    </Portal>
+  );
+});
+
+// A function is a valid React component and can also carry the familiar
+// compound-part properties. This makes <Sheet> an additive Root shorthand
+// while preserving Sheet.Root and every existing import/call site.
+export const Sheet = Object.assign(Root, {
   PreviewEnvironment,
   Root,
   Portal,
+  Panel,
   View,
   Backdrop,
   Content,
   BleedingBackground,
   Handle,
   Trigger,
+  Close,
+  Step,
   Title,
   Description,
   Outlet,
-};
+});

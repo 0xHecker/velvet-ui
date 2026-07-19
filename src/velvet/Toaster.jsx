@@ -1,16 +1,60 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { subscribeToasts, toast } from "./toast.js";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { dismissToast, finalizeToast, subscribeToasts } from "./toast.js";
 import { solveSpring } from "./core/spring.js";
-import "./Toaster.css";
 
 const GLYPH = { success: "✓", error: "✕", info: "i", warning: "!" };
+const DEFAULT_HOTKEY = ["altKey", "KeyT"];
+const INTERACTIVE = "button, a, input, textarea, select, [role='button']";
 
-// rAF-drive a number from `from` to `to` along the spring curve, writing it every
-// frame via onValue — the transform analogue of core/spring.js' springScroll. Because
-// the value is committed each frame (not handed to a CSS transition), the swipe
-// release/fly can never strand mid-drag waiting on a transition that didn't arm.
+const cx = (...values) => values.filter(Boolean).join(" ");
+const cssLength = (value) => typeof value === "number" ? `${value}px` : value;
+const textFromNode = (node) => {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textFromNode).filter(Boolean).join(" ");
+  if (node && typeof node === "object") {
+    if (typeof node[Symbol.iterator] === "function") {
+      try {
+        return Array.from(node, textFromNode).filter(Boolean).join(" ");
+      } catch {
+        // A user iterator must not break rendering or the live region.
+        return "";
+      }
+    }
+    if (node.props) return textFromNode(node.props.children);
+  }
+  return "";
+};
+const announcementFor = (entry) =>
+  entry.announcement || [textFromNode(entry.message), textFromNode(entry.description)].filter(Boolean).join(". ");
+
+const resolveDirection = (value) => {
+  if (value === "ltr" || value === "rtl") return value;
+  if (typeof document === "undefined") return "ltr";
+  return document.documentElement.dir === "rtl" ? "rtl" : "ltr";
+};
+const resolvePosition = (position, direction) => {
+  if (position.endsWith("-start")) return position.replace("-start", direction === "rtl" ? "-right" : "-left");
+  if (position.endsWith("-end")) return position.replace("-end", direction === "rtl" ? "-left" : "-right");
+  return position;
+};
+const resolveSwipeDirection = (value, direction) => {
+  if (value === "start") return direction === "rtl" ? "right" : "left";
+  if (value === "end") return direction === "rtl" ? "left" : "right";
+  return value;
+};
+const matchesHotkey = (event, hotkey) => {
+  if (!Array.isArray(hotkey) || hotkey.length === 0) return false;
+  return hotkey.every((key) => {
+    if (key === "altKey" || key === "ctrlKey" || key === "metaKey" || key === "shiftKey") {
+      return event[key];
+    }
+    return event.code === key || event.key.toLowerCase() === String(key).toLowerCase();
+  });
+};
+
+// rAF-drive a value using the exact fixed-timestep spring shared with Sheet.
 function springValue(from, to, settings, { v0 = 0, onValue, onDone } = {}) {
-  const finish = () => { onValue && onValue(to); onDone && onDone(); };
+  const finish = () => { onValue?.(to); onDone?.(); };
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (from === to || reduce) { finish(); return { cancel() {} }; }
   const { values, duration } = solveSpring(settings, from, to, v0);
@@ -19,193 +63,462 @@ function springValue(from, to, settings, { v0 = 0, onValue, onDone } = {}) {
   const timeScale = (typeof window !== "undefined" && window.__VELVET_TIME_SCALE) || 1;
   let raf = 0;
   let cancelled = false;
-  const t0 = performance.now();
+  const startedAt = performance.now();
   const tick = (now) => {
     if (cancelled) return;
-    const ms = (now - t0) / timeScale;
-    if (ms >= duration) { finish(); return; }
-    const idx = Math.max(0, Math.min(values.length - 1, Math.floor(ms)));
-    onValue && onValue(from + delta * values[idx]);
+    const elapsed = (now - startedAt) / timeScale;
+    if (elapsed >= duration) { finish(); return; }
+    const index = Math.max(0, Math.min(values.length - 1, Math.floor(elapsed)));
+    onValue?.(from + delta * values[index]);
     raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
   return { cancel() { cancelled = true; cancelAnimationFrame(raf); } };
 }
 
-function ToastItem({ t, frontIndex, layoutExpanded, paused, expandedOffset, bottom, duration, dirs, closeButton, setHeight, onRemove }) {
+function ToastItem({
+  entry,
+  frontIndex,
+  expandedOffset,
+  layoutExpanded,
+  paused,
+  bottom,
+  duration,
+  directions,
+  position,
+  closeButton,
+  icons,
+  classNames,
+  unstyled,
+  measured,
+  setHeight,
+  removeHeight,
+  onFocusDismissal,
+}) {
   const ref = useRef(null);
-  const start = useRef(null);
-  const anim = useRef(null);
+  const gesture = useRef(null);
+  const animation = useRef(null);
+  const fallbackListeners = useRef(null);
+  const currentOffset = useRef(0);
   const remaining = useRef(0);
+  const exitMode = useRef(null);
+  const currentAxis = useRef(null);
+  const lastLayout = useRef({ frontIndex, expandedOffset });
   const [mounted, setMounted] = useState(false);
-  const [exiting, setExiting] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const ttl = t.duration != null ? t.duration : duration;
-  const sign = bottom ? 1 : -1;
-  const dismissible = t.dismissible !== false;
+  const [swipingOut, setSwipingOut] = useState(false);
 
-  // The gesture is locked to ONE axis — the axis this position dismisses along.
-  // Side positions (…-left / …-right) drag horizontally; center positions drag
-  // vertically. So a bottom-right toast moves left/right only, never diagonally.
-  const axisX = dirs.left || dirs.right;
-  const offVar = axisX ? "--vt-dx" : "--vt-dy";
-  const allowed = (off) =>
-    axisX
-      ? (off > 0 && dirs.right) || (off < 0 && dirs.left)
-      : (off > 0 && dirs.down) || (off < 0 && dirs.up);
+  const removing = entry.status === "removing";
+  const ttl = entry.duration ?? duration;
+  const sign = bottom ? 1 : -1;
+  const dismissible = entry.dismissible !== false;
+  const hasHorizontalDirection = directions.left || directions.right;
+  const hasVerticalDirection = directions.up || directions.down;
+  const defaultAxis = hasHorizontalDirection && !hasVerticalDirection
+    ? "x"
+    : hasVerticalDirection && !hasHorizontalDirection
+      ? "y"
+      : null;
+  if (!gesture.current && currentOffset.current === 0) currentAxis.current = defaultAxis;
+  const isAllowed = (offset, axis) =>
+    axis === "x"
+      ? (offset > 0 && directions.right) || (offset < 0 && directions.left)
+      : (offset > 0 && directions.down) || (offset < 0 && directions.up);
+  const resist = (offset) => (offset * 0.55) / (1 + Math.abs(offset) / 120);
+  // A re-grab can begin while a resisted toast is returning. Convert the
+  // painted value back into pointer space so resistance is not applied twice
+  // on the first move (which would visibly jump the toast toward its origin).
+  const unresist = (offset) => {
+    const magnitude = Math.min(Math.abs(offset), 65.99);
+    const raw = magnitude / Math.max(0.001, 0.55 - magnitude / 120);
+    return Math.sign(offset) * raw;
+  };
+
+  if (!removing) lastLayout.current = { frontIndex, expandedOffset };
+  const layout = removing ? lastLayout.current : { frontIndex, expandedOffset };
+
+  const clearFallbackListeners = () => {
+    fallbackListeners.current?.();
+    fallbackListeners.current = null;
+  };
+  const paint = (offset, axis = currentAxis.current || defaultAxis) => {
+    if (!axis) return;
+    currentOffset.current = offset;
+    const previousAxis = currentAxis.current;
+    currentAxis.current = axis;
+    const element = ref.current;
+    if (!element) return;
+    if (previousAxis && previousAxis !== axis) {
+      element.style.removeProperty(previousAxis === "x" ? "--vt-dx" : "--vt-dy");
+    }
+    element.style.setProperty(axis === "x" ? "--vt-dx" : "--vt-dy", `${offset}px`);
+    element.style.setProperty("--vt-op", String(Math.max(0, 1 - Math.abs(offset) / 300)));
+  };
+  const clearGestureStyles = () => {
+    if (animation.current) { animation.current.cancel(); animation.current = null; }
+    clearFallbackListeners();
+    gesture.current = null;
+    currentOffset.current = 0;
+    currentAxis.current = defaultAxis;
+    const element = ref.current;
+    if (!element) return;
+    element.style.transition = "";
+    element.style.removeProperty("--vt-dx");
+    element.style.removeProperty("--vt-dy");
+    element.style.removeProperty("--vt-op");
+    element.style.removeProperty("--vt-exit-y");
+    element.style.removeProperty("--vt-exit-op");
+  };
 
   useLayoutEffect(() => {
-    if (ref.current) setHeight(t.id, ref.current.offsetHeight);
-  });
+    const element = ref.current;
+    if (!element) return undefined;
+    const measure = () => setHeight(entry.id, element.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => {
+        window.removeEventListener("resize", measure);
+        removeHeight(entry.id);
+      };
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      removeHeight(entry.id);
+    };
+  }, [entry.id, removeHeight, setHeight]);
+
   useEffect(() => {
-    const r = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(r);
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
-  // Never leave a rAF running against an unmounted node.
-  useEffect(() => () => { if (anim.current) anim.current.cancel(); }, []);
+  useEffect(() => () => clearGestureStyles(), []);
 
-  // Drag offset is written straight to the node as a CSS var — there is no React
-  // state per pointermove, so no render can land between move and commit (the old
-  // race that stranded the toast). The transform reads var(--vt-dx/dy); opacity
-  // fades with distance via var(--vt-op).
-  const fade = (off) => Math.max(0, 1 - Math.abs(off) / 300);
-  const paint = (off) => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.setProperty(offVar, `${off}px`);
-    el.style.setProperty("--vt-op", String(fade(off)));
-  };
-  const clearGesture = () => {
-    if (anim.current) { anim.current.cancel(); anim.current = null; }
-    start.current = null;
-    const el = ref.current;
-    if (el) {
-      el.style.transition = ""; // hand transform/opacity back to the CSS transition
-      el.style.removeProperty("--vt-dx");
-      el.style.removeProperty("--vt-dy");
-      el.style.removeProperty("--vt-op");
-    }
-  };
-
-  const close = () => {
-    clearGesture();
-    setExiting(true);
-    setTimeout(() => onRemove(t.id), 300);
-  };
-
-  useEffect(() => { remaining.current = ttl; }, [ttl]);
   useEffect(() => {
-    if (exiting || ttl === Infinity || paused || dragging) return;
+    remaining.current = ttl;
+  }, [entry.revision, ttl]);
+  useEffect(() => {
+    if (removing || ttl === Infinity || paused || dragging) return undefined;
     const startedAt = Date.now();
-    const id = setTimeout(close, remaining.current);
-    return () => { clearTimeout(id); remaining.current -= Date.now() - startedAt; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, exiting, dragging, ttl]);
+    const timer = setTimeout(() => dismissToast(entry.id, "timeout"), Math.max(0, remaining.current));
+    return () => {
+      clearTimeout(timer);
+      remaining.current = Math.max(0, remaining.current - (Date.now() - startedAt));
+    };
+  }, [dragging, entry.id, entry.revision, paused, removing, ttl]);
 
-  // --- Swipe to dismiss: single-axis, ref-driven, spring release ---
-  const onDown = (e) => {
-    if (e.button || !dismissible) return;
-    // Let clicks on buttons/links inside the toast work without starting a drag.
-    if (e.target.closest("button, a, input, textarea, select, [role='button']")) return;
-    const el = ref.current;
-    if (!el) return;
-    if (anim.current) { anim.current.cancel(); anim.current = null; } // re-grab mid-fling
-    const p = axisX ? e.clientX : e.clientY;
-    const now = Date.now();
-    start.current = { p0: p, off: 0, v: 0, lastP: p, lastT: now };
-    el.style.transition = "none"; // track the pointer 1:1 while dragging
-    setDragging(true); // pause the auto-dismiss timer
-    try { el.setPointerCapture(e.pointerId); } catch {}
+  const addFallbackListeners = () => {
+    if (typeof window === "undefined" || fallbackListeners.current) return;
+    const move = (event) => moveGesture(event);
+    const up = (event) => releaseGesture(event);
+    const cancel = (event) => cancelGesture(event);
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    fallbackListeners.current = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+    };
   };
-  const onMove = (e) => {
-    const s = start.current;
-    if (!s) return; // a stray move after release is ignored — no stuck follow
-    const p = axisX ? e.clientX : e.clientY;
-    const raw = p - s.p0;
-    // Free toward a dismiss direction; elastically resist (and spring back) the wrong way.
-    const off = allowed(raw) ? raw : (raw * 0.55) / (1 + Math.abs(raw) / 120);
-    const now = Date.now();
-    if (now > s.lastT) { s.v = (p - s.lastP) / (now - s.lastT); s.lastP = p; s.lastT = now; }
-    s.off = off;
-    paint(off);
-  };
-  const release = () => {
-    const s = start.current;
-    if (!s) return;
-    start.current = null;
-    setDragging(false);
-    const off = s.off;
-    const fly = allowed(off) && (Math.abs(off) > 70 || Math.abs(s.v) > 0.45);
-    if (fly) {
-      const span = (typeof window !== "undefined" && (axisX ? window.innerWidth : window.innerHeight)) || 600;
-      anim.current = springValue(off, Math.sign(off) * (span + 80), "snappy", {
-        v0: Math.abs(s.v),
-        onValue: paint,
-        onDone: () => { anim.current = null; onRemove(t.id); },
-      });
-    } else {
-      anim.current = springValue(off, 0, "smooth", {
-        onValue: paint,
-        onDone: () => { anim.current = null; clearGesture(); },
-      });
+
+  const onPointerDown = (event) => {
+    if (
+      event.button !== 0 ||
+      !dismissible ||
+      removing ||
+      (!hasHorizontalDirection && !hasVerticalDirection)
+    ) return;
+    if (event.target instanceof Element && event.target.closest(INTERACTIVE)) return;
+    const element = ref.current;
+    if (!element) return;
+    animation.current?.cancel();
+    animation.current = null;
+    exitMode.current = null;
+    setSwipingOut(false);
+    const axis = currentAxis.current || defaultAxis;
+    const point = axis === "x" ? event.clientX : axis === "y" ? event.clientY : null;
+    const now = performance.now();
+    gesture.current = {
+      pointerId: event.pointerId,
+      axis,
+      startX: event.clientX,
+      startY: event.clientY,
+      rawOrigin: axis && isAllowed(currentOffset.current, axis)
+        ? currentOffset.current
+        : unresist(currentOffset.current),
+      point,
+      offset: currentOffset.current,
+      velocity: 0,
+      lastPoint: point,
+      lastTime: now,
+    };
+    element.style.transition = "none";
+    setDragging(true);
+    try {
+      element.setPointerCapture(event.pointerId);
+      if (!element.hasPointerCapture(event.pointerId)) addFallbackListeners();
+    } catch {
+      addFallbackListeners();
     }
   };
-  // pointercancel / lostpointercapture: the gesture was taken from us (the classic
-  // "stuck" trigger). Spring back to rest instead of stranding at the last offset.
-  const cancel = () => {
-    const s = start.current;
-    if (!s) return;
-    start.current = null;
-    setDragging(false);
-    anim.current = springValue(s.off, 0, "smooth", {
-      onValue: paint,
-      onDone: () => { anim.current = null; clearGesture(); },
-    });
-  };
 
-  let baseY = 0, scale = 1, opacity = 1;
-  if (layoutExpanded) baseY = -sign * expandedOffset;
-  else { baseY = -sign * frontIndex * 14; scale = 1 - Math.min(frontIndex, 3) * 0.05; if (frontIndex >= 3) opacity = 0; }
-  let y = baseY;
-  if (!mounted || exiting) { y += sign * 56; opacity = 0; }
+  function moveGesture(event) {
+    const state = gesture.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    if (event.buttons === 0 && event.type === "pointermove") {
+      cancelGesture(event);
+      return;
+    }
+    if (!state.axis) {
+      const deltaX = event.clientX - state.startX;
+      const deltaY = event.clientY - state.startY;
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 3) return;
+      state.axis = Math.abs(deltaX) >= Math.abs(deltaY) ? "x" : "y";
+      state.point = state.axis === "x" ? state.startX : state.startY;
+      state.lastPoint = state.point;
+      currentAxis.current = state.axis;
+    }
+    const point = state.axis === "x" ? event.clientX : event.clientY;
+    const raw = state.rawOrigin + point - state.point;
+    const offset = isAllowed(raw, state.axis) ? raw : resist(raw);
+    const now = performance.now();
+    if (now > state.lastTime) {
+      state.velocity = (point - state.lastPoint) / (now - state.lastTime);
+      state.lastPoint = point;
+      state.lastTime = now;
+    }
+    state.offset = offset;
+    paint(offset, state.axis);
+    if (event.cancelable) event.preventDefault();
+  }
+
+  function releaseGesture(event) {
+    const state = gesture.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    gesture.current = null;
+    clearFallbackListeners();
+    setDragging(false);
+    const element = ref.current;
+    try {
+      if (element?.hasPointerCapture(state.pointerId)) element.releasePointerCapture(state.pointerId);
+    } catch {}
+
+    if (!state.axis) {
+      clearGestureStyles();
+      return;
+    }
+    const offset = state.offset;
+    const velocity = performance.now() - state.lastTime <= 80 ? state.velocity : 0;
+    const shouldDismiss =
+      isAllowed(offset, state.axis) &&
+      (Math.abs(offset) > 70 || (isAllowed(velocity, state.axis) && Math.abs(velocity) > 0.45));
+    if (shouldDismiss) {
+      exitMode.current = "swipe";
+      setSwipingOut(true);
+      dismissToast(entry.id, "swipe");
+      const span = (typeof window !== "undefined" && (state.axis === "x" ? window.innerWidth : window.innerHeight)) || 600;
+      const target = Math.sign(offset || velocity || 1) * (span + 80);
+      const velocityTowardTarget = Math.max(0, Math.sign(target - offset) * velocity);
+      animation.current = springValue(offset, target, "snappy", {
+        v0: velocityTowardTarget,
+        onValue: (value) => paint(value, state.axis),
+        onDone: () => {
+          animation.current = null;
+          finalizeToast(entry.id);
+        },
+      });
+      return;
+    }
+
+    const velocityTowardRest = Math.max(0, Math.sign(-offset) * velocity);
+    animation.current = springValue(offset, 0, "smooth", {
+      v0: velocityTowardRest,
+      onValue: (value) => paint(value, state.axis),
+      onDone: () => {
+        animation.current = null;
+        clearGestureStyles();
+      },
+    });
+  }
+
+  function cancelGesture(event) {
+    const state = gesture.current;
+    if (!state || (event?.pointerId != null && event.pointerId !== state.pointerId)) return;
+    gesture.current = null;
+    clearFallbackListeners();
+    setDragging(false);
+    if (!state.axis) {
+      clearGestureStyles();
+      return;
+    }
+    const offset = state.offset;
+    animation.current = springValue(offset, 0, "smooth", {
+      onValue: (value) => paint(value, state.axis),
+      onDone: () => {
+        animation.current = null;
+        clearGestureStyles();
+      },
+    });
+  }
+
+  useEffect(() => {
+    if (!removing || exitMode.current === "swipe") return undefined;
+    const element = ref.current;
+    if (!element) return undefined;
+    const activeGesture = gesture.current;
+    gesture.current = null;
+    clearFallbackListeners();
+    setDragging(false);
+    try {
+      if (activeGesture && element.hasPointerCapture(activeGesture.pointerId)) {
+        element.releasePointerCapture(activeGesture.pointerId);
+      }
+    } catch {}
+    animation.current?.cancel();
+    element.style.transition = "none";
+    animation.current = springValue(0, sign * 56, "snappy", {
+      onValue: (value) => {
+        element.style.setProperty("--vt-exit-y", `${value}px`);
+        element.style.setProperty("--vt-exit-op", String(Math.max(0, 1 - Math.abs(value) / 56)));
+      },
+      onDone: () => {
+        animation.current = null;
+        finalizeToast(entry.id);
+      },
+    });
+    return () => animation.current?.cancel();
+  }, [entry.id, removing, sign]);
+
+  let baseY = 0;
+  let scale = 1;
+  let opacity = 1;
+  if (layoutExpanded) baseY = -sign * layout.expandedOffset;
+  else {
+    baseY = -sign * layout.frontIndex * 14;
+    scale = 1 - Math.min(layout.frontIndex, 3) * 0.05;
+    if (layout.frontIndex >= 3) opacity = 0;
+  }
+  if (!mounted || !measured) {
+    baseY += sign * 56;
+    opacity = 0;
+  }
+
+  const state = removing ? "exiting" : dragging ? "dragging" : mounted && measured ? "open" : "entering";
+  const showClose = (entry.closeButton ?? closeButton) && dismissible;
+  const itemClassNames = classNames || {};
+  const itemStyle = {
+    ...entry.style,
+    transform: `translate3d(var(--vt-dx, 0px), calc(${baseY}px + var(--vt-dy, 0px) + var(--vt-exit-y, 0px)), 0) scale(${scale})`,
+    opacity: `calc(${opacity} * var(--vt-op, 1) * var(--vt-exit-op, 1))`,
+    zIndex: 1000 - layout.frontIndex,
+    cursor: dismissible ? undefined : "default",
+    touchAction: dismissible
+      ? hasHorizontalDirection && hasVerticalDirection
+        ? "none"
+        : hasHorizontalDirection
+          ? "pan-y"
+          : hasVerticalDirection
+            ? "pan-x"
+            : undefined
+      : undefined,
+  };
 
   return (
     <li
       ref={ref}
-      className={`Toast Toast--${t.type}${t.custom ? " Toast--custom" : ""}`}
-      data-front={frontIndex === 0}
-      data-exiting={exiting || undefined}
-      style={{
-        transform: `translate3d(var(--vt-dx, 0px), calc(${y}px + var(--vt-dy, 0px)), 0) scale(${scale})`,
-        opacity: `calc(${opacity} * var(--vt-op, 1))`,
-        zIndex: 1000 - frontIndex,
-        cursor: dismissible ? undefined : "default",
-        touchAction: dismissible ? (axisX ? "pan-y" : "pan-x") : undefined,
-      }}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={release}
-      onPointerCancel={cancel}
-      onLostPointerCapture={cancel}
+      tabIndex={0}
+      aria-atomic="true"
+      aria-label={announcementFor(entry) || undefined}
+      className={cx(
+        "Toast",
+        `Toast--${entry.type}`,
+        entry.custom && "Toast--custom",
+        itemClassNames.toast,
+        entry.className
+      )}
+      data-slot="toast"
+      data-toast-id={entry.id}
+      data-state={state}
+      data-type={entry.type}
+      data-position={position}
+      data-front={layout.frontIndex === 0 && !removing}
+      data-exiting={removing || undefined}
+      data-dragging={dragging || undefined}
+      data-swipe-out={swipingOut || undefined}
+      data-unstyled={unstyled || entry.custom || undefined}
+      style={itemStyle}
+      onPointerDown={onPointerDown}
+      onPointerMove={moveGesture}
+      onPointerUp={releaseGesture}
+      onPointerCancel={cancelGesture}
+      onLostPointerCapture={cancelGesture}
     >
-      {t.custom ? (
-        typeof t.message === "function" ? t.message(t.id) : t.message
+      {entry.custom ? (
+        typeof entry.message === "function" ? entry.message(entry.id) : entry.message
       ) : (
         <>
-          <span className="Toast-icon" aria-hidden>
-            {t.icon || (t.type === "loading" ? <span className="Toast-spinner" /> : GLYPH[t.type] || "•")}
+          <span className={cx("Toast-icon", itemClassNames.icon)} data-slot="icon" aria-hidden>
+            {entry.icon || icons?.[entry.type] || (entry.type === "loading"
+              ? (icons?.loading || <span className="Toast-spinner" data-slot="spinner" />)
+              : GLYPH[entry.type] || "•")}
           </span>
-          <div className="Toast-body">
-            <div className="Toast-title">{t.message}</div>
-            {t.description && <div className="Toast-desc">{t.description}</div>}
+          <div className={cx("Toast-body", itemClassNames.body)} data-slot="body">
+            <div className={cx("Toast-title", itemClassNames.title)} data-slot="title">{entry.message}</div>
+            {entry.description != null && (
+              <div
+                className={cx("Toast-desc", itemClassNames.description, entry.descriptionClassName)}
+                data-slot="description"
+              >
+                {entry.description}
+              </div>
+            )}
           </div>
-          {t.action && (
-            <button className="Toast-act" onClick={() => { t.action.onClick && t.action.onClick(); close(); }}>
-              {t.action.label}
+          {entry.action && (
+            <button
+              type="button"
+              className={cx("Toast-act", itemClassNames.action)}
+              data-slot="action"
+              onClick={(event) => {
+                const result = entry.action.onClick?.(event);
+                if (result !== false) {
+                  dismissToast(entry.id, "action");
+                  if (event.detail === 0) onFocusDismissal?.();
+                }
+              }}
+            >
+              {entry.action.label}
             </button>
           )}
-          {closeButton && dismissible && (
-            <button className="Toast-x" aria-label="Dismiss" onClick={close}>✕</button>
+          {entry.cancel && (
+            <button
+              type="button"
+              className={cx("Toast-cancel", itemClassNames.cancel)}
+              data-slot="cancel"
+              onClick={(event) => {
+                entry.cancel.onClick?.(event);
+                dismissToast(entry.id, "cancel");
+                if (event.detail === 0) onFocusDismissal?.();
+              }}
+            >
+              {entry.cancel.label}
+            </button>
+          )}
+          {showClose && (
+            <button
+              type="button"
+              className={cx("Toast-x", itemClassNames.closeButton)}
+              data-slot="close-button"
+              aria-label={entry.closeButtonAriaLabel || "Dismiss notification"}
+              onClick={(event) => {
+                dismissToast(entry.id, "close-button");
+                if (event.detail === 0) onFocusDismissal?.();
+              }}
+            >
+              {icons?.close || "✕"}
+            </button>
           )}
         </>
       )}
@@ -218,69 +531,256 @@ export const Toaster = ({
   duration = 4000,
   gap = 14,
   stack = true,
+  expand = false,
+  visibleToasts = 3,
   closeButton = true,
   richColors = false,
   swipeDirections,
+  hotkey = DEFAULT_HOTKEY,
+  pauseWhenPageIsHidden = true,
+  dir = "auto",
+  offset = 24,
+  containerAriaLabel = "Notifications",
+  icons,
+  toastOptions = {},
+  className,
+  classNames = {},
+  style,
+  unstyled = false,
 }) => {
   const [toasts, setToasts] = useState([]);
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const heights = useRef({});
-  const [, bump] = useState(0);
+  const [direction, setDirection] = useState(() => resolveDirection(dir));
+  const [politeAnnouncement, setPoliteAnnouncement] = useState({ sequence: 0, text: "" });
+  const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ sequence: 0, text: "" });
+  const heights = useRef(new Map());
+  const mountedIds = useRef(new Set());
+  const announced = useRef(new Map());
+  const regionRef = useRef(null);
+  const previousFocus = useRef(null);
+  const restoringFocus = useRef(false);
+  const [, rerenderLayout] = useState(0);
 
   useEffect(() => subscribeToasts(setToasts), []);
   useEffect(() => {
-    const on = () => setHidden(document.hidden);
-    document.addEventListener("visibilitychange", on);
-    return () => document.removeEventListener("visibilitychange", on);
-  }, []);
+    setDirection(resolveDirection(dir));
+    if (dir !== "auto" || typeof MutationObserver === "undefined") return undefined;
+    const observer = new MutationObserver(() => setDirection(resolveDirection("auto")));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] });
+    return () => observer.disconnect();
+  }, [dir]);
+  useEffect(() => {
+    if (!pauseWhenPageIsHidden) { setHidden(false); return undefined; }
+    const update = () => setHidden(document.hidden);
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, [pauseWhenPageIsHidden]);
 
-  const bottom = position.startsWith("bottom");
-  // Side positions dismiss horizontally toward that edge; center positions
-  // dismiss vertically toward that edge. This keeps a bottom-right toast from
-  // being dismissed by a vertical swipe or a leftward swipe.
-  const horizontalEdge = position.endsWith("left")
+  const resolvedPosition = resolvePosition(position, direction);
+  const bottom = resolvedPosition.startsWith("bottom");
+  const horizontalEdge = resolvedPosition.endsWith("left")
     ? "left"
-    : position.endsWith("right")
+    : resolvedPosition.endsWith("right")
       ? "right"
       : null;
-  const verticalEdge = position.endsWith("center") ? (bottom ? "bottom" : "top") : null;
-  const defaultDirs = [horizontalEdge || verticalEdge].filter(Boolean);
-  const list = swipeDirections || defaultDirs;
-  const dirs = { up: list.includes("top"), down: list.includes("bottom"), left: list.includes("left"), right: list.includes("right") };
-  const layoutExpanded = !stack || hovered;
-  const setHeight = (id, h) => {
-    if (heights.current[id] !== h) { heights.current[id] = h; bump((c) => c + 1); }
+  const verticalEdge = resolvedPosition.endsWith("center") ? (bottom ? "bottom" : "top") : null;
+  const requestedDirections = swipeDirections || [horizontalEdge || verticalEdge].filter(Boolean);
+  const directionList = requestedDirections.map((value) => resolveSwipeDirection(value, direction));
+  const directions = {
+    up: directionList.includes("top"),
+    down: directionList.includes("bottom"),
+    left: directionList.includes("left"),
+    right: directionList.includes("right"),
   };
 
-  const n = toasts.length;
+  const activeToasts = toasts.filter((entry) => entry.status === "active");
+  const cap = visibleToasts === Infinity ? activeToasts.length : Math.max(0, Number(visibleToasts) || 0);
+  const visibleActive = cap ? activeToasts.slice(-cap) : [];
+  const visibleIds = new Set(visibleActive.map((entry) => entry.id));
+  visibleIds.forEach((id) => mountedIds.current.add(id));
+  const renderedToasts = toasts.filter(
+    (entry) => visibleIds.has(entry.id) || (entry.status === "removing" && mountedIds.current.has(entry.id))
+  );
+
+  useEffect(() => {
+    const liveIds = new Set(toasts.map((entry) => entry.id));
+    const byId = new Map(toasts.map((entry) => [entry.id, entry]));
+    mountedIds.current.forEach((id) => {
+      const entry = byId.get(id);
+      if (!liveIds.has(id) || (entry?.status === "active" && !visibleIds.has(id))) {
+        mountedIds.current.delete(id);
+      }
+    });
+    announced.current.forEach((_, id) => { if (!liveIds.has(id)) announced.current.delete(id); });
+    // A queued toast has no visual node to animate, so finalize it immediately.
+    toasts.forEach((entry) => {
+      if (entry.status === "removing" && !mountedIds.current.has(entry.id)) finalizeToast(entry.id);
+    });
+  }, [toasts, visibleToasts]);
+
+  useEffect(() => {
+    const fresh = toasts.filter(
+      (entry) => entry.status === "active" && announced.current.get(entry.id) !== entry.revision
+    );
+    if (!fresh.length) return;
+    fresh.forEach((entry) => announced.current.set(entry.id, entry.revision));
+    const polite = fresh.filter((entry) => entry.type !== "error" && !entry.important)
+      .map(announcementFor).filter(Boolean).join(". ");
+    const assertive = fresh.filter((entry) => entry.type === "error" || entry.important)
+      .map(announcementFor).filter(Boolean).join(". ");
+    if (polite) setPoliteAnnouncement((value) => ({ sequence: value.sequence + 1, text: polite }));
+    if (assertive) setAssertiveAnnouncement((value) => ({ sequence: value.sequence + 1, text: assertive }));
+  }, [toasts]);
+
+  useEffect(() => {
+    if (!hotkey || typeof window === "undefined") return undefined;
+    const onKeyDown = (event) => {
+      if (!matchesHotkey(event, hotkey) || !visibleActive.length) return;
+      event.preventDefault();
+      if (!regionRef.current?.contains(document.activeElement)) {
+        previousFocus.current = document.activeElement;
+      }
+      const target = regionRef.current?.querySelector('[data-slot="toast"][data-front="true"]');
+      target?.focus({ preventScroll: true });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hotkey, visibleActive.length]);
+
+  const setHeight = useCallback((id, height) => {
+    if (heights.current.get(id) === height) return;
+    heights.current.set(id, height);
+    rerenderLayout((value) => value + 1);
+  }, []);
+  const removeHeight = useCallback((id) => {
+    if (!heights.current.delete(id)) return;
+    rerenderLayout((value) => value + 1);
+  }, []);
+
+  const layoutExpanded = expand || !stack || hovered || focused;
+  const paused = hovered || focused || (pauseWhenPageIsHidden && hidden);
+  const mergedToastClassNames = { ...classNames, ...(toastOptions.classNames || {}) };
+  const rootStyle = {
+    "--velvet-toast-offset": cssLength(offset || 0),
+    "--velvet-toast-stack-gap": `${gap}px`,
+    ...style,
+  };
+
+  const focusAfterDismissal = () => {
+    restoringFocus.current = true;
+    requestAnimationFrame(() => {
+      const next = regionRef.current?.querySelector('[data-slot="toast"][data-front="true"]');
+      if (next) next.focus({ preventScroll: true });
+      else {
+        if (previousFocus.current instanceof HTMLElement) previousFocus.current.focus({ preventScroll: true });
+        previousFocus.current = null;
+      }
+      restoringFocus.current = false;
+    });
+  };
+
   return (
-    <ol
-      className={`Toaster Toaster--${position}${richColors ? " Toaster--rich" : ""}`}
-      data-expanded={layoutExpanded || undefined}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {toasts.map((t, i) => {
-        let off = 0;
-        for (let k = i + 1; k < n; k++) off += (heights.current[toasts[k].id] || 56) + gap;
-        return (
-          <ToastItem
-            key={t.id}
-            t={t}
-            frontIndex={n - 1 - i}
-            layoutExpanded={layoutExpanded}
-            paused={hovered || hidden}
-            expandedOffset={off}
-            bottom={bottom}
-            duration={duration}
-            dirs={dirs}
-            closeButton={closeButton}
-            setHeight={setHeight}
-            onRemove={toast.dismiss}
-          />
-        );
-      })}
-    </ol>
+    <>
+      <ol
+        ref={regionRef}
+        tabIndex={-1}
+        aria-label={containerAriaLabel}
+        className={cx("Toaster", `Toaster--${resolvedPosition}`, richColors && "Toaster--rich", classNames.toaster, className)}
+        data-slot="toaster"
+        data-position={resolvedPosition}
+        data-expanded={layoutExpanded || undefined}
+        data-unstyled={unstyled || undefined}
+        data-visible-count={visibleActive.length}
+        data-queue-count={Math.max(0, activeToasts.length - visibleActive.length)}
+        dir={direction}
+        style={rootStyle}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocusCapture={() => setFocused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setFocused(false);
+            if (!restoringFocus.current) previousFocus.current = null;
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          const toastNode = event.target instanceof Element ? event.target.closest('[data-slot="toast"]') : null;
+          const requestedId = toastNode?.getAttribute("data-toast-id");
+          const target = visibleActive.find((entry) => String(entry.id) === requestedId) || visibleActive[visibleActive.length - 1];
+          if (!target || (target.dismissible ?? toastOptions.dismissible ?? true) === false) return;
+          event.preventDefault();
+          event.stopPropagation();
+          dismissToast(target.id, "escape");
+          focusAfterDismissal();
+        }}
+      >
+        {renderedToasts.map((entry) => {
+          const activeIndex = visibleActive.findIndex((candidate) => candidate.id === entry.id);
+          let expandedOffset = 0;
+          if (activeIndex >= 0) {
+            for (let index = activeIndex + 1; index < visibleActive.length; index++) {
+              expandedOffset += (heights.current.get(visibleActive[index].id) || 0) + gap;
+            }
+          }
+          const perToastClassNames = {
+            ...mergedToastClassNames,
+            ...(entry.classNames || {}),
+          };
+          const item = {
+            ...toastOptions,
+            ...entry,
+            style: { ...(toastOptions.style || {}), ...(entry.style || {}) },
+            className: cx(toastOptions.className, entry.className),
+            descriptionClassName: cx(toastOptions.descriptionClassName, entry.descriptionClassName),
+          };
+          return (
+            <ToastItem
+              key={entry.id}
+              entry={item}
+              frontIndex={activeIndex >= 0 ? visibleActive.length - 1 - activeIndex : 0}
+              expandedOffset={expandedOffset}
+              layoutExpanded={layoutExpanded}
+              paused={paused}
+              bottom={bottom}
+              duration={toastOptions.duration ?? duration}
+              directions={directions}
+              position={resolvedPosition}
+              closeButton={toastOptions.closeButton ?? closeButton}
+              icons={icons}
+              classNames={perToastClassNames}
+              unstyled={entry.unstyled ?? toastOptions.unstyled ?? unstyled}
+              measured={heights.current.has(entry.id)}
+              setHeight={setHeight}
+              removeHeight={removeHeight}
+              onFocusDismissal={focusAfterDismissal}
+            />
+          );
+        })}
+      </ol>
+      <div
+        className={cx("Toast-liveRegion", classNames.liveRegion)}
+        data-slot="live-region"
+        data-live="polite"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span key={politeAnnouncement.sequence}>{politeAnnouncement.text}</span>
+      </div>
+      <div
+        className={cx("Toast-liveRegion", classNames.liveRegion)}
+        data-slot="live-region"
+        data-live="assertive"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <span key={assertiveAnnouncement.sequence}>{assertiveAnnouncement.text}</span>
+      </div>
+    </>
   );
 };

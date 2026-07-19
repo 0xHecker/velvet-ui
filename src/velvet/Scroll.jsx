@@ -15,13 +15,6 @@ import { springScroll } from "./core/spring.js";
 const maxOf = (el, axis) =>
   axis === "y" ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
 const offOf = (el, axis) => (axis === "y" ? el.scrollTop : el.scrollLeft);
-const setOff = (el, axis, v) => {
-  if (axis === "y") el.scrollTop = v;
-  else el.scrollLeft = v;
-};
-const reduced = () =>
-  typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 const ScrollCtx = createContext(null);
 const useScroll = () => {
   const ctx = useContext(ScrollCtx);
@@ -68,15 +61,10 @@ const Root = forwardRef(function Root(
       if (!el) return;
       const axis = axisRef.current;
       const clamped = Math.max(0, Math.min(maxOf(el, axis), target));
-      const sk = animationSettings && animationSettings.skip;
-      const skip = sk === true || (sk === "auto" && reduced());
       if (animRef.current) animRef.current.cancel();
-      if (skip) {
-        setOff(el, axis, clamped);
-        emitProgress();
-        return;
-      }
-      animRef.current = springScroll(el, axis, clamped, "smooth", { onUpdate: emitProgress });
+      animRef.current = springScroll(el, axis, clamped, animationSettings || "smooth", {
+        onUpdate: emitProgress,
+      });
     },
     [emitProgress]
   );

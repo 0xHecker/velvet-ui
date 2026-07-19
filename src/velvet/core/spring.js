@@ -33,13 +33,17 @@ export const resolveSpringSettings = (settings, fallback = DEFAULTS) => {
     Boolean(preset) ||
     settings?.easing === "spring" ||
     TIMING_EASINGS.includes(settings?.easing);
-  return {
+  const resolved = {
     skip: REDUCED_MOTION,
     easing: "spring",
     ...(stringPreset ? {} : settings),
     ...(preset || {}),
     ...(recognised ? {} : fallback),
   };
+  resolved.skip = settings?.skip === "auto"
+    ? REDUCED_MOTION
+    : settings?.skip ?? REDUCED_MOTION;
+  return resolved;
 };
 
 const resolvePhysicsSettings = (settings) => {
@@ -54,6 +58,7 @@ const resolvePhysicsSettings = (settings) => {
     mass: supplied.mass ?? DEFAULTS.mass,
     initialVelocity: supplied.initialVelocity ?? 0,
     precision: supplied.precision ?? DEFAULTS.precision,
+    skip: supplied.skip === "auto" ? REDUCED_MOTION : supplied.skip,
   };
 };
 
