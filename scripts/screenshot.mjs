@@ -72,7 +72,7 @@ try {
   await page.evaluate(() => {
     window.__VELVET_DEBUG = true;
   });
-  const trigger = `[data-shot="${shot}"] [data-velvet-trigger]`;
+  const trigger = `[data-shot="${shot}"] .Card-preview`;
   await page.waitForSelector(trigger);
   await page.click(trigger);
   await page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0, {

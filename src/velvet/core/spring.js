@@ -1,9 +1,8 @@
 // Spring physics: a fixed-timestep (dt = 1ms) semi-implicit Euler
 // integration of a damped harmonic oscillator. Stiffness is scaled by 1e-6 and
 // damping by 1e-3 so integer-millisecond steps produce natural motion. It emits a
-// normalized progress array (0..~1) and the settle duration in ms. Consumed two ways:
-//   springScroll() — rAF-drive a scroll offset along the curve (programmatic travel)
-//   springEasing() — sample the curve into a WAAPI linear() easing string.
+// normalized progress array (0..~1) and the settle duration in ms. Sheet travel
+// consumes this through WAAPI; native swipes are deliberately not spring-driven.
 
 export const SPRING_PRESETS = {
   gentle: { stiffness: 560, damping: 68, mass: 1.85 },
@@ -16,33 +15,63 @@ export const SPRING_PRESETS = {
 
 const DEFAULTS = { stiffness: 300, damping: 34, mass: 1, precision: 0.1 };
 
-// Accepts: preset string | { preset, ... } | { easing:"spring", stiffness,... } | timing object.
-const resolve = (settings) => {
-  if (!settings) return { ...DEFAULTS, ...SPRING_PRESETS.smooth };
-  if (typeof settings === "string") return { ...DEFAULTS, ...(SPRING_PRESETS[settings] || SPRING_PRESETS.smooth) };
-  if (settings.preset) return { ...DEFAULTS, ...(SPRING_PRESETS[settings.preset] || SPRING_PRESETS.smooth), ...settings };
-  return { ...DEFAULTS, ...settings };
+const REDUCED_MOTION =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const TIMING_EASINGS = ["ease", "ease-in", "ease-out", "ease-in-out", "linear"];
+
+// This ordering is intentional. A recognised preset overrides conflicting
+// object fields. The component fallback is only merged when neither a preset
+// nor an explicit supported easing was supplied.
+export const resolveSpringSettings = (settings, fallback = DEFAULTS) => {
+  const stringPreset = typeof settings === "string";
+  const preset = stringPreset
+    ? SPRING_PRESETS[settings]
+    : SPRING_PRESETS[settings?.preset];
+  const recognised =
+    Boolean(preset) ||
+    settings?.easing === "spring" ||
+    TIMING_EASINGS.includes(settings?.easing);
+  return {
+    skip: REDUCED_MOTION,
+    easing: "spring",
+    ...(stringPreset ? {} : settings),
+    ...(preset || {}),
+    ...(recognised ? {} : fallback),
+  };
 };
 
-const prefersReduced = () =>
-  typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const resolvePhysicsSettings = (settings) => {
+  const supplied =
+    typeof settings === "string"
+      ? SPRING_PRESETS[settings] || {}
+      : { ...settings, ...(SPRING_PRESETS[settings?.preset] || {}) };
+  return {
+    ...supplied,
+    stiffness: supplied.stiffness ?? DEFAULTS.stiffness,
+    damping: supplied.damping ?? DEFAULTS.damping,
+    mass: supplied.mass ?? DEFAULTS.mass,
+    initialVelocity: supplied.initialVelocity ?? 0,
+    precision: supplied.precision ?? DEFAULTS.precision,
+  };
+};
 
 // Returns { values: number[0..~1], duration: ms }.
 export const solveSpring = (settings, fromPos = 0, toPos = 1, v0) => {
-  const cfg = resolve(settings);
+  const cfg = resolvePhysicsSettings(settings);
   const distance = Math.abs(toPos - fromPos);
-  if (distance === 0) return { values: [1], duration: 0 };
   const k = -1e-6 * cfg.stiffness;
   const c = -1e-3 * cfg.damping;
   const velEps = cfg.precision / 22;
   const posEps = 10 * cfg.precision;
   const values = [];
   let pos = 0;
-  let vel = v0 != null ? v0 : cfg.initialVelocity || 0;
+  let vel = v0 ?? cfg.initialVelocity;
   let velSettled = false;
   let posSettled = false;
   let steps = 0;
-  while (!(velSettled && posSettled) && steps < 6000) {
+  while (!(velSettled && posSettled)) {
     vel += (k * (pos - distance) + c * vel) / cfg.mass;
     pos += vel;
     velSettled = Math.abs(vel) <= velEps;
@@ -57,9 +86,9 @@ export const solveSpring = (settings, fromPos = 0, toPos = 1, v0) => {
 // initial velocity toward the target in px/ms (carries a fling's momentum). Snap is
 // toggled off for the duration. Honors skip (and prefers-reduced-motion) + delay.
 export const springScroll = (el, axis, target, settings, { onUpdate, onComplete, v0 = 0 } = {}) => {
-  const cfg = resolve(settings);
+  const cfg = resolvePhysicsSettings(settings);
   const prop = axis === "x" ? "scrollLeft" : "scrollTop";
-  const skip = cfg.skip != null ? cfg.skip : prefersReduced();
+  const skip = cfg.skip != null ? cfg.skip : REDUCED_MOTION;
   const finish = () => {
     el[prop] = target;
     onUpdate && onUpdate(target);
@@ -118,8 +147,18 @@ export const springScroll = (el, axis, target, settings, { onUpdate, onComplete,
 export const springEasing = (settings, { from = 0, to = 300, v0 } = {}) => {
   const { values, duration } = solveSpring(settings, from, to, v0);
   if (duration === 0) return { duration: 0, easing: "linear" };
-  const pts = [0];
-  for (let i = 0; i < values.length; i += 8) pts.push(values[i]);
-  pts.push(1);
-  return { duration, easing: `linear(${pts.map((v) => v.toFixed(5)).join(",")})` };
+  const pts = decimateSpring(values);
+  return { duration, easing: `linear(${pts.join(",")})` };
+};
+
+// Keep every eighth millisecond sample, excluding the final value from the
+// loop. Append the final value only when the raw sample count is not divisible
+// by eight. This slightly unusual rule is part of the reference curve shape.
+export const decimateSpring = (values, amount = 8) => {
+  const sampled = [];
+  for (let index = 0; index < values.length - 1; index += amount) {
+    sampled.push(values[index]);
+  }
+  if (values.length % amount !== 0) sampled.push(values[values.length - 1]);
+  return sampled;
 };

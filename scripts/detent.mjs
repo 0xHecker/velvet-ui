@@ -36,7 +36,7 @@ try {
   console.log("\n--- DETENT ASSERTIONS ---");
 
   // Open → rests at the intermediate detent (~0.66).
-  await page.click('[data-shot="detent"] [data-velvet-trigger]');
+  await page.click('[data-shot="detent"] .Card-preview');
   await idle();
   const p1 = await progress();
   check("opens to intermediate detent", p1 > 0.55 && p1 < 0.78, `progress=${p1.toFixed(2)}`);

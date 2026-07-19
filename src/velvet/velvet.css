@@ -46,125 +46,335 @@
   will-change: opacity;
 }
 
-/* ---- Scroll container: the native scroller that creates travel. Wheel,
-   trackpad and touch all drive it natively (smooth, OS-correct direction,
-   momentum). Mouse drag writes scrollTop directly. ---- */
+/* ---- Native sheet scroller ------------------------------------------------
+   The scrolling box is exactly twice the view on its travel axis. Its visible
+   half is selected by track. Hidden front/back spacers and detent marker
+   margins are the snap geometry; browser momentum selects the destination. */
 [data-velvet="scroll"] {
+  --velvet-view-axis: 100%;
+  --velvet-content-axis: 50%;
+  --velvet-front-axis: 50%;
+  --velvet-back-axis: 100%;
+  --velvet-snap-accelerator: 1px;
+  --velvet-end-accelerator: 0px;
+  --velvet-first-detent: 0px;
   position: absolute;
-  inset: 0;
   z-index: 1;
   display: flex;
+  flex-wrap: nowrap;
+  place-items: center;
   pointer-events: auto;
   scrollbar-width: none;
+  scrollbar-color: transparent transparent;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 [data-velvet="scroll"]::-webkit-scrollbar {
   display: none;
 }
-/* Non-modal sheets (e.g. toasts) let clicks pass through to the page; only the
-   panel itself stays interactive. */
-[data-velvet-modal="false"] [data-velvet="scroll"] {
-  pointer-events: none;
-}
-[data-velvet-modal="false"] [data-velvet="backdrop"] {
-  pointer-events: none;
-}
 [data-velvet="scroll"][data-velvet-axis="y"] {
+  left: 0;
+  width: 100%;
+  height: calc(2 * var(--velvet-view-axis));
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
 }
 [data-velvet="scroll"][data-velvet-axis="x"] {
+  top: 0;
+  width: calc(2 * var(--velvet-view-axis));
+  height: 100%;
   flex-direction: row;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
 }
-/* Detent and long sheets snap in JS to arbitrary stops (and scroll content freely
-   above "open"), so the browser's snap must stay off (surviving springScroll's
-   inline snap-type toggling). */
-[data-velvet="scroll"][data-velvet-freescroll] {
-  scroll-snap-type: none !important;
+[data-velvet="scroll"][data-velvet-track="bottom"] {
+  top: 0;
+}
+[data-velvet="scroll"][data-velvet-track="top"] {
+  top: calc(-1 * var(--velvet-view-axis));
+}
+[data-velvet="scroll"][data-velvet-track="vertical"] {
+  top: calc(-0.5 * var(--velvet-view-axis));
+}
+[data-velvet="scroll"][data-velvet-track="right"] {
+  left: 0;
+}
+[data-velvet="scroll"][data-velvet-track="left"] {
+  left: calc(-1 * var(--velvet-view-axis));
+}
+[data-velvet="scroll"][data-velvet-track="horizontal"] {
+  left: calc(-0.5 * var(--velvet-view-axis));
+}
+[data-velvet="scroll"][data-velvet-scroll-disabled] {
+  overflow: hidden !important;
 }
 
-/* spacer fills one viewport; content-area hugs the panel — so the scroll range
-   equals the panel's travel distance and it rests on the track edge. */
-[data-velvet="spacer"] {
-  flex: 0 0 100%;
+/* Non-modal sheets leave the page interactive. Descendant content opts back
+   into hit-testing while the outer scroll runway remains pass-through. */
+[data-velvet-modal="false"] [data-velvet="scroll"] {
+  pointer-events: none;
 }
-[data-velvet="content-area"] {
-  flex: 0 0 auto;
-  display: flex;
-  position: relative;
-}
-[data-velvet="scroll"][data-velvet-axis="y"] [data-velvet="spacer"],
-[data-velvet="scroll"][data-velvet-axis="y"] [data-velvet="content-area"] {
-  width: 100%;
-}
-[data-velvet="scroll"][data-velvet-axis="x"] [data-velvet="spacer"],
-[data-velvet="scroll"][data-velvet-axis="x"] [data-velvet="content-area"] {
-  height: 100%;
-}
-[data-velvet="content-area"][data-velvet-track="bottom"],
-[data-velvet="content-area"][data-velvet-track="top"] {
-  flex-direction: column;
-  align-items: center;
-}
-[data-velvet="content-area"][data-velvet-track="left"],
-[data-velvet="content-area"][data-velvet-track="right"] {
-  flex-direction: row;
-  align-items: center;
+[data-velvet-modal="false"] [data-velvet="backdrop"] {
+  pointer-events: none;
 }
 
-/* Snap alignment puts the panel's resting edge against the track edge. */
-[data-velvet-track="bottom"] [data-velvet="spacer"],
-[data-velvet-track="bottom"] [data-velvet="content-area"],
-[data-velvet-track="center"] [data-velvet="spacer"],
-[data-velvet-track="center"] [data-velvet="content-area"],
-[data-velvet-track="right"] [data-velvet="spacer"],
-[data-velvet-track="right"] [data-velvet="content-area"] {
+[data-velvet="front-spacer"],
+[data-velvet="back-spacer"] {
+  flex-grow: 0;
+  flex-shrink: 0;
+  pointer-events: none;
+  user-select: none;
+}
+[data-velvet="scroll"][data-velvet-axis="y"] > [data-velvet="front-spacer"] {
+  width: 1px;
+  height: var(--velvet-front-axis);
+}
+[data-velvet="scroll"][data-velvet-axis="y"] > [data-velvet="back-spacer"] {
+  width: 1px;
+  height: var(--velvet-back-axis);
+}
+[data-velvet="scroll"][data-velvet-axis="x"] > [data-velvet="front-spacer"] {
+  width: var(--velvet-front-axis);
+  height: 1px;
+}
+[data-velvet="scroll"][data-velvet-axis="x"] > [data-velvet="back-spacer"] {
+  width: var(--velvet-back-axis);
+  height: 1px;
+}
+
+[data-velvet="front-spacer"][data-velvet-track="bottom"],
+[data-velvet="front-spacer"][data-velvet-track="right"],
+[data-velvet="front-spacer"][data-velvet-track="vertical"],
+[data-velvet="front-spacer"][data-velvet-track="horizontal"] {
+  order: 1;
+  scroll-snap-align: start;
+}
+[data-velvet="front-spacer"][data-velvet-track="top"],
+[data-velvet="front-spacer"][data-velvet-track="left"] {
+  order: 3;
   scroll-snap-align: end;
 }
-[data-velvet-track="top"] [data-velvet="spacer"],
-[data-velvet-track="top"] [data-velvet="content-area"],
-[data-velvet-track="left"] [data-velvet="spacer"],
-[data-velvet-track="left"] [data-velvet="content-area"] {
+[data-velvet="back-spacer"] {
+  position: relative;
+}
+[data-velvet="back-spacer"][data-velvet-track="bottom"],
+[data-velvet="back-spacer"][data-velvet-track="right"],
+[data-velvet="back-spacer"][data-velvet-track="vertical"],
+[data-velvet="back-spacer"][data-velvet-track="horizontal"] {
+  order: 3;
+  scroll-snap-align: end;
+}
+[data-velvet="back-spacer"][data-velvet-track="top"],
+[data-velvet="back-spacer"][data-velvet-track="left"] {
+  order: 1;
   scroll-snap-align: start;
 }
-/* A long sheet's "open" is the content's start (top) aligned to the viewport
-   edge; its tall content (snap area larger than the viewport) scrolls freely
-   above open, while the open/closed boundary still snaps natively. */
-[data-velvet="scroll"][data-velvet-long] [data-velvet="content-area"] {
-  scroll-snap-align: start;
-}
-/* Child ordering: which side the spacer vs the content-area sits on. */
-[data-velvet-track="bottom"] [data-velvet="spacer"],
-[data-velvet-track="center"] [data-velvet="spacer"],
-[data-velvet-track="right"] [data-velvet="spacer"] {
-  order: 1;
-}
-[data-velvet-track="bottom"] [data-velvet="content-area"],
-[data-velvet-track="center"] [data-velvet="content-area"],
-[data-velvet-track="right"] [data-velvet="content-area"] {
+
+/* The travelling element is view-sized and sticky. Programmatic motion moves
+   this wrapper with WAAPI after the native scroller is positioned instantly. */
+[data-velvet="content-area"] {
+  z-index: 1;
   order: 2;
+  display: flex;
+  position: sticky;
+  flex: 0 0 auto;
+  pointer-events: none;
+  user-select: text;
 }
-[data-velvet-track="top"] [data-velvet="content-area"],
-[data-velvet-track="left"] [data-velvet="content-area"] {
-  order: 1;
+[data-velvet="scroll"][data-velvet-axis="y"] > [data-velvet="content-area"] {
+  width: 100%;
+  height: var(--velvet-view-axis);
+  justify-content: center;
 }
-[data-velvet-track="top"] [data-velvet="spacer"],
-[data-velvet-track="left"] [data-velvet="spacer"] {
-  order: 2;
+[data-velvet="scroll"][data-velvet-axis="x"] > [data-velvet="content-area"] {
+  width: var(--velvet-view-axis);
+  height: 100%;
+  align-items: center;
 }
-/* Center: the content-area is a full-viewport box that centers the panel, so its
-   open snap rests the panel in the middle of the view (modal). */
-[data-velvet="content-area"][data-velvet-track="center"] {
-  flex: 0 0 100%;
-  flex-direction: column;
+[data-velvet="content-area"][data-velvet-placement="bottom"] {
+  align-items: flex-end;
+}
+[data-velvet="content-area"][data-velvet-placement="top"] {
+  align-items: flex-start;
+}
+[data-velvet="content-area"][data-velvet-placement="right"] {
+  justify-content: flex-end;
+}
+[data-velvet="content-area"][data-velvet-placement="left"] {
+  justify-content: flex-start;
+}
+[data-velvet="content-area"][data-velvet-placement="center"] {
   align-items: center;
   justify-content: center;
+}
+
+[data-velvet="content-area"][data-velvet-track="bottom"] {
+  bottom: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-track="top"] {
+  top: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-track="right"] {
+  right: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-track="left"] {
+  left: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-placement="center"][data-velvet-track="bottom"] {
+  bottom: calc(
+    (var(--velvet-view-axis) - var(--velvet-content-axis)) / 2 - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-placement="center"][data-velvet-track="top"] {
+  top: calc(
+    (var(--velvet-view-axis) - var(--velvet-content-axis)) / 2 - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-placement="center"][data-velvet-track="right"] {
+  right: calc(
+    (var(--velvet-view-axis) - var(--velvet-content-axis)) / 2 - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-placement="center"][data-velvet-track="left"] {
+  left: calc(
+    (var(--velvet-view-axis) - var(--velvet-content-axis)) / 2 - 1px
+  );
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-track="bottom"] {
+  top: 0;
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-track="top"] {
+  bottom: 0;
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-track="right"] {
+  left: 0;
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-track="left"] {
+  right: 0;
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-swipe-out-disabled-with-detent][data-velvet-track="bottom"] {
+  bottom: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) + var(--velvet-first-detent)
+  );
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-swipe-out-disabled-with-detent][data-velvet-track="top"] {
+  top: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) + var(--velvet-first-detent)
+  );
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-swipe-out-disabled-with-detent][data-velvet-track="right"] {
+  right: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) + var(--velvet-first-detent)
+  );
+}
+[data-velvet="content-area"][data-velvet-overshoot-disabled][data-velvet-swipe-out-disabled-with-detent][data-velvet-track="left"] {
+  left: calc(
+    var(--velvet-view-axis) - var(--velvet-content-axis) + var(--velvet-first-detent)
+  );
+}
+[data-velvet="content-area"][data-velvet-track="vertical"],
+[data-velvet="content-area"][data-velvet-track="horizontal"] {
+  position: relative;
+}
+
+/* Marker segments encode user detents. The marker's size is the difference
+   between adjacent CSS lengths; its scroll margin shifts the snap destination
+   by the hidden accelerator runway. */
+[data-velvet="detent-marker"] {
+  --velvet-marker-start: 0px;
+  --velvet-marker-end: var(--velvet-content-axis);
+  --velvet-marker-size: var(--velvet-content-axis);
+  position: absolute;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+[data-velvet="detent-marker"][data-velvet-track="bottom"] {
+  left: calc(var(--velvet-marker-index) * 10px);
+  bottom: calc(100% + var(--velvet-content-axis) - var(--velvet-marker-end));
+  width: 1px;
+  height: var(--velvet-marker-size);
+  scroll-snap-align: start;
+  scroll-margin-top: calc(
+    var(--velvet-view-axis) - var(--velvet-marker-end) + var(--velvet-marker-start)
+  );
+}
+[data-velvet="detent-marker"][data-velvet-track="top"] {
+  left: calc(var(--velvet-marker-index) * 10px);
+  top: calc(100% + var(--velvet-content-axis) - var(--velvet-marker-end));
+  width: 1px;
+  height: var(--velvet-marker-size);
+  scroll-snap-align: end;
+  scroll-margin-bottom: calc(
+    var(--velvet-view-axis) - var(--velvet-marker-end) + var(--velvet-marker-start)
+  );
+}
+[data-velvet="detent-marker"][data-velvet-track="right"] {
+  top: calc(var(--velvet-marker-index) * 10px);
+  right: calc(100% + var(--velvet-content-axis) - var(--velvet-marker-end));
+  width: var(--velvet-marker-size);
+  height: 1px;
+  scroll-snap-align: start;
+  scroll-margin-left: calc(
+    var(--velvet-view-axis) - var(--velvet-marker-end) + var(--velvet-marker-start)
+  );
+}
+[data-velvet="detent-marker"][data-velvet-track="left"] {
+  top: calc(var(--velvet-marker-index) * 10px);
+  left: calc(100% + var(--velvet-content-axis) - var(--velvet-marker-end));
+  width: var(--velvet-marker-size);
+  height: 1px;
+  scroll-snap-align: end;
+  scroll-margin-right: calc(
+    var(--velvet-view-axis) - var(--velvet-marker-end) + var(--velvet-marker-start)
+  );
+}
+[data-velvet="detent-marker"][data-velvet-track="vertical"] {
+  left: calc(var(--velvet-marker-index) * 10px);
+  bottom: calc(
+    100% + (var(--velvet-view-axis) - var(--velvet-marker-end)) / 2
+  );
+  width: 1px;
+  height: var(--velvet-marker-size);
+  scroll-snap-align: center;
+}
+[data-velvet="detent-marker"][data-velvet-track="horizontal"] {
+  top: calc(var(--velvet-marker-index) * 10px);
+  right: calc(
+    100% + (var(--velvet-view-axis) - var(--velvet-marker-end)) / 2
+  );
+  width: var(--velvet-marker-size);
+  height: 1px;
+  scroll-snap-align: center;
+}
+[data-velvet="detent-marker"]:not([data-velvet-track="vertical"]):not([data-velvet-track="horizontal"]):only-child,
+[data-velvet="detent-marker"]:not(:only-child):last-child,
+[data-velvet="detent-marker"][data-velvet-swipe-out-disabled-with-detent]:first-child {
+  scroll-snap-align: none;
+}
+
+[data-velvet="native-edge-preventer"] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  width: 30px;
+  height: 100%;
+  pointer-events: auto;
+  user-select: none;
+  will-change: transform;
 }
 
 /* ---- Content: the panel ---- */

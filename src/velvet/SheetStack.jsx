@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from "react";
@@ -13,36 +14,38 @@ import { applyTravel } from "./core/travel.js";
 
 const SheetStackCtx = createContext(null);
 export const useSheetStack = () => useContext(SheetStackCtx);
+const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // ---- Root: tracks the ordered stack and fans out progress ----
 const Root = forwardRef(function SheetStackRoot(
   { children, asChild, className, style, componentId, ...rest },
   ref
 ) {
-  const stack = useRef([]); // ordered [{ id, progress }], last = frontmost
-  const aboveSubs = useRef(new Map()); // id -> Set(fn(aboveProgress))
+  const stack = useRef([]); // ordered [{ id, progress, getStackingAnimations }], last = frontmost
+  const aboveSubs = useRef(new Map()); // id -> Set(fn(accumulatedAboveProgress, metadata))
   const stackSubs = useRef(new Set()); // fn(topProgress)
+  const outletAnimations = useRef(new Set());
 
-  const notify = useCallback(() => {
+  const notify = useCallback((metadata) => {
     const s = stack.current;
     s.forEach((entry, i) => {
-      const above = i < s.length - 1 ? s[i + 1].progress : 0;
+      const above = s.slice(i + 1).reduce((sum, item) => sum + item.progress, 0);
       const subs = aboveSubs.current.get(entry.id);
-      if (subs) subs.forEach((fn) => fn(above));
+      if (subs) subs.forEach((fn) => fn(above, metadata));
     });
-    const top = s.length ? s[s.length - 1].progress : 0;
-    stackSubs.current.forEach((fn) => fn(top));
+    const total = s.reduce((sum, entry) => sum + entry.progress, 0);
+    stackSubs.current.forEach((fn) => fn(total, metadata));
   }, []);
 
   const ctx = useMemo(
     () => ({
-      register(id) {
-        const entry = { id, progress: 0 };
+      register(id, { getStackingAnimations } = {}) {
+        const entry = { id, progress: 0, getStackingAnimations };
         stack.current.push(entry);
         return {
-          update(p) {
+          update(p, metadata) {
             entry.progress = p;
-            notify();
+            notify(metadata);
           },
           unregister() {
             stack.current = stack.current.filter((e) => e !== entry);
@@ -62,6 +65,40 @@ const Root = forwardRef(function SheetStackRoot(
       subscribeStack(fn) {
         stackSubs.current.add(fn);
         return () => stackSubs.current.delete(fn);
+      },
+      registerOutletAnimation(entry) {
+        outletAnimations.current.add(entry);
+        return () => outletAnimations.current.delete(entry);
+      },
+      // Return every stacking animation below `id`, together with the travel
+      // already accumulated above that target. During a programmatic travel
+      // the active sheet's sampled progress is added to this baseline, exactly
+      // like the native stacking callback path.
+      getAnimationsBelow(id) {
+        const entries = stack.current;
+        const activeIndex = entries.findIndex((entry) => entry.id === id);
+        if (activeIndex < 0) return [];
+        const animations = [];
+
+        const outletBaseline = entries.reduce(
+          (sum, entry, index) => sum + (index === activeIndex ? 0 : entry.progress),
+          0
+        );
+        outletAnimations.current.forEach((animation) => {
+          animations.push({ ...animation, baseline: outletBaseline });
+        });
+
+        for (let targetIndex = 0; targetIndex < activeIndex; targetIndex++) {
+          const baseline = entries.reduce(
+            (sum, entry, index) =>
+              index > targetIndex && index !== activeIndex ? sum + entry.progress : sum,
+            0
+          );
+          entries[targetIndex].getStackingAnimations?.().forEach((animation) => {
+            animations.push({ ...animation, baseline });
+          });
+        }
+        return animations;
       },
     }),
     [notify]
@@ -86,11 +123,19 @@ const Outlet = forwardRef(function SheetStackOutlet(
   const composed = useComposedRefs(ref, localRef);
   const animRef = useRef(stackingAnimation);
   animRef.current = stackingAnimation;
-  useEffect(() => {
+  useIso(() => {
     if (!stack) return;
-    return stack.subscribeStack((progress) => {
+    return stack.subscribeStack((progress, { waapi } = {}) => {
+      if (waapi) return;
       const el = localRef.current;
       if (el && animRef.current) applyTravel(el, animRef.current, progress);
+    });
+  }, [stack]);
+  useIso(() => {
+    if (!stack) return;
+    return stack.registerOutletAnimation({
+      ref: localRef,
+      getAnimation: () => animRef.current,
     });
   }, [stack]);
   return (

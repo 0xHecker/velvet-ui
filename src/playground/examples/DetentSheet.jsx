@@ -23,7 +23,7 @@ export const DetentSheet = () => (
       <IconMusic /> Open queue
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Queue-view" detents="58lvh">
+      <Sheet.View className="Queue-view" detents="58%">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => Math.min(progress * 0.5, 0.5) }} />
         <Sheet.Content className="Queue-content">
           <Sheet.BleedingBackground className="Queue-bg" />

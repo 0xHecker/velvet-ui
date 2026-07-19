@@ -19,7 +19,7 @@ try {
   const count = () => page.evaluate(() => window.__velvet.count());
   const idle = () => page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0 && window.__velvet.idle(), { timeout: 6000 }).catch(() => {});
   const grab = () => page.$eval('[data-velvet="content"]', (el) => { const r = el.getBoundingClientRect(); return { cx: Math.round(r.x + r.width / 2), top: Math.round(r.y) }; });
-  const open = async () => { await page.click('[data-shot="bottom-sheet"] [data-velvet-trigger]'); await page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0, { timeout: 4000 }); await idle(); await sleep(60); };
+  const open = async () => { await page.click('[data-shot="bottom-sheet"] .Card-preview'); await page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0, { timeout: 4000 }); await idle(); await sleep(60); };
   const drag = async (dy, gap) => {
     const g = await grab();
     await page.mouse.move(g.cx, g.top + 14);

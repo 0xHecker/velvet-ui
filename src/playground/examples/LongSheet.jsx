@@ -1,4 +1,5 @@
-import { Sheet } from "../../velvet/index.js";
+import { useCallback, useState } from "react";
+import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconBook, IconClock, IconFlame, IconUsers } from "../icons.jsx";
 import "./LongSheet.css";
@@ -50,21 +51,53 @@ const TIPS = [
   "Leftovers reheat best in a toaster, never a microwave — the edges stay crisp.",
 ];
 
-export const LongSheet = () => (
-  <Sheet.Root>
+export const LongSheet = () => {
+  const [presented, setPresented] = useState(false);
+  const [track, setTrack] = useState("bottom");
+
+  const handleScroll = useCallback(
+    ({ progress }) => {
+      if (!presented) return;
+      setTrack(progress < 0.5 ? "bottom" : "top");
+    },
+    [presented]
+  );
+  const handleTravelStatus = useCallback((status) => {
+    if (status === "idleOutside") setTrack("bottom");
+  }, []);
+
+  return (
+  <Sheet.Root presented={presented} onPresentedChange={setPresented}>
     <Sheet.Trigger className="Btn">
       <IconBook /> Open recipe
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Recipe-view">
+      <Sheet.View
+        className="Recipe-view"
+        contentPlacement="center"
+        tracks={track}
+        swipeOvershoot={false}
+        nativeEdgeSwipePrevention
+        onTravelStatusChange={handleTravelStatus}
+        enteringAnimationSettings={{
+          easing: "spring",
+          stiffness: 480,
+          damping: 45,
+          mass: 1.5,
+        }}
+      >
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
-        <Sheet.Content className="Recipe-content">
-          <Sheet.BleedingBackground className="Recipe-bg" />
-          <Sheet.Handle className="Recipe-handle" />
-          <div className="Recipe-hero">
-            <img src={px(376464, 1080, 560)} alt="Brown butter pancakes" />
-          </div>
-          <div className="Recipe-body">
+        <Sheet.Content className="Recipe-content" asChild>
+          <Scroll.Root className="Recipe-scrollRoot" asChild>
+            <Scroll.View className="Recipe-scrollView" onScrollProgress={handleScroll}>
+              <Scroll.Content className="Recipe-scrollContent">
+                <div className="Recipe-innerContent">
+                  <Sheet.BleedingBackground className="Recipe-bg" />
+                  <Sheet.Handle className="Recipe-handle" />
+                  <div className="Recipe-hero">
+                    <img src={px(376464, 1080, 560)} alt="Brown butter pancakes" />
+                  </div>
+                  <div className="Recipe-body">
             <span className="Recipe-kicker">Weekend brunch</span>
             <Sheet.Title className="Recipe-title">Brown Butter Pancakes</Sheet.Title>
             <Sheet.Description className="Recipe-desc">
@@ -113,13 +146,18 @@ export const LongSheet = () => (
               ))}
             </ul>
 
-            <div className="Recipe-footer">
-              <img src={px(302899, 320, 200)} alt="" />
-              <p>Pairs well with a slow latte. Recipe by the Velvet test kitchen.</p>
-            </div>
-          </div>
+                    <div className="Recipe-footer">
+                      <img src={px(302899, 320, 200)} alt="" />
+                      <p>Pairs well with a slow latte. Recipe by the Velvet test kitchen.</p>
+                    </div>
+                  </div>
+                </div>
+              </Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
         </Sheet.Content>
       </Sheet.View>
     </Sheet.Portal>
   </Sheet.Root>
-);
+  );
+};

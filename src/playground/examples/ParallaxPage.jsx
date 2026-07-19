@@ -1,18 +1,51 @@
-import { Sheet } from "../../velvet/index.js";
+import { useCallback, useState } from "react";
+import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconChevronR, IconPin, IconStar, IconSun } from "../icons.jsx";
 import "./ParallaxPage.css";
 
-export const ParallaxPage = () => (
-  <Sheet.Root>
+export const ParallaxPage = () => {
+  const [presented, setPresented] = useState(false);
+  const [track, setTrack] = useState("bottom");
+
+  const handleScroll = useCallback(
+    ({ progress }) => {
+      if (!presented) return;
+      setTrack(progress < 0.5 ? "bottom" : "top");
+    },
+    [presented]
+  );
+  const handleTravelStatus = useCallback((status) => {
+    if (status === "idleOutside") setTrack("bottom");
+  }, []);
+
+  return (
+  <Sheet.Root presented={presented} onPresentedChange={setPresented}>
     <Sheet.Trigger className="Btn">
       Read the story <IconChevronR />
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Parallax-view" nativeEdgeSwipePrevention>
+      <Sheet.View
+        className="Parallax-view"
+        contentPlacement="center"
+        tracks={track}
+        swipeOvershoot={false}
+        nativeEdgeSwipePrevention
+        onTravelStatusChange={handleTravelStatus}
+        enteringAnimationSettings={{
+          easing: "spring",
+          stiffness: 480,
+          damping: 45,
+          mass: 1.5,
+        }}
+      >
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.25 }} />
-        <Sheet.Content className="Parallax-content">
-          <div className="Parallax-hero">
+        <Sheet.Content className="Parallax-content" asChild>
+          <Scroll.Root className="Parallax-scrollRoot" asChild>
+            <Scroll.View className="Parallax-scrollView" onScrollProgress={handleScroll}>
+              <Scroll.Content className="Parallax-scrollContent">
+                <div className="Parallax-innerContent">
+                  <div className="Parallax-hero">
             <Sheet.Outlet
               className="Parallax-heroImg"
               style={{ backgroundImage: `url(${px(3408744, 1200, 800)})` }}
@@ -25,7 +58,7 @@ export const ParallaxPage = () => (
               <Sheet.Title className="Parallax-title">Chasing the Aurora</Sheet.Title>
             </div>
           </div>
-          <div className="Parallax-body">
+                  <div className="Parallax-body">
             <div className="Parallax-facts">
               <span>
                 <IconPin size={13} /> Tromsø, Norway
@@ -69,12 +102,17 @@ export const ParallaxPage = () => (
               The season runs from late September to early April. Dress for standing still, not
               for walking — the cold finds seams you didn't know your jacket had.
             </p>
-            <Sheet.Trigger action="dismiss" className="Btn Btn--soft Parallax-close">
-              Back to gallery
-            </Sheet.Trigger>
-          </div>
+                    <Sheet.Trigger action="dismiss" className="Btn Btn--soft Parallax-close">
+                      Back to gallery
+                    </Sheet.Trigger>
+                  </div>
+                </div>
+              </Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
         </Sheet.Content>
       </Sheet.View>
     </Sheet.Portal>
   </Sheet.Root>
-);
+  );
+};

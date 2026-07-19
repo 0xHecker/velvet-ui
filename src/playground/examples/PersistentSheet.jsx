@@ -24,7 +24,6 @@ export const PersistentSheet = () => (
         detents="96px"
         swipeDismissal={false}
         inertOutside={false}
-        onEscapeKeyDown={{ dismiss: false }}
       >
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => Math.max(0, progress - 0.35) * 0.8 }} />
         <Sheet.Content className="Player-content">

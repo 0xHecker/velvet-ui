@@ -26,7 +26,7 @@ try {
   const idle = () => page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0 && window.__velvet.idle(), { timeout: 8000 });
 
   console.log("\n--- LONG SHEET (unified scroll) ---");
-  await page.click('[data-shot="long-sheet"] [data-velvet-trigger]');
+  await page.click('[data-shot="long-sheet"] .Card-preview');
   await idle();
   const open = await page.evaluate(() => window.__velvet.progress());
   check("opens fully", open > 0.95, `progress=${open.toFixed(2)}`);

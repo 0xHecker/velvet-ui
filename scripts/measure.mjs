@@ -14,7 +14,7 @@ try {
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
   await page.evaluate(() => (window.__VELVET_DEBUG = true));
-  await page.click('[data-shot="bottom-sheet"] [data-velvet-trigger]');
+  await page.click('[data-shot="bottom-sheet"] .Card-preview');
   await page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0);
   await page.evaluate(() => window.__velvet.freeze(1));
   await new Promise((r) => setTimeout(r, 100));

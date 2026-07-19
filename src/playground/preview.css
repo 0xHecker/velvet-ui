@@ -27,6 +27,15 @@
   --velvet-100lvh: 100cqh;
 }
 
+/* The stacked demo needs enough logical height for both full product sheets to
+   exist at their real dimensions. A wider capture viewport is then scaled back
+   into the same card instead of vertically cropping the second sheet. */
+.Card[data-shot="stacked"] .DemoPreview-canvas {
+  width: 300%;
+  height: 300%;
+  transform: scale(0.333333);
+}
+
 /* A preview View is local to the logical canvas instead of the browser. */
 .DemoPreview-canvas [data-velvet="view"][data-velvet-preview] {
   position: absolute;
@@ -130,6 +139,8 @@
   position: relative;
   z-index: 1;
   display: grid;
+  box-sizing: border-box;
+  height: 100%;
   grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr) 190px;
   gap: 18px;
   padding: 30px;
@@ -177,30 +188,49 @@
 }
 .DemoBackdrop-actions {
   display: flex;
+  align-items: center;
   gap: 7px;
   margin-top: 22px;
 }
-.DemoBackdrop-actions i {
-  width: 58px;
-  height: 8px;
+.DemoBackdrop-actions strong,
+.DemoBackdrop-actions span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: #e1e5eb;
+  font-size: 10px;
+  font-weight: 720;
+  white-space: nowrap;
 }
-.DemoBackdrop-actions i:first-child {
-  width: 92px;
+.DemoBackdrop-actions strong {
   background: #111827;
+  color: #fff;
 }
-.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions i {
+.DemoBackdrop-actions span {
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  background: rgba(255, 255, 255, 0.68);
+  color: #596273;
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions span {
+  border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.11);
+  color: rgba(255, 255, 255, 0.72);
 }
-.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions i:first-child {
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-actions strong {
   background: rgba(255, 255, 255, 0.76);
+  color: #101116;
 }
 .DemoBackdrop-feature {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 .DemoBackdrop-feature img {
   display: block;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   height: 142px;
   object-fit: cover;
@@ -231,15 +261,85 @@
   margin-bottom: 18px;
   font-size: 14px;
 }
-.DemoBackdrop-rail > i {
-  display: block;
-  height: 34px;
+.DemoBackdrop-update {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
   margin-top: 8px;
-  border-radius: 10px;
-  background: #eef1f5;
+  padding: 5px 7px;
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  border-radius: 11px;
+  background: rgba(246, 248, 250, 0.9);
 }
-.DemoBackdrop[data-theme="dark"] .DemoBackdrop-rail > i {
+.DemoBackdrop-update > i {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background-position: center;
+  background-size: cover;
+}
+.DemoBackdrop-update > span,
+.DemoBackdrop-update b,
+.DemoBackdrop-update small {
+  display: block;
+  min-width: 0;
+}
+.DemoBackdrop-update b,
+.DemoBackdrop-update small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.DemoBackdrop-update b {
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+.DemoBackdrop-update small,
+.DemoBackdrop-update time {
+  color: #929aa7;
+  font-size: 8px;
+  line-height: 1.3;
+}
+.DemoBackdrop-update time {
+  font-variant-numeric: tabular-nums;
+}
+.DemoBackdrop[data-theme="dark"] .DemoBackdrop-update {
+  border-color: rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.07);
+}
+
+/* Three gallery columns leave each scaled preview with a roughly 650px
+   logical canvas. The full dashboard's fixed 260px + 190px side columns used
+   to crush its lead card to about 100px. Let the preview itself—not the page
+   breakpoint—choose a composed two-pane shell at that width. */
+@container (max-width: 760px) {
+  .DemoBackdrop-body {
+    grid-template-columns: minmax(210px, 0.72fr) minmax(0, 1.28fr);
+    gap: 14px;
+    padding: 24px;
+  }
+  .DemoBackdrop-copy {
+    padding: 20px;
+  }
+  .DemoBackdrop-app {
+    margin-bottom: 20px;
+  }
+  .DemoBackdrop-copy h4 {
+    max-width: 13ch;
+    font-size: 24px;
+  }
+  .DemoBackdrop-copy p {
+    line-height: 1.35;
+  }
+  .DemoBackdrop-people,
+  .DemoBackdrop-rail {
+    display: none;
+  }
+  .DemoBackdrop-feature img {
+    height: 150px;
+  }
 }
 
 /* Keep the real preview visually stable while its spring is idle. */

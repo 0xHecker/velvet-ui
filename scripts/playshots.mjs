@@ -21,7 +21,7 @@ try {
   await page.screenshot({ path: resolve(OUT, "sheets-full.png"), fullPage: true });
 
   // Open a bottom sheet to confirm the re-valued tokens propagated to examples.
-  await page.click('[data-shot="bottom-sheet"] [data-velvet-trigger]');
+  await page.click('[data-shot="bottom-sheet"] .Card-preview');
   await sleep(700);
   await page.screenshot({ path: resolve(OUT, "sheet-open.png") });
   await page.keyboard.press("Escape");

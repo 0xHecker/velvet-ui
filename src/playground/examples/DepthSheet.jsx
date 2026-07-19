@@ -4,8 +4,10 @@ import { IconCalendar, IconChevronR, IconPin, IconPlus, IconUsers } from "../ico
 import "./DepthSheet.css";
 
 const depth = {
-  transform: ({ tween }) => `scale(${tween(1, 0.86)})`,
-  filter: ({ tween }) => `brightness(${tween(1, 0.72)})`,
+  translateY: ({ progress }) =>
+    progress <= 1 ? `${progress * -10}px` : `calc(-12.5px + 2.5px * ${progress})`,
+  scale: [1, 0.933],
+  transformOrigin: "50% 0",
 };
 
 const TRAVELERS = [
@@ -22,7 +24,7 @@ export const DepthSheet = () => (
       </Sheet.Trigger>
       <Sheet.Portal>
         <Sheet.View className="Depth-view">
-          <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
+          <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.2] }} />
           <Sheet.Content className="Depth-content" stackingAnimation={depth}>
             <Sheet.BleedingBackground className="Depth-bg" />
             <Sheet.Handle className="Depth-handle" />
@@ -45,7 +47,7 @@ export const DepthSheet = () => (
                 </Sheet.Trigger>
                 <Sheet.Portal>
                   <Sheet.View className="Depth-view">
-                    <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.3 }} />
+                    <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.2] }} />
                     <Sheet.Content className="Depth-content" stackingAnimation={depth}>
                       <Sheet.BleedingBackground className="Depth-bg" />
                       <Sheet.Handle className="Depth-handle" />

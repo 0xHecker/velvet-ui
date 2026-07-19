@@ -119,7 +119,7 @@ const Root = forwardRef(function Root(
 
   return (
     <ScrollCtx.Provider value={ctx}>
-      <Polymorph asChild={asChild} ref={forwardedRef} data-velvet-scroll="root" className={className} style={style} {...rest}>
+      <Polymorph asChild={asChild} ref={forwardedRef} data-velvet-scroll-root="" className={className} style={style} {...rest}>
         {children}
       </Polymorph>
     </ScrollCtx.Provider>

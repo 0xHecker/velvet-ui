@@ -14,7 +14,7 @@ export const Modal = () => {
         Open invite <IconChevronR />
       </Sheet.Trigger>
       <Sheet.Portal>
-        <Sheet.View className="Modal-view" contentPlacement="center">
+        <Sheet.View className="Modal-view" contentPlacement="center" tracks={["top", "bottom"]}>
           <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.5 }} />
           <Sheet.Content
             className="Modal-content"

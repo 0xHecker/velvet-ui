@@ -13,12 +13,16 @@ export const StackedSheets = () => (
       </Sheet.Trigger>
       <Sheet.Portal>
         <Sheet.View className="Stack-view">
-          <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
+          <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.2] }} />
           <Sheet.Content
             className="Stack-content"
             stackingAnimation={{
-              transform: ({ tween }) => `scale(${tween(1, 0.92)}) translateY(${tween(0, -22)}px)`,
-              filter: ({ tween }) => `brightness(${tween(1, 0.84)})`,
+              translateY: ({ progress }) =>
+                progress <= 1
+                  ? `${progress * -10}px`
+                  : `calc(-12.5px + 2.5px * ${progress})`,
+              scale: [1, 0.933],
+              transformOrigin: "50% 0",
             }}
           >
             <Sheet.BleedingBackground className="Stack-bg" />
@@ -58,7 +62,7 @@ export const StackedSheets = () => (
                 </Sheet.Trigger>
                 <Sheet.Portal>
                   <Sheet.View className="Stack-view">
-                    <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.3 }} />
+                    <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.2] }} />
                     <Sheet.Content className="Stack-content">
                       <Sheet.BleedingBackground className="Stack-bg" />
                       <Sheet.Handle className="Stack-handle" />

@@ -19,7 +19,7 @@ const progress = (page) => page.evaluate(() => window.__velvet.progress());
 const count = (page) => page.evaluate(() => window.__velvet.count());
 
 const present = async (page) => {
-  await page.click('[data-shot="bottom-sheet"] [data-velvet-trigger]');
+  await page.click('[data-shot="bottom-sheet"] .Card-preview');
   await page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0, { timeout: 4000 });
   await page.waitForFunction(() => window.__velvet.idle() && window.__velvet.progress() > 0.99, { timeout: 3000 }).catch(() => {});
   await sleep(60);
@@ -95,14 +95,14 @@ try {
 
   // --- rapid open/close never strands the overlay ---
   for (let i = 0; i < 5; i++) {
-    await page.click('[data-shot="bottom-sheet"] [data-velvet-trigger]').catch(() => {});
+    await page.click('[data-shot="bottom-sheet"] .Card-preview').catch(() => {});
     await sleep(40);
     await page.keyboard.press("Escape");
     await sleep(40);
   }
   await page.waitForFunction(() => window.__velvet.count() === 0, { timeout: 3000 }).catch(() => {});
   const clickable = await page.evaluate(() => {
-    const el = document.querySelector('[data-shot="bottom-sheet"] [data-velvet-trigger]');
+    const el = document.querySelector('[data-shot="bottom-sheet"] .Card-preview');
     const r = el.getBoundingClientRect();
     const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
     return el === hit || el.contains(hit);

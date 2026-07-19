@@ -209,7 +209,10 @@ const PreviewBackdrop = ({ id }) => {
           <span>{scene.eyebrow}</span>
           <h4>{scene.title}</h4>
           <p>{scene.detail}</p>
-          <div className="DemoBackdrop-actions"><i /><i /><i /></div>
+          <div className="DemoBackdrop-actions">
+            <strong>Open overview</strong>
+            <span>Share</span>
+          </div>
         </section>
         <section className="DemoBackdrop-feature">
           <img src={scene.image} alt="" />
@@ -218,7 +221,21 @@ const PreviewBackdrop = ({ id }) => {
         <aside className="DemoBackdrop-rail">
           <span>Today</span>
           <strong>3 updates</strong>
-          <i /><i /><i />
+          <div className="DemoBackdrop-update">
+            <i style={{ backgroundImage: `url(${px(733872, 72, 72)})` }} />
+            <span><b>Ava Laurent</b><small>Shared an update</small></span>
+            <time>9:41</time>
+          </div>
+          <div className="DemoBackdrop-update">
+            <i style={{ backgroundImage: `url(${px(614810, 72, 72)})` }} />
+            <span><b>Marcus Reid</b><small>Left feedback</small></span>
+            <time>8:17</time>
+          </div>
+          <div className="DemoBackdrop-update">
+            <i style={{ backgroundImage: `url(${px(1239291, 72, 72)})` }} />
+            <span><b>Sofia Nguyen</b><small>Marked it ready</small></span>
+            <time>7:52</time>
+          </div>
         </aside>
       </div>
     </div>
@@ -233,6 +250,7 @@ const GalleryCard = ({ card }) => {
   const [layers, setLayers] = useState([false, false]);
   const openTimer = useRef(0);
   const closeTimer = useRef(0);
+  const nestedActivated = useRef(false);
   const nested = NESTED_PREVIEWS.has(id);
 
   const clearTimers = useCallback(() => {
@@ -244,9 +262,16 @@ const GalleryCard = ({ card }) => {
 
   const showPreview = useCallback(() => {
     clearTimers();
+    if (nested && nestedActivated.current) {
+      setLayers([true, true]);
+      return;
+    }
     setLayers([true, false]);
     if (nested) {
-      openTimer.current = window.setTimeout(() => setLayers([true, true]), 460);
+      openTimer.current = window.setTimeout(() => {
+        nestedActivated.current = true;
+        setLayers([true, true]);
+      }, 460);
     }
   }, [clearTimers, nested]);
 
@@ -257,7 +282,10 @@ const GalleryCard = ({ card }) => {
       return;
     }
     setLayers((current) => [current[0], false]);
-    closeTimer.current = window.setTimeout(() => setLayers([false, false]), 420);
+    closeTimer.current = window.setTimeout(() => {
+      nestedActivated.current = false;
+      setLayers([false, false]);
+    }, 420);
   }, [clearTimers, nested]);
 
   const updateLayer = useCallback((depth, presented) => {

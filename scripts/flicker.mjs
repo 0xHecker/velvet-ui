@@ -22,7 +22,7 @@ try {
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
 
-  const trigger = `[data-shot="${shot}"] [data-velvet-trigger]`;
+  const trigger = `[data-shot="${shot}"] .Card-preview`;
   const idle = () => page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0 && window.__velvet.idle(), { timeout: 8000 });
   const gone = () => page.waitForFunction(() => window.__velvet.count() === 0, { timeout: 8000 });
 
