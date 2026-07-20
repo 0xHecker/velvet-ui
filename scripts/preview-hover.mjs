@@ -61,6 +61,7 @@ const phaseStats = (samples) => {
   let direction = 0;
   let extreme = positions[0] ?? 0;
   const jumps = [];
+  const turnPoints = [];
   for (let index = 1; index < positions.length; index++) {
     const delta = positions[index] - positions[index - 1];
     maxJump = Math.max(maxJump, Math.abs(delta));
@@ -80,17 +81,25 @@ const phaseStats = (samples) => {
       if (position > extreme) extreme = position;
       else if (extreme - position >= 2) {
         turns++;
+        turnPoints.push([index, Math.round(extreme), Math.round(position)]);
         direction = -1;
         extreme = position;
       }
     } else if (position < extreme) extreme = position;
     else if (position - extreme >= 2) {
       turns++;
+      turnPoints.push([index, Math.round(extreme), Math.round(position)]);
       direction = 1;
       extreme = position;
     }
   }
-  return { frames: positions.length, maxJump, turns, jumps: jumps.slice(0, 8) };
+  return {
+    frames: positions.length,
+    maxJump,
+    turns,
+    jumps: jumps.slice(0, 8),
+    turnPoints: turnPoints.slice(0, 8),
+  };
 };
 
 const run = async (page, shot) => {
@@ -191,12 +200,14 @@ try {
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
+  await page.evaluate(() => document.fonts?.ready);
+  const only = process.env.VELVET_PREVIEW_CASE;
 
   console.log("\n--- PREVIEW HOVER ASSERTIONS ---");
-  await run(page, "detent");
-  await run(page, "persistent");
-  await runNested(page, "stacked");
-  await runNested(page, "depth");
+  if (!only || only === "detent") await run(page, "detent");
+  if (!only || only === "persistent") await run(page, "persistent");
+  if (!only || only === "stacked") await runNested(page, "stacked");
+  if (!only || only === "depth") await runNested(page, "depth");
   console.log(pass ? "\nALL PASS\n" : "\nFAILED\n");
 } catch (error) {
   console.error("harness error:", error);

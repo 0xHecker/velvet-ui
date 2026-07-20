@@ -25,7 +25,9 @@ try {
   await server.listen();
 
   const { Sheet: ServerSheet } = await server.ssrLoadModule("/src/velvet/Sheet.jsx");
-  const { resolveSpringSettings } = await server.ssrLoadModule("/src/velvet/core/spring.js");
+  const { resolveSpringSettings, springEasing } = await server.ssrLoadModule(
+    "/src/velvet/core/spring.js"
+  );
   const ssr = renderToString(
     React.createElement(
       ServerSheet,
@@ -42,6 +44,15 @@ try {
   check(
     'skip="auto" follows reduced motion instead of acting as truthy skip',
     resolveSpringSettings({ skip: "auto" }).skip === false
+  );
+  const oneSampleSpring = springEasing(
+    { easing: "spring", stiffness: 520, damping: 44, mass: 1 },
+    { from: 0, to: 1 }
+  );
+  check(
+    "a one-sample spring always serializes to valid WAAPI timing",
+    oneSampleSpring.duration === 1 && oneSampleSpring.easing === "linear",
+    JSON.stringify(oneSampleSpring)
   );
 
   const closedInlineSsr = renderToString(

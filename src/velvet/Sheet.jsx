@@ -16,6 +16,7 @@ import { useComposedRefs } from "./core/refs.js";
 import {
   SPRING_PRESETS,
   decimateSpring,
+  linearEasingFromSamples,
   resolveSpringSettings,
   solveSpring,
 } from "./core/spring.js";
@@ -70,6 +71,16 @@ const clientOf = (el, axis) => (axis === "y" ? el.clientHeight : el.clientWidth)
 const setOff = (el, axis, v) => {
   if (axis === "y") el.scrollTop = v;
   else el.scrollLeft = v;
+};
+const restoreProgrammaticOverflow = (motion) => {
+  if (!motion?.scroll || motion.overflowRestored) return;
+  motion.overflowRestored = true;
+  const { scroll, previousOverflow, previousOverflowPriority } = motion;
+  if (previousOverflow) {
+    scroll.style.setProperty("overflow", previousOverflow, previousOverflowPriority);
+  } else {
+    scroll.style.removeProperty("overflow");
+  }
 };
 const USER_AGENT = typeof window !== "undefined" ? window.navigator.userAgent : null;
 let BROWSER_ENGINE = "unknown";
@@ -394,6 +405,7 @@ const Root = ({
   );
   // Keep the portal mounted through the exit animation.
   const [mounted, setMounted] = useState(presented);
+  const [actionsDisabled, setActionsDisabled] = useState(false);
   const presentedRef = useRef(presented);
   presentedRef.current = presented;
   useEffect(() => {
@@ -487,6 +499,8 @@ const Root = ({
       activeDetent,
       setActiveDetent,
       mounted,
+      actionsDisabled,
+      setActionsDisabled,
       finishExit: () => {
         if (!presentedRef.current) {
           setMounted(false);
@@ -520,6 +534,7 @@ const Root = ({
       activeDetent,
       setActiveDetent,
       mounted,
+      actionsDisabled,
       sheetRole,
       subscribeTravel,
       registerTravelAnimation,
@@ -616,6 +631,9 @@ const View = forwardRef(function View(
     lastFocused,
     actionDispatcherRef,
     performAction,
+    requestAction,
+    actionsDisabled,
+    setActionsDisabled,
   } = sheet;
 
   const isPreview = Boolean(sheet.preview);
@@ -679,7 +697,7 @@ const View = forwardRef(function View(
   const scrollSequenceRef = useRef(false);
   const scrollEndTimerRef = useRef(0);
   const travelRafRef = useRef(0);
-  const ignoreNextProgrammaticScrollRef = useRef(false);
+  const ignoredProgrammaticOffsetRef = useRef(null);
   const touchOngoingRef = useRef(false);
   const progressFilterRef = useRef({ previous: 0, delta: 0 });
   const observerRef = useRef(null);
@@ -1049,9 +1067,11 @@ const View = forwardRef(function View(
       }
       animation.cancel();
     });
+    restoreProgrammaticOverflow(motion);
     motionRef.current = null;
     programmaticRef.current = false;
-  }, []);
+    setActionsDisabled(false);
+  }, [setActionsDisabled]);
 
   const suppressAsyncScrollEvent = useCallback((destination) => {
     const scroll = scrollRef.current;
@@ -1060,9 +1080,12 @@ const View = forwardRef(function View(
     }
     const reachableDestination = Math.min(Math.max(destination, 0), maxOf(scroll, axis));
     if (Math.abs(offOf(scroll, axis) - reachableDestination) < 0.5) return false;
-    // Silk marks exactly one programmatic scroll event. A time window can eat
-    // the beginning of a real gesture or expire before a delayed browser event.
-    ignoreNextProgrammaticScrollRef.current = true;
+    // Associate the one suppressed event with its destination. A browser may
+    // clamp the requested offset by half a layout pixel and emit no event; a
+    // blind boolean would then eat the first (possibly only) event from the
+    // next real swipe. Destination matching retains the reference's one-event
+    // suppression without letting a stale marker hide native input.
+    ignoredProgrammaticOffsetRef.current = reachableDestination;
     return true;
   }, [axis]);
 
@@ -1127,6 +1150,9 @@ const View = forwardRef(function View(
         onTravelStart?.();
       }
       if (config.skip) {
+        const previousOverflow = scroll.style.getPropertyValue("overflow");
+        const previousOverflowPriority = scroll.style.getPropertyPriority("overflow");
+        scroll.style.setProperty("overflow", "hidden", "important");
         wrapper.style.removeProperty("transform");
         programmaticRef.current = true;
         suppressAsyncScrollEvent(destinationOffset);
@@ -1134,6 +1160,11 @@ const View = forwardRef(function View(
         reportTravel(destinationProgress, { start: targetDetent, end: targetDetent });
         lastVisualCoordinateRef.current = readVisualCoordinate();
         programmaticRef.current = false;
+        if (previousOverflow) {
+          scroll.style.setProperty("overflow", previousOverflow, previousOverflowPriority);
+        } else {
+          scroll.style.removeProperty("overflow");
+        }
         onComplete?.();
         onTravelEnd?.();
         return;
@@ -1144,6 +1175,9 @@ const View = forwardRef(function View(
         !Number.isFinite(destinationPosition) ||
         Math.abs(originPosition - destinationPosition) < 0.0001
       ) {
+        const previousOverflow = scroll.style.getPropertyValue("overflow");
+        const previousOverflowPriority = scroll.style.getPropertyPriority("overflow");
+        scroll.style.setProperty("overflow", "hidden", "important");
         wrapper.style.removeProperty("transform");
         programmaticRef.current = true;
         suppressAsyncScrollEvent(destinationOffset);
@@ -1151,6 +1185,11 @@ const View = forwardRef(function View(
         reportTravel(destinationProgress, { start: targetDetent, end: targetDetent });
         lastVisualCoordinateRef.current = readVisualCoordinate();
         programmaticRef.current = false;
+        if (previousOverflow) {
+          scroll.style.setProperty("overflow", previousOverflow, previousOverflowPriority);
+        } else {
+          scroll.style.removeProperty("overflow");
+        }
         onComplete?.();
         onTravelEnd?.();
         return;
@@ -1182,18 +1221,37 @@ const View = forwardRef(function View(
         raf2: 0,
         travelRaf: 0,
         animations: [],
+        scroll,
+        previousOverflow: scroll.style.getPropertyValue("overflow"),
+        previousOverflowPriority: scroll.style.getPropertyPriority("overflow"),
+        overflowRestored: false,
       };
       motionRef.current = motion;
       programmaticRef.current = true;
+      setActionsDisabled(true);
+      // The reference runtime gives WAAPI exclusive ownership during
+      // programmatic travel. Native scroll-snap is re-enabled only after the
+      // spring settles, so a quick user swipe cannot move the hidden track
+      // underneath an entrance/step/exit animation.
+      scroll.style.setProperty("overflow", "hidden", "important");
+
+      if (contentMove || targetDetent !== 0) {
+        // Stage the destination scroll base and its compensating transform in
+        // this layout effect, before the browser can paint changed detent
+        // geometry. Waiting for the animation rAF would expose one raw-layout
+        // frame (persistent close: down, then up, then down again).
+        if (contentMove) wrapper.style.transform = transformAt(0);
+        suppressAsyncScrollEvent(destinationOffset);
+        setOff(scroll, axis, destinationOffset);
+      }
 
       motion.raf = requestAnimationFrame(() => {
         motion.raf2 = requestAnimationFrame(() => {
           if (token !== motionTokenRef.current) return;
           if (contentMove || targetDetent !== 0) {
-            // The old WAAPI pose was committed before cancellation. Replace it
-            // in the same frame as the native scroll jump with the transform
-            // relative to the new scroll base. This also holds the exact origin
-            // throughout a configured delay without stranding the old pose.
+            // Reassert the staged FLIP pose at WAAPI startup. This also holds
+            // the exact origin throughout a configured delay without
+            // stranding a committed pose from a replaced animation.
             if (contentMove) wrapper.style.transform = transformAt(0);
             suppressAsyncScrollEvent(destinationOffset);
             scroll.scrollTo({
@@ -1203,7 +1261,7 @@ const View = forwardRef(function View(
           }
 
           const timing = {
-            easing: useLinear ? `linear(${visualValues.join(",")})` : "linear",
+            easing: useLinear ? linearEasingFromSamples(visualValues) : "linear",
             duration,
             delay: config.delay ?? 0,
           };
@@ -1211,20 +1269,45 @@ const View = forwardRef(function View(
             target,
             keyframes,
             persistFinal = false,
-            clearAfter = []
+            clearAfter = [],
+            clearAtStart = []
           ) =>
             new Promise((resolve) => {
               if (!target || keyframes.length === 0) {
                 resolve();
                 return;
               }
-              const animation = target.animate(keyframes, timing);
+              const animation = target.animate(
+                keyframes,
+                clearAtStart.length > 0
+                  ? { ...timing, fill: "backwards" }
+                  : timing
+              );
               motion.animations.push({
                 animation,
                 target,
                 properties: Object.keys(keyframes[0] || {}),
               });
-              const finish = () => {
+              // Once WAAPI owns the first frame, remove the synchronous FLIP
+              // hold. Leaving it underneath the animation would briefly
+              // resurface the origin transform at finish, just before detent
+              // geometry rebases, producing a one-frame hover reversal.
+              clearAtStart.forEach((property) =>
+                target.style.removeProperty(property)
+              );
+              let settled = false;
+              const cleanup = () => {
+                animation.removeEventListener("finish", finish);
+                animation.removeEventListener("cancel", cancel);
+              };
+              const settle = (completed) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                if (!completed) {
+                  resolve();
+                  return;
+                }
                 if (persistFinal) {
                   const finalFrame = keyframes[keyframes.length - 1];
                   Object.entries(finalFrame).forEach(([property, value]) => {
@@ -1235,10 +1318,19 @@ const View = forwardRef(function View(
                   });
                 }
                 clearAfter.forEach((property) => target.style.removeProperty(property));
-                animation.removeEventListener("finish", finish);
                 resolve();
               };
+              const finish = () => {
+                settle(true);
+              };
+              const cancel = () => settle(false);
               animation.addEventListener("finish", finish);
+              animation.addEventListener("cancel", cancel);
+              // A one-sample spring can finish before the event listener is
+              // observed. The finished promise is stateful, so it closes that
+              // race while cancellation still resolves the obsolete motion
+              // without committing its final frame.
+              animation.finished.then(finish, cancel);
             });
 
           const visualPromise = contentMove
@@ -1246,6 +1338,7 @@ const View = forwardRef(function View(
                 wrapper,
                 visualKeyframes,
                 false,
+                ["transform"],
                 ["transform"]
               )
             : Promise.resolve();
@@ -1320,18 +1413,14 @@ const View = forwardRef(function View(
                 // swipe. Reassert the requested detent at the programmatic
                 // boundary while overflow is suspended, mirroring Silk's
                 // stuck-snap correction instead of letting the old snap win.
-                const previousOverflow = scroll.style.overflow;
-                scroll.style.setProperty("overflow", "hidden");
                 suppressAsyncScrollEvent(reachableDestination);
                 setOff(scroll, axis, reachableDestination);
-                window.setTimeout(() => {
-                  if (previousOverflow) scroll.style.overflow = previousOverflow;
-                  else scroll.style.removeProperty("overflow");
-                }, CSS.supports("overscroll-behavior", "none") ? 1 : 10);
               }
             }
+            restoreProgrammaticOverflow(motion);
             motionRef.current = null;
             programmaticRef.current = false;
+            setActionsDisabled(false);
             lastVisualCoordinateRef.current = readVisualCoordinate();
             onComplete?.();
             onTravelEnd?.();
@@ -1350,6 +1439,7 @@ const View = forwardRef(function View(
       placement,
       readVisualCoordinate,
       reportTravel,
+      setActionsDisabled,
       stack,
       stackId,
       suppressAsyncScrollEvent,
@@ -1386,11 +1476,27 @@ const View = forwardRef(function View(
 
   useIso(() => {
     const dispatch = (action) => {
+      // Silk's semantic controls are disabled while WAAPI owns a transition.
+      // Reversing an entrance from a newly mounted close control creates two
+      // competing paths (and a visible up/down kink), so actions resume only
+      // after the current spring reaches its detent.
+      if (programmaticRef.current) return;
       if (action.type === "step" && scrollSequenceRef.current) {
         // STEP is semantic rather than a precomputed detent so it is resolved
         // against the detent reached by native scroll-snap, after paint.
         pendingStepRef.current = action;
         return;
+      }
+      if (action.type === "dismiss") {
+        const range = lastRangeRef.current;
+        const atClosedDetent =
+          range.start === 0 && range.end === 0;
+        const persistentBetweenDetents =
+          !dismissible && range.start !== range.end;
+        // Match the reference CLOSE gate: semantic close cannot compete with
+        // physical swipe-out at detent zero, and a persistent sheet rejects a
+        // close while native travel is between detents.
+        if (atClosedDetent || persistentBetweenDetents) return;
       }
       performAction(action);
     };
@@ -1398,7 +1504,7 @@ const View = forwardRef(function View(
     return () => {
       if (actionDispatcherRef.current === dispatch) actionDispatcherRef.current = null;
     };
-  }, [actionDispatcherRef, performAction]);
+  }, [actionDispatcherRef, dismissible, performAction]);
 
   const updateLiveDetent = useCallback(
     (progress) => {
@@ -1422,6 +1528,72 @@ const View = forwardRef(function View(
     observerWheelCleanupRef.current?.();
     observerWheelCleanupRef.current = null;
   }, []);
+
+  const beginNativeDismiss = useCallback(() => {
+    const view = viewRef.current;
+    const scroll = scrollRef.current;
+    const content = scroll?.querySelector('[data-velvet="content"]');
+    if (
+      !view ||
+      !scroll ||
+      !content ||
+      !activeRef.current ||
+      nativeDismissRef.current ||
+      programmaticRef.current ||
+      !dismissible
+    ) {
+      return false;
+    }
+
+    // The closed snap is the authoritative dismissal boundary. Do not wait
+    // solely for full visual non-intersection: inset/detached content can keep
+    // a margin-sized sliver inside the viewport even at exact progress 0.
+    // Latch immediately so a reverse wheel/touch gesture cannot reclaim the
+    // now-closed native snap track before React unmounts it.
+    nativeDismissRef.current = true;
+    activeRef.current = false;
+    view.inert = true;
+    view.style.setProperty("visibility", "hidden", "important");
+    view.style.setProperty("pointer-events", "none", "important");
+    view.style.setProperty("opacity", "0", "important");
+    view.style.setProperty("position", "fixed", "important");
+    view.style.setProperty("top", "-100px", "important");
+    view.style.setProperty("left", "-100px", "important");
+    content.style.setProperty("pointer-events", "none", "important");
+    scroll.style.setProperty("pointer-events", "none", "important");
+    scroll.style.setProperty("width", "1px", "important");
+    scroll.style.setProperty("height", "1px", "important");
+    scroll.style.setProperty("clip-path", "inset(0)", "important");
+
+    const dismiss = () => {
+      scroll.style.setProperty("scroll-snap-type", "none", "important");
+      pendingStepRef.current = null;
+      endNativeTravel();
+      setActiveDetent(0);
+      setPresented(false);
+    };
+    if (wheelSeenRef.current) {
+      let previousDelta = 100000;
+      const suppressWheelTail = (event) => {
+        const nextDelta = Math.abs(event.deltaY);
+        if (previousDelta < nextDelta) {
+          window.removeEventListener("wheel", suppressWheelTail, { passive: false });
+        } else {
+          event.preventDefault();
+        }
+        previousDelta = nextDelta;
+      };
+      window.addEventListener("wheel", suppressWheelTail, { passive: false });
+      window.setTimeout(() => {
+        window.removeEventListener("wheel", suppressWheelTail, { passive: false });
+      }, 100);
+    }
+    // Commit React state immediately. Wheel-tail suppression is independent of
+    // the mounted View, so it cannot leave a stale timer that closes a later
+    // presentation or retain an invisible interaction layer for 100ms.
+    dismiss();
+    return true;
+  }, [dismissible, endNativeTravel, setActiveDetent, setPresented]);
 
   const armDismissObserver = useCallback(() => {
     disarmDismissObserver();
@@ -1450,68 +1622,28 @@ const View = forwardRef(function View(
     observerRef.current = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting || nativeDismissRef.current || programmaticRef.current) continue;
-          nativeDismissRef.current = true;
-          view.style.setProperty("pointer-events", "none", "important");
-          view.style.setProperty("opacity", "0", "important");
-          view.style.setProperty("position", "fixed", "important");
-          view.style.setProperty("top", "-100px", "important");
-          view.style.setProperty("left", "-100px", "important");
-          content.style.setProperty("pointer-events", "none", "important");
-          scroll.style.setProperty("width", "1px", "important");
-          scroll.style.setProperty("height", "1px", "important");
-          scroll.style.setProperty("clip-path", "inset(0)", "important");
-
-          const dismiss = () => {
-            scroll.style.setProperty("scroll-snap-type", "none", "important");
-            pendingStepRef.current = null;
-            endNativeTravel();
-            activeRef.current = false;
-            setActiveDetent(0);
-            setPresented(false);
-          };
-          requestAnimationFrame(() => {
-            if (!wheelSeenRef.current) {
-              dismiss();
-              return;
-            }
-            let previousDelta = 100000;
-            const suppressWheelTail = (event) => {
-              const nextDelta = Math.abs(event.deltaY);
-              if (previousDelta < nextDelta) {
-                window.removeEventListener("wheel", suppressWheelTail, { passive: false });
-              } else {
-                event.preventDefault();
-              }
-              previousDelta = nextDelta;
-            };
-            window.addEventListener("wheel", suppressWheelTail, { passive: false });
-            window.setTimeout(() => {
-              window.removeEventListener("wheel", suppressWheelTail, { passive: false });
-              dismiss();
-            }, 100);
-          });
+          if (entry.isIntersecting || programmaticRef.current) continue;
+          beginNativeDismiss();
         }
       },
       { root: view, threshold: [0] }
     );
     observerRef.current.observe(content);
   }, [
+    beginNativeDismiss,
     disarmDismissObserver,
     dismissible,
-    endNativeTravel,
     nativeScrollEnabled,
-    setActiveDetent,
-    setPresented,
   ]);
 
   const sampleNativeTravel = useCallback(() => {
     if (!scrollSequenceRef.current) return;
     const progress = progressOf();
     reportTravel(progress);
+    if (progress <= 0 && beginNativeDismiss()) return;
     updateLiveDetent(progress);
     travelRafRef.current = requestAnimationFrame(sampleNativeTravel);
-  }, [progressOf, reportTravel, updateLiveDetent]);
+  }, [beginNativeDismiss, progressOf, reportTravel, updateLiveDetent]);
 
   const settleNativeTravel = useCallback(() => {
     clearTimeout(scrollEndTimerRef.current);
@@ -1534,6 +1666,11 @@ const View = forwardRef(function View(
     if (settledIndex < 0) return;
     previousDetentRef.current = settledIndex;
     liveDetentRef.current = settledIndex;
+    if (settledIndex === 0 && dismissible) {
+      pendingStepRef.current = null;
+      if (!beginNativeDismiss()) endNativeTravel();
+      return;
+    }
     if (settledIndex > 0 && settledIndex !== activeDetent) {
       setActiveDetent(settledIndex);
     }
@@ -1547,6 +1684,8 @@ const View = forwardRef(function View(
     else pendingStepRef.current = null;
   }, [
     activeDetent,
+    beginNativeDismiss,
+    dismissible,
     endNativeTravel,
     flushPendingStep,
     onTravelStatusChange,
@@ -1557,13 +1696,17 @@ const View = forwardRef(function View(
   ]);
 
   const onScroll = useCallback(() => {
-    if (ignoreNextProgrammaticScrollRef.current) {
-      ignoreNextProgrammaticScrollRef.current = false;
-      if (scrollSequenceRef.current) {
-        clearTimeout(scrollEndTimerRef.current);
-        scrollEndTimerRef.current = window.setTimeout(settleNativeTravel, SCROLL_IDLE_MS);
+    const ignoredOffset = ignoredProgrammaticOffsetRef.current;
+    if (ignoredOffset !== null) {
+      ignoredProgrammaticOffsetRef.current = null;
+      const currentOffset = scrollRef.current ? offOf(scrollRef.current, axis) : null;
+      if (currentOffset !== null && Math.abs(currentOffset - ignoredOffset) <= 1) {
+        if (scrollSequenceRef.current) {
+          clearTimeout(scrollEndTimerRef.current);
+          scrollEndTimerRef.current = window.setTimeout(settleNativeTravel, SCROLL_IDLE_MS);
+        }
+        return;
       }
-      return;
     }
     if (
       !activeRef.current ||
@@ -1586,7 +1729,7 @@ const View = forwardRef(function View(
     travelRafRef.current = requestAnimationFrame(sampleNativeTravel);
     clearTimeout(scrollEndTimerRef.current);
     scrollEndTimerRef.current = window.setTimeout(settleNativeTravel, SCROLL_IDLE_MS);
-  }, [nativeScrollEnabled, onTravelStart, onTravelStatusChange, sampleNativeTravel, settleNativeTravel]);
+  }, [axis, nativeScrollEnabled, onTravelStart, onTravelStatusChange, sampleNativeTravel, settleNativeTravel]);
 
   const onTouchStart = useCallback(() => {
     touchOngoingRef.current = true;
@@ -1608,6 +1751,34 @@ const View = forwardRef(function View(
   }, [axis, swipeOvershootDisabled]);
 
   useIso(() => {
+    if (!presented && !nativeDismissRef.current) {
+      if (
+        !isPreview &&
+        programmaticRef.current &&
+        motionRef.current?.destination !== 0
+      ) {
+        // Controlled state follows the same transition gate as Trigger,
+        // Escape and click-outside: an in-flight entrance cannot be reversed.
+        // A destination-zero motion is already the accepted exit; never let
+        // that exit's own disabled-state render resurrect the sheet.
+        activeRef.current = true;
+        setPresented(true);
+        return undefined;
+      }
+      const range = lastRangeRef.current;
+      const atClosedDetent =
+        range.start === 0 && range.end === 0 && !programmaticRef.current;
+      const persistentBetweenDetents =
+        !dismissible && range.start !== range.end && !programmaticRef.current;
+      if (atClosedDetent || persistentBetweenDetents) {
+        // Controlled `presented={false}` follows the same CLOSE evaluation as
+        // Trigger, Escape, and click-outside. Ask the controller to restore the
+        // open state when the reference state machine rejects that close.
+        activeRef.current = true;
+        setPresented(true);
+        return undefined;
+      }
+    }
     // A live exact-segment update belongs to the current native sequence. Do
     // not remeasure/rearm the View merely because React exposed that detent;
     // external detent changes still differ from previousDetentRef and proceed.
@@ -1659,7 +1830,17 @@ const View = forwardRef(function View(
       onTravelStatusChange?.("idleOutside");
       return undefined;
     }
-    if (!presented && previous === 0) return undefined;
+    if (!presented && previous === 0) {
+      // A closed native snap may have updated the live detent before the
+      // presented state follows. Never leave that already-closed View mounted
+      // merely because no programmatic exit distance remains.
+      cancelMotion();
+      disarmDismissObserver();
+      if (!isPreview) restoreFocus(lastFocused.current);
+      finishExit();
+      onTravelStatusChange?.("idleOutside");
+      return undefined;
+    }
 
     const enteringConfig = resolveSpringSettings(enteringAnimationSettings, SPRING_PRESETS.smooth);
     const exitingConfig = resolveSpringSettings(exitingAnimationSettings, DEFAULT_EXIT_SPRING);
@@ -1757,6 +1938,7 @@ const View = forwardRef(function View(
     cancelMotion,
     configurationKey,
     disarmDismissObserver,
+    dismissible,
     enteringAnimationSettings,
     exitingAnimationSettings,
     endNativeTravel,
@@ -1772,6 +1954,7 @@ const View = forwardRef(function View(
     readVisualCoordinate,
     runProgrammaticTravel,
     setActiveDetent,
+    setPresented,
     steppingAnimationSettings,
     suppressAsyncScrollEvent,
     targetOffset,
@@ -1898,11 +2081,11 @@ const View = forwardRef(function View(
         onEscapeKeyDown({ changeDefault: (b) => Object.assign(behavior, b), nativeEvent: e });
       else if (onEscapeKeyDown) Object.assign(behavior, onEscapeKeyDown);
       if (behavior.nativePreventDefault) e.preventDefault();
-      if (behavior.dismiss) setPresented(false);
+      if (behavior.dismiss) requestAction({ type: "dismiss" });
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [isPreview, onEscapeKeyDown, sheetRole, setPresented]);
+  }, [isPreview, onEscapeKeyDown, requestAction, sheetRole]);
 
   // The hidden mandatory-snap scroller must never react to keyboard paging.
   // Silk suspends both overflow and snapping from keydown through keyup so
@@ -1941,7 +2124,27 @@ const View = forwardRef(function View(
     };
   }, [isPreview]);
 
-  // Click outside: a click on the scroll container but not on the panel.
+  const requestOutsideDismiss = useCallback(
+    (event) => {
+      const behavior = {
+        dismiss: sheetRole !== "alertdialog",
+        stopOverlayPropagation: true,
+      };
+      if (typeof onClickOutside === "function") {
+        onClickOutside({
+          changeDefault: (next) => Object.assign(behavior, next),
+          nativeEvent: event,
+        });
+      } else if (onClickOutside) {
+        Object.assign(behavior, onClickOutside);
+      }
+      if (behavior.stopOverlayPropagation) event.stopPropagation();
+      if (behavior.dismiss) requestAction({ type: "dismiss" });
+    },
+    [onClickOutside, requestAction, sheetRole]
+  );
+
+  // Click outside: a click on the scroll runway but not on the panel.
   const onScrollClick = useCallback(
     (e) => {
       // React events bubble through portals by component ancestry. A click in
@@ -1957,13 +2160,17 @@ const View = forwardRef(function View(
         scrollRef.current && scrollRef.current.querySelector('[data-velvet="content"]');
       const target = pointerDownTargetRef.current || e.target;
       if (contentEl && contentEl.contains(target)) return;
-      const behavior = { dismiss: sheetRole !== "alertdialog", stopOverlayPropagation: true };
-      if (typeof onClickOutside === "function")
-        onClickOutside({ changeDefault: (b) => Object.assign(behavior, b), nativeEvent: e });
-      else if (onClickOutside) Object.assign(behavior, onClickOutside);
-      if (behavior.dismiss) setPresented(false);
+      requestOutsideDismiss(e);
     },
-    [onClickOutside, sheetRole, setPresented]
+    [requestOutsideDismiss]
+  );
+  // Backdrop is portalled into a sibling host so it stays fixed behind the
+  // moving scroll runway. Its native composed path therefore cannot include
+  // the runway; route that real outside click explicitly through the same
+  // dismissal policy instead of dropping it at the path guard above.
+  const onBackdropClick = useCallback(
+    (event) => requestOutsideDismiss(event),
+    [requestOutsideDismiss]
   );
   const onScrollPointerDown = useCallback((event) => {
     pointerDownTargetRef.current = event.target;
@@ -2009,12 +2216,51 @@ const View = forwardRef(function View(
         onTouchEnd={onTouchEnd}
         onPointerDown={onScrollPointerDown}
         onClick={onScrollClick}
+        onBackdropClick={onBackdropClick}
+        programmaticTrapActive={actionsDisabled && modal}
       >
         {children}
       </ViewInner>
     </Polymorph>
   );
 });
+
+const PROGRAMMATIC_SCROLL_TRAP_CENTER = 300;
+
+// Silk's secondary ScrollTrap is the browser-native ownership boundary for a
+// gesture that begins during staging. It sits above the disabled sheet
+// scroller, absorbs the entire native gesture, and drops behind the sheet when
+// programmatic travel ends. An already-started gesture remains bound to this
+// element, so its momentum cannot transfer to the newly-enabled sheet.
+const ProgrammaticScrollTrap = ({ active }) => {
+  const ref = useRef(null);
+
+  useIso(() => {
+    const trap = ref.current;
+    if (!trap) return undefined;
+    const recenter = () =>
+      trap.scrollTo(PROGRAMMATIC_SCROLL_TRAP_CENTER, PROGRAMMATIC_SCROLL_TRAP_CENTER);
+    recenter();
+    const observer = new ResizeObserver(recenter);
+    observer.observe(trap, { box: "border-box" });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      data-velvet="programmatic-scroll-trap"
+      data-velvet-active={active ? "" : undefined}
+      aria-hidden="true"
+      onScroll={(event) => {
+        event.currentTarget.scrollTo(
+          PROGRAMMATIC_SCROLL_TRAP_CENTER,
+          PROGRAMMATIC_SCROLL_TRAP_CENTER
+        );
+      }}
+    />
+  );
+};
 
 // Splits children into Backdrop (rendered behind, full-view) vs. the rest
 // (rendered inside the content-area on the track).
@@ -2035,13 +2281,19 @@ const ViewInner = ({
   onTouchEnd,
   onPointerDown,
   onClick,
+  onBackdropClick,
+  programmaticTrapActive,
   children,
 }) => {
   const backdropHostRef = useRef(null);
   const [host, setHost] = useState(null);
   useIso(() => setHost(backdropHostRef.current), []);
+  const backdropHost = useMemo(
+    () => ({ element: host, onClick: onBackdropClick }),
+    [host, onBackdropClick]
+  );
   return (
-    <BackdropHostCtx.Provider value={host}>
+    <BackdropHostCtx.Provider value={backdropHost}>
       <div ref={backdropHostRef} data-velvet="backdrop-host" />
       <div
         ref={scrollRef}
@@ -2085,6 +2337,7 @@ const ViewInner = ({
           ))}
         </div>
       </div>
+      <ProgrammaticScrollTrap active={programmaticTrapActive} />
     </BackdropHostCtx.Provider>
   );
 };
@@ -2095,10 +2348,20 @@ const BackdropHostCtx = createContext(null);
 const DEFAULT_BACKDROP = { opacity: ({ progress }) => Math.min(progress * 0.45, 0.45) };
 
 const Backdrop = forwardRef(function Backdrop(
-  { className, style, asChild, swipeable = true, themeColorDimming, travelAnimation, ...rest },
+  {
+    className,
+    style,
+    asChild,
+    swipeable = true,
+    themeColorDimming,
+    travelAnimation,
+    onClick,
+    ...rest
+  },
   forwardedRef
 ) {
-  const host = useContext(BackdropHostCtx);
+  const backdropHost = useContext(BackdropHostCtx);
+  const host = backdropHost?.element;
   const ref = useRef(null);
   const composed = useComposedRefs(forwardedRef, ref);
   useTravel(ref, travelAnimation, DEFAULT_BACKDROP);
@@ -2111,6 +2374,10 @@ const Backdrop = forwardRef(function Backdrop(
       data-velvet="backdrop"
       className={className}
       style={style}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) backdropHost.onClick?.(event);
+      }}
       {...rest}
     />,
     host
@@ -2159,10 +2426,10 @@ const BleedingBackground = forwardRef(function BleedingBackground(
 
 // ---- Handle ---------------------------------------------------------------
 const Handle = forwardRef(function Handle(
-  { className, style, asChild, action = "step", ...rest },
+  { className, style, asChild, action = "step", disabled, ...rest },
   forwardedRef
 ) {
-  const { requestAction } = useSheet();
+  const { requestAction, actionsDisabled } = useSheet();
   const activate = () => {
     if (action === "dismiss") {
       requestAction({ type: "dismiss" });
@@ -2185,6 +2452,7 @@ const Handle = forwardRef(function Handle(
       style={style}
       onClick={activate}
       {...rest}
+      disabled={disabled || actionsDisabled}
     />
   );
 });
@@ -2199,11 +2467,12 @@ const Trigger = forwardRef(function Trigger(
     snapTo,
     children,
     onPress,
+    disabled,
     ...rest
   },
   forwardedRef
 ) {
-  const { requestAction, preview } = useSheet();
+  const { requestAction, preview, actionsDisabled } = useSheet();
   const action =
     actionProp !== undefined
       ? actionProp
@@ -2241,6 +2510,7 @@ const Trigger = forwardRef(function Trigger(
       style={style}
       onClick={handle}
       {...rest}
+      disabled={disabled || actionsDisabled}
     >
       {children}
     </Polymorph>

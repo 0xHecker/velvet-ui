@@ -153,8 +153,15 @@ export const springEasing = (settings, { from = 0, to = 300, v0 } = {}) => {
   const { values, duration } = solveSpring(settings, from, to, v0);
   if (duration === 0) return { duration: 0, easing: "linear" };
   const pts = decimateSpring(values);
-  return { duration, easing: `linear(${pts.join(",")})` };
+  return { duration, easing: linearEasingFromSamples(pts) };
 };
+
+// CSS linear() requires at least two stops. A spring that starts within its
+// positional settle threshold can legitimately emit one 1ms sample; falling
+// back to ordinary linear timing keeps that degenerate travel valid while the
+// keyframes still preserve its sampled endpoints.
+export const linearEasingFromSamples = (values) =>
+  values.length >= 2 ? `linear(${values.join(",")})` : "linear";
 
 // Keep every eighth millisecond sample, excluding the final value from the
 // loop. Append the final value only when the raw sample count is not divisible

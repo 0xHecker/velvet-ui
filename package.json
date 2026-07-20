@@ -63,6 +63,7 @@
     "build": "npm run build:demo && npm run build:lib",
     "build:demo": "vite build --outDir demo-dist",
     "build:lib": "vite build --config vite.lib.config.js",
+    "deploy": "npm run build:demo && wrangler deploy",
     "types:check": "tsc -p tsconfig.types.json && tsc -p tsconfig.nodenext.json",
     "typecheck": "npm run build:lib && npm run types:check",
     "verify:package": "node --input-type=module --eval \"const root=await import('velvet-ui'); const sheet=await import('velvet-ui/sheet'); const toast=await import('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('velvet-ui'); const sheet=require('velvet-ui/sheet'); const toast=require('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('CJS export identity mismatch')\"",
@@ -85,6 +86,7 @@
     "react-grab": "^0.1.44",
     "sharp": "^0.33.5",
     "typescript": "^5.9.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "wrangler": "^4.112.0"
   }
 }

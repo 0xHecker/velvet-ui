@@ -71,24 +71,33 @@ try {
   await page.mouse.up();
   await dismiss(page);
 
-  // --- rapid open/close never strands the overlay ---
-  for (let i = 0; i < 5; i++) {
-    await page.$eval(
-      '[data-shot="bottom-sheet"] .Card-trigger [data-velvet-trigger]',
-      (element) => element.click(),
-    );
-    await sleep(40);
-    await page.keyboard.press("Escape");
-    await sleep(80);
-  }
-  await page.waitForFunction(() => window.__velvet.count() === 0, { timeout: 3000 }).catch(() => {});
+  // --- entrance-owned close input cannot reverse the active spring; the
+  // same close works normally once the entrance reaches its detent. ---
+  await page.$eval(
+    '[data-shot="bottom-sheet"] .Card-trigger [data-velvet-trigger]',
+    (element) => element.click(),
+  );
+  await sleep(40);
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(
+    () => window.__velvet.count() === 1 && window.__velvet.idle(),
+    { timeout: 5000 },
+  ).catch(() => {});
+  const stableAfterEarlyClose =
+    (await count(page)) === 1 && (await progress(page)) > 0.99;
+  assert(
+    "entrance-owned close cannot reverse the active spring",
+    stableAfterEarlyClose,
+    `progress=${(await progress(page))?.toFixed?.(2)} count=${await count(page)}`,
+  );
+  await dismiss(page);
   const clickable = await page.evaluate(() => {
     const el = document.querySelector('[data-shot="bottom-sheet"] .Card-preview');
     const r = el.getBoundingClientRect();
     const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
     return el === hit || el.contains(hit);
   });
-  assert("page interactive after rapid open/close", clickable && (await count(page)) === 0, `clickable=${clickable} count=${await count(page)}`);
+  assert("page interactive after settled close", clickable && (await count(page)) === 0, `clickable=${clickable} count=${await count(page)}`);
 
   console.log("\n--- GESTURE ASSERTIONS ---");
   results.forEach((r) => console.log(r));

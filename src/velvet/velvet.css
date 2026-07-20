@@ -46,6 +46,36 @@
   will-change: opacity;
 }
 
+/* ---- Programmatic scroll trap -------------------------------------------
+   While a sheet is entering, stepping, or exiting, this native scroll surface
+   owns any gesture that starts above the staged sheet. The 300px runway on
+   every side and synchronous recentering mirror Silk's secondary ScrollTrap:
+   when staging ends, the browser keeps that gesture bound here instead of
+   handing its momentum tail to the sheet scroller. */
+[data-velvet="programmatic-scroll-trap"] {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: auto;
+  overflow: auto !important;
+  overscroll-behavior: none !important;
+  scrollbar-width: none !important;
+}
+[data-velvet="programmatic-scroll-trap"][data-velvet-active] {
+  z-index: 1;
+}
+[data-velvet="programmatic-scroll-trap"]::-webkit-scrollbar {
+  display: none !important;
+}
+[data-velvet="programmatic-scroll-trap"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% + 600px);
+  height: calc(100% + 600px);
+}
+
 /* ---- Native sheet scroller ------------------------------------------------
    The scrolling box is exactly twice the view on its travel axis. Its visible
    half is selected by track. Hidden front/back spacers and detent marker
