@@ -1,6 +1,8 @@
 import {
+  cloneElement,
   createContext,
   forwardRef,
+  isValidElement,
   useCallback,
   useContext,
   useEffect,
@@ -15,6 +17,33 @@ import { springScroll } from "./core/spring.js";
 const maxOf = (el, axis) =>
   axis === "y" ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
 const offOf = (el, axis) => (axis === "y" ? el.scrollTop : el.scrollLeft);
+const NON_TEXT_INPUT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+const isTextEntry = (element) => {
+  if (typeof HTMLElement === "undefined" || !(element instanceof HTMLElement)) return false;
+  if (element instanceof HTMLTextAreaElement || element.isContentEditable) return true;
+  if (!(element instanceof HTMLInputElement)) return false;
+  return !NON_TEXT_INPUT_TYPES.has(element.type);
+};
+const visualViewportBounds = () => {
+  const viewport = window.visualViewport;
+  const top = viewport?.offsetTop ?? 0;
+  return {
+    top,
+    bottom: top + (viewport?.height ?? window.innerHeight),
+  };
+};
+const layoutViewportBounds = () => ({ top: 0, bottom: window.innerHeight });
 const ScrollCtx = createContext(null);
 const useScroll = () => {
   const ctx = useContext(ScrollCtx);
@@ -122,15 +151,24 @@ const View = forwardRef(function View(
     className,
     style,
     axis = "y",
+    safeArea = "visual-viewport",
     scrollGestureTrap = false,
     scrollGestureOvershoot = true,
     onScrollProgress,
+    onFocusInside,
+    nativeFocusScrollPrevention = true,
+    onFocusCapture,
+    onBlurCapture,
     ...rest
   },
   forwardedRef
 ) {
   const { viewRef, axisRef, emitProgress, api } = useScroll();
   const composed = useComposedRefs(forwardedRef, viewRef);
+  const startSpacerRef = useRef(null);
+  const endSpacerRef = useRef(null);
+  const focusTimerRef = useRef(0);
+  const focusWantsScrollRef = useRef(false);
   axisRef.current = axis;
 
   const onScroll = useCallback(() => {
@@ -146,6 +184,137 @@ const View = forwardRef(function View(
         ? "contain"
         : undefined;
 
+  const updateSafeArea = useCallback(() => {
+    const view = viewRef.current;
+    const startSpacer = startSpacerRef.current;
+    const endSpacer = endSpacerRef.current;
+    if (!view || !startSpacer || !endSpacer || axis !== "y" || safeArea === "none") {
+      if (startSpacer) startSpacer.style.height = "0px";
+      if (endSpacer) endSpacer.style.height = "0px";
+      return;
+    }
+    const viewRect = view.getBoundingClientRect();
+    const sheetView = view.closest('[data-velvet="view"]');
+    const sheetRect = sheetView?.getBoundingClientRect();
+    const placement = sheetView?.getAttribute("data-velvet-placement");
+    // A Sheet's live scroll track starts with its content outside the layout
+    // viewport. Safe-area geometry must describe the content at its resting
+    // detent, otherwise the off-screen entrance distance gets mistaken for a
+    // keyboard inset and changes the panel size during its own animation.
+    let scrollPortTop = viewRect.top;
+    let scrollPortBottom = viewRect.bottom;
+    if (sheetRect && placement === "bottom") {
+      scrollPortBottom = sheetRect.bottom;
+      scrollPortTop = scrollPortBottom - viewRect.height;
+    } else if (sheetRect && placement === "top") {
+      scrollPortTop = sheetRect.top;
+      scrollPortBottom = scrollPortTop + viewRect.height;
+    } else if (sheetRect && placement === "center") {
+      scrollPortTop = sheetRect.top + (sheetRect.height - viewRect.height) / 2;
+      scrollPortBottom = scrollPortTop + viewRect.height;
+    }
+    const bounds =
+      safeArea === "layout-viewport" ? layoutViewportBounds() : visualViewportBounds();
+    startSpacer.style.height = `${Math.max(0, bounds.top - scrollPortTop)}px`;
+    endSpacer.style.height = `${Math.max(0, scrollPortBottom - bounds.bottom)}px`;
+  }, [axis, safeArea, viewRef]);
+
+  const scrollFocusedIntoView = useCallback(() => {
+    const view = viewRef.current;
+    const active = document.activeElement;
+    if (!view || !isTextEntry(active) || !view.contains(active)) return;
+    updateSafeArea();
+    requestAnimationFrame(() => {
+      if (!viewRef.current?.contains(active)) return;
+      const viewRect = viewRef.current.getBoundingClientRect();
+      const elementRect = active.getBoundingClientRect();
+      const bounds =
+        safeArea === "visual-viewport"
+          ? visualViewportBounds()
+          : safeArea === "layout-viewport"
+            ? layoutViewportBounds()
+            : { top: viewRect.top, bottom: viewRect.bottom };
+      const safeTop = Math.max(viewRect.top, bounds.top) + 64;
+      const keyboardMargin = /Android/i.test(navigator.userAgent) ? 102 : 54;
+      const safeBottom = Math.min(viewRect.bottom, bounds.bottom) - keyboardMargin;
+      let delta = 0;
+      if (elementRect.top < safeTop) delta = elementRect.top - safeTop;
+      else if (elementRect.bottom > safeBottom) delta = elementRect.bottom - safeBottom;
+      if (Math.abs(delta) < 1) return;
+      viewRef.current.scrollBy({
+        top: delta,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+    });
+  }, [safeArea, updateSafeArea, viewRef]);
+
+  useEffect(() => {
+    if (axis !== "y" || typeof window === "undefined") return undefined;
+    const viewport = window.visualViewport;
+    const scheduleFocusScroll = () => {
+      updateSafeArea();
+      if (!focusWantsScrollRef.current) return;
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = window.setTimeout(scrollFocusedIntoView, 60);
+    };
+    updateSafeArea();
+    viewport?.addEventListener("resize", scheduleFocusScroll);
+    viewport?.addEventListener("scroll", scheduleFocusScroll);
+    window.addEventListener("resize", scheduleFocusScroll);
+    return () => {
+      clearTimeout(focusTimerRef.current);
+      viewport?.removeEventListener("resize", scheduleFocusScroll);
+      viewport?.removeEventListener("scroll", scheduleFocusScroll);
+      window.removeEventListener("resize", scheduleFocusScroll);
+    };
+  }, [axis, scrollFocusedIntoView, updateSafeArea]);
+
+  const handleFocusCapture = useCallback(
+    (event) => {
+      onFocusCapture?.(event);
+      if (!isTextEntry(event.target)) return;
+      const behavior = { scrollIntoView: true };
+      if (typeof onFocusInside === "function") {
+        onFocusInside({
+          nativeEvent: event.nativeEvent,
+          changeDefault: (next) => Object.assign(behavior, next),
+        });
+      } else if (onFocusInside) {
+        Object.assign(behavior, onFocusInside);
+      }
+      focusWantsScrollRef.current = behavior.scrollIntoView;
+      if (nativeFocusScrollPrevention) event.target.focus({ preventScroll: true });
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = window.setTimeout(scrollFocusedIntoView, 900);
+    },
+    [nativeFocusScrollPrevention, onFocusCapture, onFocusInside, scrollFocusedIntoView]
+  );
+
+  const handleBlurCapture = useCallback(
+    (event) => {
+      onBlurCapture?.(event);
+      if (isTextEntry(event.relatedTarget) && viewRef.current?.contains(event.relatedTarget)) return;
+      focusWantsScrollRef.current = false;
+      clearTimeout(focusTimerRef.current);
+      window.setTimeout(updateSafeArea, 0);
+    },
+    [onBlurCapture, updateSafeArea, viewRef]
+  );
+
+  const scrollChildren = (
+    <>
+      {axis === "y" && <div ref={startSpacerRef} data-velvet-scroll="start-spacer" aria-hidden="true" />}
+      {asChild && isValidElement(children) ? children.props.children : children}
+      {axis === "y" && <div ref={endSpacerRef} data-velvet-scroll="end-spacer" aria-hidden="true" />}
+    </>
+  );
+  const renderedChildren =
+    asChild && isValidElement(children)
+      ? cloneElement(children, undefined, scrollChildren)
+      : scrollChildren;
+
   return (
     <Polymorph
       asChild={asChild}
@@ -155,9 +324,11 @@ const View = forwardRef(function View(
       className={className}
       style={{ overscrollBehavior: trap, ...style }}
       onScroll={onScroll}
+      onFocusCapture={handleFocusCapture}
+      onBlurCapture={handleBlurCapture}
       {...rest}
     >
-      {children}
+      {renderedChildren}
     </Polymorph>
   );
 });

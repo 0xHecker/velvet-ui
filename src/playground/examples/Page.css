@@ -46,10 +46,15 @@
   letter-spacing: -0.01em;
   color: var(--ink);
 }
-.Page-body {
+.Page-scrollRoot {
   flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  min-height: 0;
+}
+.Page-scrollView {
+  width: 100%;
+  height: 100%;
+}
+.Page-body {
   padding: 20px 18px calc(30px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;

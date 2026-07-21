@@ -704,6 +704,7 @@ const View = forwardRef(function View(
   const observerWheelCleanupRef = useRef(null);
   const wheelSeenRef = useRef(false);
   const nativeDismissRef = useRef(false);
+  const nativeDismissRafRef = useRef(0);
   const movedRef = useRef(false);
   const pointerDownTargetRef = useRef(null);
   const pendingStepRef = useRef(null);
@@ -1545,30 +1546,29 @@ const View = forwardRef(function View(
       return false;
     }
 
-    // The closed snap is the authoritative dismissal boundary. Do not wait
-    // solely for full visual non-intersection: inset/detached content can keep
-    // a margin-sized sliver inside the viewport even at exact progress 0.
-    // Latch immediately so a reverse wheel/touch gesture cannot reclaim the
-    // now-closed native snap track before React unmounts it.
+    // Match Silk's SWIPED_OUT -> GO_OUT ordering: stop native snap ownership,
+    // publish an exact final travel frame, end the travel sequence, then move
+    // the sheet out of the stack. Rapid flings can cross the closed boundary
+    // between rAF samples; removing the layer before this zero frame makes the
+    // backdrop and the sheet underneath jump from an intermediate pose.
     nativeDismissRef.current = true;
     activeRef.current = false;
+    scroll.style.setProperty("scroll-snap-type", "none", "important");
+    pendingStepRef.current = null;
+    reportTravel(0, { start: 0, end: 0 });
+    endNativeTravel();
+
+    // Prevent the already-dismissed native runway from receiving the tail of
+    // the same gesture. Keep its final zero-travel frame paintable for one
+    // frame, as Silk does before its after-paint layer removal, instead of
+    // collapsing the view geometry and causing a compositor flash.
     view.inert = true;
-    view.style.setProperty("visibility", "hidden", "important");
     view.style.setProperty("pointer-events", "none", "important");
-    view.style.setProperty("opacity", "0", "important");
-    view.style.setProperty("position", "fixed", "important");
-    view.style.setProperty("top", "-100px", "important");
-    view.style.setProperty("left", "-100px", "important");
     content.style.setProperty("pointer-events", "none", "important");
     scroll.style.setProperty("pointer-events", "none", "important");
-    scroll.style.setProperty("width", "1px", "important");
-    scroll.style.setProperty("height", "1px", "important");
-    scroll.style.setProperty("clip-path", "inset(0)", "important");
 
     const dismiss = () => {
-      scroll.style.setProperty("scroll-snap-type", "none", "important");
-      pendingStepRef.current = null;
-      endNativeTravel();
+      nativeDismissRafRef.current = 0;
       setActiveDetent(0);
       setPresented(false);
     };
@@ -1588,12 +1588,10 @@ const View = forwardRef(function View(
         window.removeEventListener("wheel", suppressWheelTail, { passive: false });
       }, 100);
     }
-    // Commit React state immediately. Wheel-tail suppression is independent of
-    // the mounted View, so it cannot leave a stale timer that closes a later
-    // presentation or retain an invisible interaction layer for 100ms.
-    dismiss();
+    cancelAnimationFrame(nativeDismissRafRef.current);
+    nativeDismissRafRef.current = requestAnimationFrame(dismiss);
     return true;
-  }, [dismissible, endNativeTravel, setActiveDetent, setPresented]);
+  }, [dismissible, endNativeTravel, reportTravel, setActiveDetent, setPresented]);
 
   const armDismissObserver = useCallback(() => {
     disarmDismissObserver();
@@ -2016,6 +2014,7 @@ const View = forwardRef(function View(
         disarmDismissObserver();
         clearTimeout(scrollEndTimerRef.current);
         cancelAnimationFrame(travelRafRef.current);
+        cancelAnimationFrame(nativeDismissRafRef.current);
         cancelAnimationFrame(pendingStepRafRef.current[0]);
         cancelAnimationFrame(pendingStepRafRef.current[1]);
         pendingStepRef.current = null;

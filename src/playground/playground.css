@@ -55,11 +55,64 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
 }
 
 body {
-  background: var(--bg);
+  overflow: hidden;
+  background: #07110e;
   min-height: 100vh;
+}
+
+#root,
+.App-depthRoot {
+  height: 100%;
+}
+
+.App-depthRoot {
+  overflow: hidden;
+}
+
+.App-surface {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg);
+  overscroll-behavior-y: none;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(112, 112, 112, 0.5) transparent;
+  scrollbar-width: auto;
+  will-change: transform, filter;
+}
+
+[data-velvet-scroll="view"] {
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(112, 112, 112, 0.5) transparent;
+  scrollbar-width: auto;
+}
+
+.App-surface::-webkit-scrollbar,
+[data-velvet-scroll="view"]::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.App-surface::-webkit-scrollbar-track,
+[data-velvet-scroll="view"]::-webkit-scrollbar-track {
+  background: rgba(112, 112, 112, 0.16);
+}
+
+.App-surface::-webkit-scrollbar-thumb,
+[data-velvet-scroll="view"]::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(112, 112, 112, 0.5);
+  background-clip: padding-box;
+}
+
+.Card-localStack {
+  display: contents;
 }
 
 /* ---- Top navigation bar ---- */

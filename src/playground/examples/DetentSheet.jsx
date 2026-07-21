@@ -1,4 +1,4 @@
-import { Sheet } from "../../velvet/index.js";
+import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconChevronUp, IconMusic, IconPlay } from "../icons.jsx";
 import "./DetentSheet.css";
@@ -37,24 +37,30 @@ export const DetentSheet = () => (
               <IconChevronUp size={16} />
             </Sheet.Trigger>
           </div>
-          <ul className="Queue-list">
-            {QUEUE.map((t) => (
-              <li key={t.title} className="Queue-item" data-playing={t.playing || undefined}>
-                <img className="Queue-art" src={t.art} alt="" />
-                <div className="Queue-meta">
-                  <strong>{t.title}</strong>
-                  <span>{t.artist}</span>
-                </div>
-                {t.playing ? (
-                  <span className="Queue-eq" aria-label="Now playing">
-                    <i /><i /><i />
-                  </span>
-                ) : (
-                  <span className="Queue-time">{t.time}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <Scroll.Root className="Queue-scrollRoot">
+            <Scroll.View className="Queue-scrollView">
+              <Scroll.Content asChild>
+                <ul className="Queue-list">
+                  {QUEUE.map((t) => (
+                    <li key={t.title} className="Queue-item" data-playing={t.playing || undefined}>
+                      <img className="Queue-art" src={t.art} alt="" />
+                      <div className="Queue-meta">
+                        <strong>{t.title}</strong>
+                        <span>{t.artist}</span>
+                      </div>
+                      {t.playing ? (
+                        <span className="Queue-eq" aria-label="Now playing">
+                          <i /><i /><i />
+                        </span>
+                      ) : (
+                        <span className="Queue-time">{t.time}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
         </Sheet.Content>
       </Sheet.View>
     </Sheet.Portal>

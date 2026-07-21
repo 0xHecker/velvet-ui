@@ -1,4 +1,4 @@
-import { Sheet } from "../../velvet/index.js";
+import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import {
   IconBell,
@@ -54,41 +54,45 @@ export const Page = () => (
             <Sheet.Title className="Page-title">Settings</Sheet.Title>
             <span className="Page-headspace" />
           </header>
-          <div className="Page-body">
-            <div className="Page-profile">
-              <img src={px(614810, 120, 120)} alt="Marcus Reid" />
-              <div>
-                <strong>Marcus Reid</strong>
-                <span>marcus@studio.co</span>
-              </div>
-            </div>
-            {GROUPS.map((g) => (
-              <section className="Page-group" key={g.label}>
-                <span className="Page-groupLabel">{g.label}</span>
-                <ul className="Page-list">
-                  {g.rows.map((r) => (
-                    <li key={r.label} className="Page-row">
-                      <span className="Page-rowIcon">
-                        <r.icon size={15} />
-                      </span>
-                      <span className="Page-rowLabel">{r.label}</span>
-                      {r.toggle ? (
-                        <span className="Page-toggle" data-on="true">
-                          <i />
-                        </span>
-                      ) : (
-                        <>
-                          <span className="Page-value">{r.value}</span>
-                          <IconChevronR size={14} />
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-            <p className="Page-hint">Swipe from the right edge — or anywhere — to go back.</p>
-          </div>
+          <Scroll.Root className="Page-scrollRoot">
+            <Scroll.View className="Page-scrollView">
+              <Scroll.Content className="Page-body">
+                <div className="Page-profile">
+                  <img src={px(614810, 120, 120)} alt="Marcus Reid" />
+                  <div>
+                    <strong>Marcus Reid</strong>
+                    <span>marcus@studio.co</span>
+                  </div>
+                </div>
+                {GROUPS.map((g) => (
+                  <section className="Page-group" key={g.label}>
+                    <span className="Page-groupLabel">{g.label}</span>
+                    <ul className="Page-list">
+                      {g.rows.map((r) => (
+                        <li key={r.label} className="Page-row">
+                          <span className="Page-rowIcon">
+                            <r.icon size={15} />
+                          </span>
+                          <span className="Page-rowLabel">{r.label}</span>
+                          {r.toggle ? (
+                            <span className="Page-toggle" data-on="true">
+                              <i />
+                            </span>
+                          ) : (
+                            <>
+                              <span className="Page-value">{r.value}</span>
+                              <IconChevronR size={14} />
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+                <p className="Page-hint">Swipe from the right edge — or anywhere — to go back.</p>
+              </Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
         </Sheet.Content>
       </Sheet.View>
     </Sheet.Portal>

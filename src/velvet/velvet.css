@@ -473,6 +473,15 @@
   overflow-x: auto;
   overflow-y: hidden;
 }
+[data-velvet-scroll="start-spacer"],
+[data-velvet-scroll="end-spacer"] {
+  display: block;
+  flex: none;
+  width: 1px;
+  height: 0;
+  pointer-events: none;
+  user-select: none;
+}
 
 /* ---- Fixed: stays put in the viewport while a sheet travels ---- */
 [data-velvet="fixed"] {

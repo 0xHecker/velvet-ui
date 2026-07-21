@@ -39,9 +39,17 @@ export interface ScrollRootProps extends PolymorphicDivProps {
 }
 export interface ScrollViewProps extends PolymorphicDivProps {
   axis?: "x" | "y";
+  safeArea?: "none" | "layout-viewport" | "visual-viewport";
   scrollGestureTrap?: boolean | string;
   scrollGestureOvershoot?: boolean;
   onScrollProgress?: (progress: ScrollProgress & ScrollApi) => void;
+  onFocusInside?:
+    | { scrollIntoView?: boolean }
+    | ((event: {
+        nativeEvent: FocusEvent;
+        changeDefault(next: { scrollIntoView?: boolean }): void;
+      }) => void);
+  nativeFocusScrollPrevention?: boolean;
 }
 export interface ScrollTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;

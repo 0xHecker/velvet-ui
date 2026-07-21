@@ -5,8 +5,7 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 520px;
-  /* Both flow steps share one height — the stack reads as a single surface. */
-  height: min(640px, calc(var(--velvet-100lvh) - 48px));
+  height: min(530px, calc(var(--velvet-100lvh) - 48px));
   padding: 10px 0 calc(22px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;

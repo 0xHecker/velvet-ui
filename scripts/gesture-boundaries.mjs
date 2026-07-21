@@ -146,12 +146,15 @@ const visualMotionStats = (trace, epsilon = 2) => {
   return { maxJump, turns, samples: values.length };
 };
 
-const swipe = (client, { x = 640, y = 420, distance, speed = 5000 }) =>
+const swipe = (
+  client,
+  { x = 640, y = 420, distance, xDistance = 0, yDistance = distance ?? 0, speed = 5000 },
+) =>
   client.send("Input.synthesizeScrollGesture", {
     x,
     y,
-    xDistance: 0,
-    yDistance: distance,
+    xDistance,
+    yDistance,
     speed,
     gestureSourceType: "touch",
     repeatCount: 0,
@@ -585,6 +588,187 @@ const runLongBoundary = async (page, client, id) => {
   check(`${id}: a second downward swipe dismisses`, second.count === 0, JSON.stringify(second));
 };
 
+const runNestedWheelBoundary = async (page) => {
+  await page.setViewport({ width: 540, height: 707, hasTouch: true });
+  await page.reload({ waitUntil: "load" });
+  await page.waitForSelector(".Gallery");
+  await open(page, "detent");
+
+  const target = await page.$eval(`${ACTUAL_VIEW} .Queue-scrollView`, (view) => {
+    view.scrollTop = view.scrollHeight;
+    const rect = view.getBoundingClientRect();
+    const visibleTop = Math.max(0, rect.top);
+    const visibleBottom = Math.min(window.innerHeight, rect.bottom);
+    return {
+      x: rect.left + rect.width / 2,
+      y: visibleTop + (visibleBottom - visibleTop) / 2,
+      top: view.scrollTop,
+      max: view.scrollHeight - view.clientHeight,
+    };
+  });
+  const before = await state(page);
+  check(
+    "nested wheel: the queue owns a real inner scroll range",
+    target.max > 20 && before.innerTop > 20,
+    JSON.stringify({ target, before }),
+  );
+
+  await page.mouse.move(target.x, target.y);
+  await page.mouse.wheel({ deltaY: -20 });
+  await sleep(180);
+  const withinRange = await state(page);
+  check(
+    "nested wheel: inner content consumes input while it can still scroll",
+    withinRange.count === 1 &&
+      withinRange.innerTop < before.innerTop - 1 &&
+      withinRange.innerTop > 1 &&
+      Math.abs(withinRange.progress - before.progress) < 0.025,
+    JSON.stringify(withinRange),
+  );
+
+  await page.mouse.wheel({ deltaY: -(withinRange.innerTop + 4) });
+  await sleep(220);
+  const atBoundary = await state(page);
+  check(
+    "nested wheel: arriving at the inner top stops at the boundary",
+    atBoundary.count === 1 &&
+      atBoundary.innerTop < 1 &&
+      Math.abs(atBoundary.progress - before.progress) < 0.025,
+    JSON.stringify(atBoundary),
+  );
+
+  await page.mouse.wheel({ deltaY: -1200 });
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 4000 })
+    .catch(() => {});
+  const handedOff = await state(page);
+  check(
+    "nested wheel: the next downward wheel hands off to the sheet dismissal track",
+    handedOff.count === 0,
+    JSON.stringify(handedOff),
+  );
+  await page.setViewport({ width: 1280, height: 860, hasTouch: true });
+};
+
+const runSettingsNestedDismissal = async (page, client) => {
+  await page.setViewport({ width: 540, height: 707, hasTouch: true });
+  await page.reload({ waitUntil: "load" });
+  await page.waitForSelector(".Gallery");
+  await open(page, "page");
+
+  const target = await page.$eval(`${ACTUAL_VIEW} .Page-scrollView`, (view) => {
+    view.scrollTop = Math.max(0, (view.scrollHeight - view.clientHeight) / 2);
+    const rect = view.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      overscroll: getComputedStyle(view).overscrollBehavior,
+    };
+  });
+  check(
+    "settings: its inner scroller leaves edge gestures untrapped",
+    target.overscroll === "auto",
+    JSON.stringify(target),
+  );
+
+  await swipe(client, {
+    x: target.x,
+    y: target.y,
+    xDistance: 900,
+    yDistance: 0,
+    speed: 4800,
+  });
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 4000 })
+    .catch(() => {});
+  const touchDismissed = await state(page);
+  check(
+    "settings: a horizontal swipe begun inside the vertical scroller dismisses",
+    touchDismissed.count === 0,
+    JSON.stringify(touchDismissed),
+  );
+
+  await open(page, "page");
+  const wheelTarget = await page.$eval(`${ACTUAL_VIEW} .Page-scrollView`, (view) => {
+    const rect = view.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  });
+  await page.mouse.move(wheelTarget.x, wheelTarget.y);
+  await page.mouse.wheel({ deltaX: -1200 });
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 4000 })
+    .catch(() => {});
+  const wheelDismissed = await state(page);
+  check(
+    "settings: a horizontal trackpad wheel begun inside the scroller dismisses",
+    wheelDismissed.count === 0,
+    JSON.stringify(wheelDismissed),
+  );
+  await page.setViewport({ width: 1280, height: 860, hasTouch: true });
+};
+
+const runKeyboardAvoidance = async (page) => {
+  await page.setViewport({ width: 540, height: 707, hasTouch: true });
+  await page.evaluateOnNewDocument(() => {
+    const state = { width: 540, height: 707, offsetTop: 0, offsetLeft: 0, scale: 1 };
+    const viewport = new EventTarget();
+    for (const key of Object.keys(state)) {
+      Object.defineProperty(viewport, key, { get: () => state[key] });
+    }
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      get: () => viewport,
+    });
+    window.__setTestVisualViewport = (next) => {
+      Object.assign(state, next);
+      viewport.dispatchEvent(new Event("resize"));
+    };
+  });
+  await page.reload({ waitUntil: "load" });
+  await page.waitForSelector(".Gallery");
+  await open(page, "keyboard");
+
+  const measure = () => page.evaluate((selector) => {
+    const view = document.querySelector(selector);
+    const composer = view.querySelector(".Keyboard-composer");
+    const spacer = view.querySelector('[data-velvet-scroll="end-spacer"]');
+    const content = view.querySelector(".Keyboard-content");
+    const composerRect = composer.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    return {
+      composerTop: composerRect.top,
+      composerBottom: composerRect.bottom,
+      contentTop: contentRect.top,
+      contentBottom: contentRect.bottom,
+      spacer: spacer.getBoundingClientRect().height,
+      innerTop: content.scrollTop,
+    };
+  }, ACTUAL_VIEW);
+
+  const before = await measure();
+  await page.focus(`${ACTUAL_VIEW} .Keyboard-input`);
+  await page.evaluate(() => window.__setTestVisualViewport({ height: 400 }));
+  await sleep(650);
+  const keyboardOpen = await measure();
+  check(
+    "keyboard: focused composer moves into the visual viewport",
+    keyboardOpen.spacer > 250 &&
+      keyboardOpen.composerBottom <= 390 &&
+      (keyboardOpen.contentTop < before.contentTop - 180 || keyboardOpen.innerTop > 20),
+    `before=${JSON.stringify(before)} after=${JSON.stringify(keyboardOpen)}`,
+  );
+
+  await page.$eval(`${ACTUAL_VIEW} .Keyboard-input`, (input) => input.blur());
+  await page.evaluate(() => window.__setTestVisualViewport({ height: 707 }));
+  await sleep(350);
+  const restored = await measure();
+  check(
+    "keyboard: closing restores the original sheet geometry",
+    restored.spacer < 1 && restored.innerTop < 1 &&
+      Math.abs(restored.contentTop - before.contentTop) < 2,
+    `before=${JSON.stringify(before)} after=${JSON.stringify(restored)}`,
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 5000 });
+};
+
 const runPersistent = async (page, client) => {
   await page.reload({ waitUntil: "load" });
   await page.waitForSelector(".Gallery");
@@ -838,6 +1022,8 @@ try {
   if (!only || only === "quick-fast") await runQuickViewFastSwipeProbe(page, client);
   if (!only || only === "long-sheet") await runLongBoundary(page, client, "long-sheet");
   if (!only || only === "parallax") await runLongBoundary(page, client, "parallax");
+  if (!only || only === "nested-scroll") await runNestedWheelBoundary(page);
+  if (!only || only === "settings-scroll") await runSettingsNestedDismissal(page, client);
   if (!only || only === "persistent") await runPersistent(page, client);
   if (!only || only === "persistent-rapid") await runPersistentRapidClose(page);
   if (!only || only === "persistent-programmatic") {
@@ -846,6 +1032,7 @@ try {
   if (!only || only === "persistent-dismiss-swipe") {
     await runPersistentDismissDuringSwipe(page, client);
   }
+  if (!only || only === "keyboard") await runKeyboardAvoidance(page);
   console.log(pass ? "\nALL PASS\n" : "\nFAILED\n");
 } catch (error) {
   console.error("harness error:", error);

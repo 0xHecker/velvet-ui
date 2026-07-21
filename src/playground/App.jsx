@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Sheet } from "../velvet/index.js";
+import { Sheet, SheetStack } from "../velvet/index.js";
 import { px } from "./px.js";
 import {
   IconBag,
@@ -15,7 +15,6 @@ import {
   IconImage,
   IconMessage,
   IconMusic,
-  IconPin,
   IconPlay,
   IconPlus,
   IconSparkle,
@@ -51,7 +50,7 @@ const cards = [
   { id: "stacked", title: "Stacked Sheets", desc: "One sheet presenting another.", icon: IconBag, Component: StackedSheets },
   { id: "detached", title: "Quick View", desc: "A detached sheet, free of the edge.", icon: IconClock, Component: DetachedSheet },
   { id: "page-from-bottom", title: "Compose Page", desc: "A full-height page over the screen.", icon: IconPlus, Component: PageFromBottom },
-  { id: "depth", title: "Depth Stack", desc: "Two real sheets, stacked with depth.", icon: IconPin, Component: DepthSheet },
+  { id: "depth", title: "Depth Sheet", desc: "A full-width sheet that pushes the page back.", icon: IconCompass, Component: DepthSheet },
   { id: "lightbox", title: "Lightbox Stack", desc: "Full-screen media over a page.", icon: IconImage, Component: Lightbox },
   { id: "parallax", title: "Parallax Stack", desc: "A cover that scrolls under the page.", icon: IconCompass, Component: ParallaxPage },
   { id: "page", title: "Settings Page", desc: "A full-height settings page from the right.", icon: IconGear, Component: Page },
@@ -72,6 +71,14 @@ const FEATURES = [
   { title: "Compound API", desc: "Compose parts like building blocks" },
   { title: "Zero dependencies", desc: "WAAPI + CSS, nothing else" },
 ];
+
+const APP_DEPTH = {
+  translateY: ({ progress }) => `${Math.min(progress, 1) * 14}px`,
+  scale: ({ progress }) => 1 - Math.min(progress, 1) * 0.06,
+  borderRadius: ({ progress }) => `${Math.min(progress, 1) * 28}px`,
+  filter: ({ progress }) => `brightness(${1 - Math.min(progress, 1) * 0.1})`,
+  transformOrigin: "50% 0",
+};
 
 const PREVIEW_SCENES = {
   "bottom-sheet": {
@@ -139,11 +146,11 @@ const PREVIEW_SCENES = {
     image: px(3184465, 720, 420),
   },
   depth: {
-    app: "Velvet Trips",
-    eyebrow: "Maldives · Mar 8–15",
-    title: "Islands, finally",
-    detail: "3 travelers · Ocean villa",
-    image: px(3601425, 720, 420),
+    app: "Field Atlas",
+    eyebrow: "Creator profile",
+    title: "Mara Vale",
+    detail: "Alpine stories · 12.8k readers",
+    image: px(1287145, 720, 420),
   },
   lightbox: {
     app: "Velvet Photos",
@@ -242,7 +249,7 @@ const PreviewBackdrop = ({ id }) => {
   );
 };
 
-const NESTED_PREVIEWS = new Set(["stacked", "depth"]);
+const NESTED_PREVIEWS = new Set(["stacked"]);
 
 const GalleryCard = ({ card }) => {
   const { id, title, desc, icon: CardIcon, Component } = card;
@@ -321,14 +328,22 @@ const GalleryCard = ({ card }) => {
                 layers={layers}
                 onLayerPresentedChange={updateLayer}
               >
-                <Component />
+                <SheetStack.Root className="Card-localStack">
+                  <Component preview />
+                </SheetStack.Root>
               </Sheet.PreviewEnvironment>
             )}
           </div>
         </div>
         <div className="Card-trigger" onClick={(event) => event.stopPropagation()}>
           <CardIcon className="Card-triggerIcon" size={14} />
-          <Component />
+          {id === "depth" ? (
+            <Component />
+          ) : (
+            <SheetStack.Root className="Card-localStack">
+              <Component />
+            </SheetStack.Root>
+          )}
         </div>
       </div>
       <div className="Card-meta">
@@ -354,8 +369,10 @@ const openDemoKey = (e) => {
 export const App = () => {
   const [view, setView] = useState("sheets");
   return (
-    <>
-      <nav className="Nav">
+    <SheetStack.Root className="App-depthRoot">
+      <SheetStack.Outlet asChild stackingAnimation={APP_DEPTH}>
+        <div className="App-surface">
+          <nav className="Nav">
         <div className="Nav-left" role="tablist" aria-label="Sections">
           {TABS.map((t) => (
             <button
@@ -376,9 +393,9 @@ export const App = () => {
             Get the code <IconChevronR size={15} />
           </button>
         </div>
-      </nav>
+          </nav>
 
-      <div className={`Page${view === "docs" ? " Page--docs" : ""}`}>
+          <div className={`Page${view === "docs" ? " Page--docs" : ""}`}>
         {view === "docs" ? (
           <Docs />
         ) : (
@@ -447,7 +464,9 @@ export const App = () => {
         <footer className="Footer">
           Velvet UI — a clean-room reimplementation built for the craft. Photos by Pexels.
         </footer>
-      </div>
-    </>
+          </div>
+        </div>
+      </SheetStack.Outlet>
+    </SheetStack.Root>
   );
 };

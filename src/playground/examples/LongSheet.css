@@ -37,6 +37,7 @@
   box-shadow: 0 -20px 50px -20px rgba(60, 45, 30, 0.2);
 }
 .Recipe-handle {
+  display: block;
   margin: 8px auto 14px;
   background: #d8dce2;
 }

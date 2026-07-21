@@ -26,8 +26,8 @@ const swipe = (client, { x = 640, y = 420, distance, speed = 5000 }) =>
     repeatCount: 0,
   });
 
-const startStackedExitTrace = (page) =>
-  page.evaluate((viewSelector) => {
+const startStackedExitTrace = (page, contentClass = "Stack-content") =>
+  page.evaluate(({ viewSelector, contentClass }) => {
     window.__stackedExitTrace = [];
     window.__traceStackedExit = true;
     const loop = () => {
@@ -35,20 +35,42 @@ const startStackedExitTrace = (page) =>
       const views = [...document.querySelectorAll(viewSelector)];
       const parent = views[0];
       const front = views.at(-1);
-      const parentContent = parent?.querySelector('[data-velvet="content"].Stack-content');
-      const frontContent = front?.querySelector('[data-velvet="content"].Stack-content');
+      const parentContent = parent?.querySelector(
+        `[data-velvet="content"].${contentClass}`,
+      );
+      const frontContent = front?.querySelector(
+        `[data-velvet="content"].${contentClass}`,
+      );
+      const frontStyle = front ? getComputedStyle(front) : null;
+      const childVisible = Boolean(
+        views.length > 1 &&
+          front &&
+          !front.inert &&
+          frontStyle?.visibility !== "hidden" &&
+          Number(frontStyle?.opacity ?? 1) > 0.001,
+      );
+      const frontBackdrop =
+        views.length > 1
+          ? front?.querySelector('[data-velvet="backdrop"]')
+          : null;
       const parentMatrix = parentContent
         ? new DOMMatrixReadOnly(getComputedStyle(parentContent).transform)
         : null;
       window.__stackedExitTrace.push({
         count: views.length,
         frontTop: views.length > 1 ? frontContent?.getBoundingClientRect().top ?? null : null,
+        childVisible,
+        childVisibility: frontStyle?.visibility ?? null,
+        childOpacity: Number.parseFloat(frontStyle?.opacity ?? "1"),
+        childBackdropOpacity: Number.parseFloat(
+          frontBackdrop ? getComputedStyle(frontBackdrop).opacity || "0" : "0",
+        ),
         parentScale: parentMatrix ? Math.hypot(parentMatrix.a, parentMatrix.b) : null,
       });
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
-  }, ACTUAL_VIEW);
+  }, { viewSelector: ACTUAL_VIEW, contentClass });
 
 const stopStackedExitTrace = (page) =>
   page.evaluate(() => {
@@ -149,11 +171,26 @@ try {
     1,
     0.001,
   );
+  const orphanedStackFrames = stackedExitTrace.filter(
+    (sample) =>
+      !sample.childVisible &&
+      typeof sample.parentScale === "number" &&
+      Math.abs(sample.parentScale - 1) > 0.005,
+  );
+  const finalChildFrame = stackedExitTrace.filter((sample) => sample.count > 1).at(-1);
   check(
     "swiping the child closed is visually monotonic for both stacked sheets",
     childMotion.samples >= 3 && childMotion.turns === 0 && childMotion.wrongWay === 0 &&
       parentMotion.samples >= 3 && parentMotion.turns === 0 && parentMotion.wrongWay === 0,
     JSON.stringify({ childMotion, parentMotion, trace: stackedExitTrace }),
+  );
+  check(
+    "the lower sheet is fully restored before the child is hidden",
+    orphanedStackFrames.length === 0 &&
+      finalChildFrame &&
+      Math.abs(finalChildFrame.parentScale - 1) <= 0.005 &&
+      finalChildFrame.childBackdropOpacity <= 0.005,
+    JSON.stringify({ orphanedStackFrames, finalChildFrame, trace: stackedExitTrace }),
   );
   const afterChildClose = await page.evaluate((selector) => {
     const lower = document.querySelector(selector);
@@ -265,6 +302,50 @@ try {
     "depth child closes back to the live parent sheet",
     (await page.$$(ACTUAL_VIEW)).length === 1,
   );
+
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 8000 });
+  await page.setViewport({ width: 540, height: 707, deviceScaleFactor: 1 });
+  await page.reload({ waitUntil: "load" });
+  await page.waitForSelector(".Gallery");
+
+  for (const testCase of [
+    { name: "stacked", shot: "stacked", contentClass: "Stack-content", trigger: ".Stack-cta" },
+    { name: "depth", shot: "depth", contentClass: "Depth-content", trigger: ".Depth-cta" },
+  ]) {
+    await page.$eval(`[data-shot="${testCase.shot}"] .Card-preview`, (element) =>
+      element.click()
+    );
+    await page.waitForFunction(
+      () => window.__velvet?.count() === 1 && window.__velvet.idle(),
+      { timeout: 8000 },
+    );
+    await page.$eval(`${ACTUAL_VIEW} ${testCase.trigger}`, (element) => element.click());
+    await page.waitForFunction(
+      () => window.__velvet?.count() === 2 && window.__velvet.idle(),
+      { timeout: 8000 },
+    );
+    await startStackedExitTrace(page, testCase.contentClass);
+    await swipe(client, { x: 270, y: 350, distance: 1000, speed: 9000 });
+    await page.waitForFunction(
+      () => window.__velvet?.count() === 1 && window.__velvet.idle(),
+      { timeout: 8000 },
+    );
+    await sleep(80);
+    const trace = await stopStackedExitTrace(page);
+    const finalChildFrame = trace.filter((sample) => sample.count > 1).at(-1);
+    check(
+      `${testCase.name} rapid mobile dismissal flushes its final stack frame`,
+      Boolean(
+        finalChildFrame &&
+          Math.abs(finalChildFrame.parentScale - 1) <= 0.005 &&
+          finalChildFrame.childBackdropOpacity <= 0.005,
+      ),
+      JSON.stringify({ finalChildFrame, trace }),
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 8000 });
+  }
 
   console.log(pass ? "\nALL PASS\n" : "\nFAILED\n");
 } catch (e) {
