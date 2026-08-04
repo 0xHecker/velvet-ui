@@ -1,9 +1,23 @@
 import { gzipSync } from "node:zlib";
 import { readdir, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { join, posix, resolve } from "node:path";
 import { build } from "vite";
 
-const publishedFiles = (await readdir("dist"))
+async function listFiles(directory, prefix = "") {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const relative = posix.join(prefix, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await listFiles(join(directory, entry.name), relative));
+    } else {
+      files.push(relative);
+    }
+  }
+  return files;
+}
+
+const publishedFiles = (await listFiles("dist"))
   .filter((file) => file.endsWith(".js") || file.endsWith(".cjs"));
 const annotatedFiles = [];
 for (const file of publishedFiles) {
@@ -13,6 +27,28 @@ for (const file of publishedFiles) {
 console.log(
   `${annotatedFiles.length ? "FAIL" : "PASS"}  published chunks contain no stale pure annotations${
     annotatedFiles.length ? `  found ${annotatedFiles.join(", ")}` : ""
+  }`
+);
+
+const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+const publicJavaScript = new Set(
+  Object.values(packageJson.exports)
+    .filter((entry) => entry && typeof entry === "object")
+    .flatMap((entry) => [entry.import, entry.require])
+    .filter(Boolean)
+    .map((file) => file.replace(/^\.\/dist\//, ""))
+);
+const internalFiles = publishedFiles.filter(
+  (file) => !publicJavaScript.has(file)
+);
+const exposedInternalNames = internalFiles.filter(
+  (file) => !/^chunks\/[A-Za-z0-9_-]{8}\.(?:js|cjs)$/.test(file)
+);
+console.log(
+  `${exposedInternalNames.length ? "FAIL" : "PASS"}  internal chunks use opaque filenames${
+    exposedInternalNames.length
+      ? `  found ${exposedInternalNames.join(", ")}`
+      : ""
   }`
 );
 
@@ -77,7 +113,10 @@ const bundle = async ({ name, source }) => {
     .join("\n");
 };
 
-const failures = annotatedFiles.length ? ["published-annotations"] : [];
+const failures = [
+  ...(annotatedFiles.length ? ["published-annotations"] : []),
+  ...(exposedInternalNames.length ? ["opaque-chunk-names"] : []),
+];
 for (const entry of entries) {
   const code = await bundle(entry);
   const gzipBytes = gzipSync(code).byteLength;

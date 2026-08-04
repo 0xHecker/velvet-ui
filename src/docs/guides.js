@@ -1031,6 +1031,11 @@ toast.custom(
   changelog: guide(
     "A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.",
     section(
+      "0.2.2 · 2026-08-05",
+      "### Packaging",
+      "- Replaced semantic internal JavaScript chunk names with opaque content hashes while preserving every public import path, ESM tree-shaking boundary, CommonJS entry, type declaration, stylesheet, and runtime behavior.\n- Extended package verification to recursively reject exposed internal chunk names and stale annotations.",
+    ),
+    section(
       "0.2.1 · 2026-08-05",
       "### Fixed",
       "- Replaced the jagged Settings glyph in the gallery examples with a clean, balanced cog that stays legible at small sizes.",

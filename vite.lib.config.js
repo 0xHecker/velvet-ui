@@ -150,13 +150,23 @@ export default defineConfig({
         "persistent-sheet": resolve(root, "src/velvet/entries/persistent-sheet.ts"),
         lightbox: resolve(root, "src/velvet/entries/lightbox.ts"),
       },
-      formats: ["es", "cjs"],
       fileName: (format, entryName) =>
         `${entryName}.${format === "es" ? "js" : "cjs"}`,
     },
     rollupOptions: {
       external: externalReact,
-      output: { exports: "named" },
+      output: [
+        {
+          format: "es",
+          exports: "named",
+          chunkFileNames: "chunks/[hash].js",
+        },
+        {
+          format: "cjs",
+          exports: "named",
+          chunkFileNames: "chunks/[hash].cjs",
+        },
+      ],
     },
   },
 });
