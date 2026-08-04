@@ -1,37 +1,21 @@
-import { useCallback, useState } from "react";
 import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconChevronR, IconPin, IconStar, IconSun } from "../icons.jsx";
 import "./ParallaxPage.css";
 
 export const ParallaxPage = () => {
-  const [presented, setPresented] = useState(false);
-  const [track, setTrack] = useState("bottom");
-
-  const handleScroll = useCallback(
-    ({ progress }) => {
-      if (!presented) return;
-      setTrack(progress < 0.5 ? "bottom" : "top");
-    },
-    [presented]
-  );
-  const handleTravelStatus = useCallback((status) => {
-    if (status === "idleOutside") setTrack("bottom");
-  }, []);
-
   return (
-  <Sheet.Root presented={presented} onPresentedChange={setPresented}>
+  <Sheet.Root>
     <Sheet.Trigger className="Btn">
       Read the story <IconChevronR />
     </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View
         className="Parallax-view"
-        contentPlacement="center"
-        tracks={track}
+        side="center"
+        tracks="auto"
         swipeOvershoot={false}
         nativeEdgeSwipePrevention
-        onTravelStatusChange={handleTravelStatus}
         enteringAnimationSettings={{
           easing: "spring",
           stiffness: 480,
@@ -42,7 +26,8 @@ export const ParallaxPage = () => {
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.25 }} />
         <Sheet.Content className="Parallax-content" asChild>
           <Scroll.Root className="Parallax-scrollRoot" asChild>
-            <Scroll.View className="Parallax-scrollView" onScrollProgress={handleScroll}>
+            <Scroll.View className="Parallax-scrollView">
+              <Sheet.BleedingBackground className="Parallax-bg" />
               <Scroll.Content className="Parallax-scrollContent">
                 <div className="Parallax-innerContent">
                   <div className="Parallax-hero">
@@ -102,7 +87,7 @@ export const ParallaxPage = () => {
               The season runs from late September to early April. Dress for standing still, not
               for walking — the cold finds seams you didn't know your jacket had.
             </p>
-                    <Sheet.Trigger action="dismiss" className="Btn Btn--soft Parallax-close">
+                    <Sheet.Trigger action="close" className="Btn Btn--soft Parallax-close">
                       Back to gallery
                     </Sheet.Trigger>
                   </div>

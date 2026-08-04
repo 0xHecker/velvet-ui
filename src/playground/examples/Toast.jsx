@@ -11,10 +11,10 @@ export const Toast = () => {
   }, [presented]);
 
   return (
-    <Sheet.Root presented={presented} onPresentedChange={setPresented}>
+    <Sheet.Root open={presented} onOpenChange={setPresented}>
       <Sheet.Trigger className="Btn">Show Toast</Sheet.Trigger>
       <Sheet.Portal>
-        <Sheet.View className="Toast-view" inertOutside={false}>
+        <Sheet.View className="Toast-view" modal={false}>
           <Sheet.Content className="Toast-content">
             <Sheet.BleedingBackground className="Toast-bg" />
             <span className="Toast-dot" aria-hidden />
@@ -22,7 +22,7 @@ export const Toast = () => {
               <Sheet.Title className="Toast-title">Saved to your library</Sheet.Title>
               <Sheet.Description className="Toast-desc">Synced across your devices.</Sheet.Description>
             </div>
-            <Sheet.Trigger action="dismiss" className="Toast-action">Done</Sheet.Trigger>
+            <Sheet.Trigger action="close" className="Toast-action">Done</Sheet.Trigger>
           </Sheet.Content>
         </Sheet.View>
       </Sheet.Portal>

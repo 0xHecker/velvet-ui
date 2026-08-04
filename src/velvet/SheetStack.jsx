@@ -18,7 +18,7 @@ const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // ---- Root: tracks the ordered stack and fans out progress ----
 const Root = forwardRef(function SheetStackRoot(
-  { children, asChild, className, style, componentId, ...rest },
+  { children, asChild, className, style, ...rest },
   ref
 ) {
   const stack = useRef([]); // ordered [{ id, progress, getStackingAnimations }], last = frontmost

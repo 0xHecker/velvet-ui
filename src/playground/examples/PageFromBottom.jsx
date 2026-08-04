@@ -11,13 +11,14 @@ export const PageFromBottom = () => (
       <Sheet.View className="PageBottom-view" nativeEdgeSwipePrevention>
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.25 }} />
         <Sheet.Content className="PageBottom-content">
+          <Sheet.BleedingBackground className="PageBottom-bg" />
           <Sheet.Handle className="PageBottom-handle" />
           <header className="PageBottom-head">
-            <Sheet.Trigger action="dismiss" className="PageBottom-cancel">
+            <Sheet.Trigger action="close" className="PageBottom-cancel">
               Cancel
             </Sheet.Trigger>
             <Sheet.Title className="PageBottom-title">New Note</Sheet.Title>
-            <Sheet.Trigger action="dismiss" className="PageBottom-done">
+            <Sheet.Trigger action="close" className="PageBottom-done">
               Save
             </Sheet.Trigger>
           </header>

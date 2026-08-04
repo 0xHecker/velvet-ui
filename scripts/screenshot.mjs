@@ -9,7 +9,7 @@
 //   node scripts/screenshot.mjs --mobile
 //   node scripts/screenshot.mjs --shot bottom-sheet
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 import sharp from "sharp";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
@@ -54,7 +54,7 @@ try {
   const base = server.resolvedUrls.local[0];
   console.log("vite:", base);
 
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     headless: true,
     args: ["--no-sandbox", "--force-color-profile=srgb"],
   });

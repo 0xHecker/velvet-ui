@@ -1,0 +1,35 @@
+[data-velvet-lightbox="view"] {
+  height: var(--velvet-100lvh, 100dvh);
+}
+
+[data-velvet-lightbox="backdrop"] {
+  background: var(--velvet-lightbox-backdrop, #000);
+}
+
+[data-velvet-lightbox="content"] {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: none;
+  height: var(--velvet-100lvh, 100dvh);
+  padding:
+    max(var(--velvet-lightbox-inset, 20px), env(safe-area-inset-top))
+    max(var(--velvet-lightbox-inset, 20px), env(safe-area-inset-right))
+    max(var(--velvet-lightbox-inset, 20px), env(safe-area-inset-bottom))
+    max(var(--velvet-lightbox-inset, 20px), env(safe-area-inset-left));
+  overflow: hidden;
+  color: var(--velvet-lightbox-foreground, #fff);
+  background: var(--velvet-lightbox-surface, #000);
+  transform-origin: 50% 50%;
+}
+
+[data-velvet-lightbox="trigger"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 520px) {
+  [data-velvet-lightbox="content"] {
+    --velvet-lightbox-inset: 12px;
+  }
+}

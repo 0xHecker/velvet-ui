@@ -1,7 +1,7 @@
 // Behavioral SheetStack assertion: opening a second (nested) sheet drives the
 // lower sheet's content with Silk's public stack transform.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const watchdog = setTimeout(() => process.exit(1), 90000);
@@ -99,13 +99,17 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4319, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   const client = await page.createCDPSession();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
+  await page.waitForFunction(() => {
+    const preview = document.querySelector('[data-shot="stacked"] .Card-preview');
+    return preview && Object.keys(preview).some((key) => key.startsWith("__reactProps$"));
+  });
 
   console.log("\n--- STACKING ASSERTIONS ---");
   await page.click('[data-shot="stacked"] .Card-preview');
@@ -218,7 +222,10 @@ try {
       const views = [...document.querySelectorAll(viewSelector)];
       const front = views.at(-1)?.querySelector('[data-velvet="content"].Stack-content');
       return views.length === 2 && !window.__velvet?.idle() &&
-        front?.getBoundingClientRect().top <= 230;
+        // Wait until the child is close to its authored resting position. The
+        // stacked-sheet gap is responsive, so key this to the viewport rather
+        // than the old fixed desktop coordinate.
+        front?.getBoundingClientRect().top <= innerHeight * 0.45;
     },
     { timeout: 8000 },
     ACTUAL_VIEW,
@@ -265,42 +272,25 @@ try {
     () => window.__velvet?.count() === 1 && window.__velvet.idle(),
     { timeout: 8000 },
   );
-  await page.click(`${ACTUAL_VIEW} .Depth-cta`);
-  await page.waitForFunction(
-    () => window.__velvet?.count() === 2 && window.__velvet.idle(),
-    { timeout: 8000 },
-  );
   const depthGeometry = await page.evaluate(() => {
-    const contents = document.querySelectorAll(
-      '[data-velvet="view"]:not([data-velvet-preview]) [data-velvet="content"].Depth-content'
-    );
-    const transform = contents[0]?.style.transform || "";
-    const matrix = contents[0]
-      ? new DOMMatrixReadOnly(getComputedStyle(contents[0]).transform)
+    const surface = document.querySelector(".App-surface");
+    const matrix = surface
+      ? new DOMMatrixReadOnly(getComputedStyle(surface).transform)
       : null;
     return {
-      count: contents.length,
+      count: document.querySelectorAll(
+        '[data-velvet="view"]:not([data-velvet-preview])'
+      ).length,
       scale: matrix ? Math.hypot(matrix.a, matrix.b) : 1,
-      transform,
+      borderRadius: surface ? Number.parseFloat(getComputedStyle(surface).borderRadius) : 0,
     };
   });
   check(
-    "depth demo uses the same real two-sheet stack mechanism",
-    depthGeometry.count === 2 && Math.abs(depthGeometry.scale - 0.933) < 0.002,
+    "depth demo drives the real page outlet through the stack primitive",
+    depthGeometry.count === 1 &&
+      Math.abs(depthGeometry.scale - 0.94) < 0.002 &&
+      Math.abs(depthGeometry.borderRadius - 28) < 0.5,
     JSON.stringify(depthGeometry),
-  );
-
-  await page.$$eval(`${ACTUAL_VIEW} [data-velvet-trigger]`, (buttons) => {
-    const button = buttons.find((candidate) => candidate.textContent.includes("Send invites"));
-    button?.click();
-  });
-  await page.waitForFunction(
-    () => window.__velvet?.count() === 1 && window.__velvet.idle(),
-    { timeout: 8000 },
-  );
-  check(
-    "depth child closes back to the live parent sheet",
-    (await page.$$(ACTUAL_VIEW)).length === 1,
   );
 
   await page.keyboard.press("Escape");
@@ -311,7 +301,6 @@ try {
 
   for (const testCase of [
     { name: "stacked", shot: "stacked", contentClass: "Stack-content", trigger: ".Stack-cta" },
-    { name: "depth", shot: "depth", contentClass: "Depth-content", trigger: ".Depth-cta" },
   ]) {
     await page.$eval(`[data-shot="${testCase.shot}"] .Card-preview`, (element) =>
       element.click()

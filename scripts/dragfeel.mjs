@@ -2,7 +2,7 @@
 // like the native scroll path. Small slow drag snaps back; long drag or quick
 // flick dismisses.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const wd = setTimeout(() => process.exit(1), 90000); wd.unref();
 let server, browser, pass = true;
@@ -10,7 +10,7 @@ const check = (n, ok, info = "") => { pass = pass && ok; console.log(`${ok ? "PA
 try {
   server = await createServer({ logLevel: "warn", server: { port: 4319, host: "127.0.0.1" } });
   await server.listen();
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 860 });
   await page.goto(server.resolvedUrls.local[0], { waitUntil: "load" });

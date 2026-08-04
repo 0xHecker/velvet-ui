@@ -1,4 +1,3 @@
-import { useCallback, useState } from "react";
 import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconBook, IconClock, IconFlame, IconUsers } from "../icons.jsx";
@@ -52,33 +51,18 @@ const TIPS = [
 ];
 
 export const LongSheet = () => {
-  const [presented, setPresented] = useState(false);
-  const [track, setTrack] = useState("bottom");
-
-  const handleScroll = useCallback(
-    ({ progress }) => {
-      if (!presented) return;
-      setTrack(progress < 0.5 ? "bottom" : "top");
-    },
-    [presented]
-  );
-  const handleTravelStatus = useCallback((status) => {
-    if (status === "idleOutside") setTrack("bottom");
-  }, []);
-
   return (
-  <Sheet.Root presented={presented} onPresentedChange={setPresented}>
+  <Sheet.Root>
     <Sheet.Trigger className="Btn">
       <IconBook /> Open recipe
     </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View
         className="Recipe-view"
-        contentPlacement="center"
-        tracks={track}
+        side="center"
+        tracks="auto"
         swipeOvershoot={false}
         nativeEdgeSwipePrevention
-        onTravelStatusChange={handleTravelStatus}
         enteringAnimationSettings={{
           easing: "spring",
           stiffness: 480,
@@ -89,7 +73,7 @@ export const LongSheet = () => {
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
         <Sheet.Content className="Recipe-content" asChild>
           <Scroll.Root className="Recipe-scrollRoot" asChild>
-            <Scroll.View className="Recipe-scrollView" onScrollProgress={handleScroll}>
+            <Scroll.View className="Recipe-scrollView">
               <Scroll.Content className="Recipe-scrollContent">
                 <div className="Recipe-innerContent">
                   <Sheet.BleedingBackground className="Recipe-bg" />

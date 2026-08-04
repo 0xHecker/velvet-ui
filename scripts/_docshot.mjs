@@ -1,6 +1,6 @@
 // TEMP: screenshot the Docs page to verify width + syntax highlighting.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 import { mkdirSync } from "fs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let server, browser;
@@ -8,7 +8,7 @@ try {
   mkdirSync("shots", { recursive: true });
   server = await createServer({ logLevel: "warn", server: { port: 4338, host: "127.0.0.1" } });
   await server.listen();
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.goto(server.resolvedUrls.local[0], { waitUntil: "networkidle2" });

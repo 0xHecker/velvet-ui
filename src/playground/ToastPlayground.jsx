@@ -102,7 +102,10 @@ export const ToastPlayground = () => {
   return (
     <section className="Toastpg">
       <div className="Toastpg-head">
-        <h2 className="Toastpg-title">An opinionated toast</h2>
+        <h1 className="Toastpg-title">A React toast with some momentum</h1>
+        <p className="Toastpg-subtitle">
+          Zero dependencies, powered by the same physics that powers Velvet UI.
+        </p>
         <p className="Toastpg-lead">
           It stacks, expands on hover, and dismisses with a flick. Render one <code>&lt;Toaster /&gt;</code>,
           then call <code>toast()</code> from anywhere. Fire a few and hover the stack.

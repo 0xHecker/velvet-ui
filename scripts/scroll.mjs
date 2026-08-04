@@ -1,7 +1,7 @@
 // Unified long-sheet scroll: the sheet's own surface scrolls content past "open"
 // (one viewport) without snapping back, and pulling into the travel region dismisses.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const watchdog = setTimeout(() => process.exit(1), 90000);
@@ -17,7 +17,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4318, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });

@@ -1,0 +1,1396 @@
+.LicenseCenter-view,
+.LicenseCenter-pageView {
+  --license-paper: #ffffff;
+  --license-canvas: #f7f7f4;
+  --license-ink: #101114;
+  --license-body: #5f6368;
+  --license-muted: #7c8085;
+  --license-line: #dedfdc;
+  --license-soft-sage: #e8f1ed;
+  --license-soft-stone: #f3f1ed;
+  --license-soft-blue: #edf2f4;
+  --license-soft-lilac: #f1eff4;
+  --license-depth-inset: max(28px, env(safe-area-inset-top));
+  --license-depth-radius: 28px;
+  height: var(--velvet-100lvh);
+}
+
+.LicenseCenter-depthBackdrop {
+  background: #020806;
+}
+
+.LicenseCenter-panel {
+  isolation: isolate;
+  position: relative;
+  display: flex;
+  width: 100vw;
+  height: var(--velvet-100lvh);
+  overflow: visible;
+  flex-direction: column;
+  border-radius: 0;
+  background: transparent;
+  color: var(--license-body);
+}
+
+.LicenseCenter-surface {
+  top: var(--license-depth-inset);
+  border-radius: var(--license-depth-radius) var(--license-depth-radius) 0 0;
+  background: var(--license-paper);
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.82),
+    0 -24px 70px -34px rgba(0, 0, 0, 0.48);
+}
+
+.LicenseCenter-pageSurface {
+  border-radius: inherit;
+  background: var(--license-paper);
+}
+
+.LicenseCenter-handle {
+  position: absolute;
+  z-index: 9;
+  top: calc(var(--license-depth-inset) + 12px);
+  left: 50%;
+  margin: 0;
+  translate: -50% 0;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+}
+
+.LicenseCenter-close {
+  appearance: none;
+  position: absolute;
+  z-index: 8;
+  top: calc(var(--license-depth-inset) + 14px);
+  left: clamp(16px, 3vw, 30px);
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--license-ink);
+  box-shadow: 0 8px 24px -14px rgba(20, 24, 26, 0.42);
+  cursor: pointer;
+  transition: background 160ms ease, transform 180ms var(--ease);
+}
+
+.LicenseCenter-close svg {
+  transform: rotate(180deg);
+}
+
+.LicenseCenter-close:hover {
+  background: #ffffff;
+}
+
+.LicenseCenter-close:active {
+  transform: scale(0.94);
+}
+
+.LicenseCenter-scrollRoot,
+.LicenseCenter-scrollView {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+}
+
+.LicenseCenter-scrollRoot {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.LicenseCenter-scrollView {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+}
+
+.LicenseCenter-scrollContent {
+  width: 100%;
+  min-height: 100%;
+}
+
+.LicenseCenter-depthScrollRoot {
+  width: 100%;
+  height: 100%;
+}
+
+.LicenseCenter-depthScrollView {
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(100% - var(--license-depth-inset));
+  margin-top: var(--license-depth-inset);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: var(--license-depth-radius) var(--license-depth-radius) 0 0;
+  background: var(--license-paper);
+  overscroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.LicenseCenter-depthScrollContent {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+}
+
+.LicenseCenter-main {
+  min-height: 100%;
+  background: var(--license-paper);
+}
+
+.LicenseCenter-preview {
+  position: relative;
+  height: clamp(320px, 39vh, 382px);
+  overflow: hidden;
+  border-radius: var(--license-depth-radius) var(--license-depth-radius) 0 0;
+  background: var(--license-soft-sage);
+}
+
+.LicenseCenter-device {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  width: 268px;
+  height: 478px;
+  overflow: hidden;
+  margin: 0;
+  border: 8px solid rgba(255, 255, 255, 0.96);
+  border-radius: 34px;
+  background: #f4f5f5;
+  box-shadow: 0 28px 48px -24px rgba(56, 71, 65, 0.38);
+  animation: LicenseCenter-previewRise 580ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.LicenseCenter-device img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.LicenseCenter-device--left {
+  z-index: 1;
+  top: 70px;
+  transform: translateX(-146%);
+  animation-delay: 50ms;
+}
+
+.LicenseCenter-device--center {
+  z-index: 3;
+  width: 292px;
+  height: 520px;
+  transform: translateX(-50%);
+}
+
+.LicenseCenter-device--right {
+  z-index: 2;
+  top: 55px;
+  transform: translateX(47%);
+  animation-delay: 90ms;
+}
+
+@keyframes LicenseCenter-previewRise {
+  from {
+    opacity: 0.72;
+    translate: 0 22px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.LicenseCenter-accessIntro {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 64px 36px 48px;
+  box-sizing: border-box;
+}
+
+.LicenseCenter-accessTitle {
+  display: block;
+  max-width: 800px;
+  margin: 0;
+  color: var(--license-ink);
+  font-size: clamp(42px, 5vw, 58px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.LicenseCenter-accessDescription {
+  display: block;
+  max-width: 760px;
+  margin: 24px 0 0;
+  color: var(--license-body);
+  font-size: clamp(19px, 2.15vw, 24px);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.42;
+  text-wrap: pretty;
+}
+
+.LicenseCenter-plans {
+  display: grid;
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 0 36px;
+  box-sizing: border-box;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.LicenseCenter-plan {
+  display: flex;
+  min-width: 0;
+  min-height: 560px;
+  flex-direction: column;
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--license-soft-stone);
+  color: var(--license-body);
+}
+
+.LicenseCenter-plan[data-plan="individual"] {
+  background: var(--license-soft-blue);
+}
+
+.LicenseCenter-plan[data-plan="organization"] {
+  background: var(--license-soft-lilac);
+}
+
+.LicenseCenter-planTop {
+  min-height: 98px;
+}
+
+.LicenseCenter-planTop h3 {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.026em;
+  line-height: 1.15;
+}
+
+.LicenseCenter-planTop p {
+  margin: 10px 0 0;
+  color: var(--license-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.LicenseCenter-planPrice {
+  display: flex;
+  min-height: 78px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  padding: 18px 0;
+  border-top: 1px solid rgba(16, 17, 20, 0.1);
+  border-bottom: 1px solid rgba(16, 17, 20, 0.1);
+}
+
+.LicenseCenter-planPrice strong {
+  color: var(--license-ink);
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.LicenseCenter-planPrice span {
+  color: var(--license-body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.LicenseCenter-planDescription {
+  min-height: 72px;
+  margin: 22px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.LicenseCenter-plan ul {
+  display: grid;
+  gap: 11px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.LicenseCenter-plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--license-ink);
+  font-size: 14px;
+  font-weight: 520;
+  line-height: 1.4;
+}
+
+.LicenseCenter-plan li svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.LicenseCenter-planNote {
+  margin: 18px 0 24px;
+  color: var(--license-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.LicenseCenter-planAction,
+.LicenseCenter-buyButton {
+  appearance: none;
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 12px;
+  background: var(--license-ink);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 160ms ease, transform 180ms var(--ease);
+}
+
+.LicenseCenter-planAction {
+  width: 100%;
+  margin-top: auto;
+}
+
+.LicenseCenter-planAction:hover,
+.LicenseCenter-buyButton:hover:not(:disabled) {
+  background: #292b2f;
+}
+
+.LicenseCenter-planAction:active,
+.LicenseCenter-buyButton:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.LicenseCenter-codebase {
+  display: flex;
+  width: min(calc(100% - 72px), 1008px);
+  min-height: 86px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-sizing: border-box;
+  margin: 20px auto 0;
+  padding: 20px 22px;
+  border: 1px solid var(--license-line);
+  border-radius: 16px;
+  color: var(--license-ink);
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.LicenseCenter-codebase:hover {
+  background: var(--license-canvas);
+}
+
+.LicenseCenter-codebase > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.LicenseCenter-codebase strong {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.LicenseCenter-codebase small {
+  color: var(--license-body);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.LicenseCenter-codebase > span:last-child {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.LicenseCenter-questions {
+  width: min(calc(100% - 72px), 900px);
+  margin: 0 auto;
+  padding: 104px 0 0;
+}
+
+.LicenseCenter-questions h2,
+.LicenseCenter-legalEntry h2 {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.LicenseCenter-questionList {
+  margin-top: 30px;
+  border-top: 1px solid var(--license-line);
+}
+
+.LicenseCenter-questionList details {
+  border-bottom: 1px solid var(--license-line);
+}
+
+.LicenseCenter-questionList summary {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--license-ink);
+  font-size: 16px;
+  font-weight: 620;
+  list-style: none;
+  cursor: pointer;
+}
+
+.LicenseCenter-questionList summary::-webkit-details-marker {
+  display: none;
+}
+
+.LicenseCenter-questionList summary span {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.LicenseCenter-questionList summary span::before,
+.LicenseCenter-questionList summary span::after {
+  position: absolute;
+  top: 7px;
+  left: 2px;
+  width: 12px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--license-ink);
+  content: "";
+}
+
+.LicenseCenter-questionList summary span::after {
+  transform: rotate(90deg);
+  transition: transform 180ms ease;
+}
+
+.LicenseCenter-questionList details[open] summary span::after {
+  transform: rotate(0deg);
+}
+
+.LicenseCenter-questionList details > p {
+  max-width: 72ch;
+  margin: -4px 42px 24px 0;
+  color: var(--license-body);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.LicenseCenter-legalEntry {
+  display: flex;
+  width: min(calc(100% - 72px), 1008px);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 36px;
+  box-sizing: border-box;
+  margin: 104px auto 0;
+  padding: 36px;
+  border-radius: 16px;
+  background: #f4f1eb;
+}
+
+.LicenseCenter-legalEntry p {
+  max-width: 590px;
+  margin: 14px 0 0;
+  color: var(--license-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.LicenseCenter-legalEntry button {
+  appearance: none;
+  display: inline-flex;
+  min-height: 48px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px;
+  border: 1px solid rgba(16, 17, 20, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--license-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.LicenseCenter-legalEntry button:hover {
+  background: #fafaf8;
+}
+
+.LicenseCenter-footer {
+  display: flex;
+  width: min(calc(100% - 72px), 1008px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-sizing: border-box;
+  margin: 88px auto 0;
+  padding: 28px 0 calc(34px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--license-line);
+  font-size: 13px;
+}
+
+.LicenseCenter-footer p {
+  margin: 0;
+}
+
+.LicenseCenter-footer a {
+  color: var(--license-ink);
+  font-weight: 620;
+  text-underline-offset: 3px;
+}
+
+.LicenseCenter-pagePanel {
+  isolation: isolate;
+  display: flex;
+  width: 100vw;
+  height: var(--velvet-100lvh);
+  overflow: hidden;
+  flex-direction: column;
+  margin: 0;
+  border-radius: 0;
+  color: var(--license-body);
+}
+
+.LicenseCenter-pagePanel--document {
+  width: 100vw;
+}
+
+.LicenseCenter-pageHeader {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  min-height: 66px;
+  flex: none;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: max(10px, env(safe-area-inset-top)) 20px 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--license-line);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.LicenseCenter-backButton {
+  appearance: none;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-self: start;
+  gap: 2px;
+  padding: 7px 10px 7px 5px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--license-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.LicenseCenter-backButton:hover {
+  background: var(--license-canvas);
+}
+
+.LicenseCenter-pageHeading {
+  min-width: 0;
+  text-align: center;
+}
+
+.LicenseCenter-pageTitle {
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.LicenseCenter-pageDescription {
+  display: block;
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--license-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.LicenseCenter-pageHeaderSpace {
+  width: 54px;
+  justify-self: end;
+}
+
+.LicenseCenter-legalIndex {
+  width: min(100%, 800px);
+  margin: 0 auto;
+  padding: 76px 34px calc(80px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.LicenseCenter-legalIndex > h2 {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.LicenseCenter-legalIndex > p:first-of-type {
+  max-width: 560px;
+  margin: 18px auto 0;
+  color: var(--license-body);
+  font-size: 17px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.LicenseCenter-legalRows {
+  overflow: hidden;
+  margin-top: 64px;
+  border: 1px solid var(--license-line);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.LicenseCenter-legalRows button {
+  appearance: none;
+  display: flex;
+  width: 100%;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--license-line);
+  background: transparent;
+  color: var(--license-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.LicenseCenter-legalRows button:last-child {
+  border-bottom: 0;
+}
+
+.LicenseCenter-legalRows button:hover {
+  background: var(--license-canvas);
+}
+
+.LicenseCenter-legalRows button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.LicenseCenter-legalRows strong {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.LicenseCenter-legalRows small {
+  overflow: hidden;
+  color: var(--license-body);
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.LicenseCenter-legalRows svg {
+  flex: none;
+  color: var(--license-muted);
+}
+
+.LicenseCenter-legalContact {
+  margin: 26px 0 0 !important;
+  color: var(--license-body);
+  font-size: 13px !important;
+  text-align: center;
+}
+
+.LicenseCenter-legalContact a {
+  color: var(--license-ink);
+  text-underline-offset: 3px;
+}
+
+.LicenseCenter-checkout {
+  width: min(100%, 700px);
+  margin: 0 auto;
+  padding: 70px 34px calc(70px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.LicenseCenter-checkoutIntro h2 {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.LicenseCenter-checkoutIntro p {
+  max-width: 620px;
+  margin: 18px 0 0;
+  color: var(--license-body);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.LicenseCenter-checkoutPrice {
+  display: grid;
+  margin-top: 46px;
+  padding: 28px 0;
+  border-top: 1px solid var(--license-line);
+  border-bottom: 1px solid var(--license-line);
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 4px 20px;
+}
+
+.LicenseCenter-checkoutPrice span {
+  align-self: start;
+  color: var(--license-ink);
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.LicenseCenter-checkoutPrice strong {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--license-ink);
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+}
+
+.LicenseCenter-checkoutPrice small {
+  color: var(--license-body);
+  font-size: 13px;
+}
+
+.LicenseCenter-checkoutFacts {
+  margin: 34px 0 0;
+}
+
+.LicenseCenter-checkoutFacts > div {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 24px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--license-line);
+}
+
+.LicenseCenter-checkoutFacts dt {
+  color: var(--license-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.LicenseCenter-checkoutFacts dd {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 14px;
+  font-weight: 520;
+  line-height: 1.5;
+}
+
+.LicenseCenter-finalSale {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 30px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--license-canvas);
+}
+
+.LicenseCenter-finalSale svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--license-ink);
+}
+
+.LicenseCenter-finalSale p {
+  margin: 0;
+  color: var(--license-body);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.LicenseCenter-agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.LicenseCenter-agreement input {
+  appearance: none;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  place-items: center;
+  margin: 1px 0 0;
+  border: 1.5px solid #afb2b4;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.LicenseCenter-agreement input::before {
+  width: 9px;
+  height: 5px;
+  border-bottom: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  content: "";
+  opacity: 0;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+.LicenseCenter-agreement input:checked {
+  border-color: var(--license-ink);
+  background: var(--license-ink);
+}
+
+.LicenseCenter-agreement input:checked::before {
+  opacity: 1;
+}
+
+.LicenseCenter-agreement label {
+  display: block;
+  color: var(--license-ink);
+  font-size: 13.5px;
+  line-height: 1.52;
+  cursor: pointer;
+}
+
+.LicenseCenter-agreementLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 7px;
+}
+
+.LicenseCenter-agreementLinks button,
+.LicenseCenter-agreementLinks a {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--license-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 620;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.LicenseCenter-buyButton {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 26px;
+}
+
+.LicenseCenter-buyButton:disabled {
+  background: #e5e5e2;
+  color: #9b9d9f;
+  cursor: not-allowed;
+}
+
+.LicenseCenter-merchantNote {
+  max-width: 520px;
+  margin: 14px auto 0;
+  color: var(--license-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.LicenseCenter-documentPage {
+  width: min(100%, 770px);
+  margin: 0 auto;
+  padding: 70px 34px calc(86px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.LicenseCenter-documentIntro {
+  margin-bottom: 58px;
+  padding-bottom: 34px;
+  border-bottom: 1px solid var(--license-line);
+}
+
+.LicenseCenter-documentIntro h2 {
+  margin: 0;
+  color: var(--license-ink);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.LicenseCenter-documentIntro p {
+  max-width: 650px;
+  margin: 18px 0 0;
+  color: var(--license-body);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.LicenseCenter-documentIntro span {
+  display: block;
+  margin-top: 18px;
+  color: var(--license-muted);
+  font-size: 12.5px;
+}
+
+.LicenseCenter-markdown {
+  color: var(--license-body);
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.LicenseCenter-markdown h2 {
+  margin: 54px 0 16px;
+  color: var(--license-ink);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.LicenseCenter-markdown h2:first-child {
+  margin-top: 0;
+}
+
+.LicenseCenter-markdown h3 {
+  margin: 36px 0 12px;
+  color: var(--license-ink);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.LicenseCenter-markdown p,
+.LicenseCenter-markdown ul,
+.LicenseCenter-markdown ol {
+  margin: 0 0 18px;
+}
+
+.LicenseCenter-markdown ul,
+.LicenseCenter-markdown ol {
+  padding-left: 22px;
+}
+
+.LicenseCenter-markdown strong {
+  color: var(--license-ink);
+}
+
+.LicenseCenter-markdown a {
+  color: var(--license-ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.LicenseCenter-inlineLegalLink {
+  appearance: none;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--license-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.LicenseCenter-markdown blockquote {
+  margin: 28px 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--license-canvas);
+}
+
+.LicenseCenter-markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.LicenseCenter-markdown code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #f0f0ed;
+  color: var(--license-ink);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.LicenseCenter-tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 28px 0;
+  border: 1px solid var(--license-line);
+  border-radius: 12px;
+}
+
+.LicenseCenter-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.LicenseCenter-markdown th,
+.LicenseCenter-markdown td {
+  min-width: 150px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--license-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.LicenseCenter-markdown th {
+  color: var(--license-ink);
+  font-weight: 700;
+}
+
+.LicenseCenter-markdown tr:last-child td {
+  border-bottom: 0;
+}
+
+.LicenseCenter-close:focus-visible,
+.LicenseCenter-backButton:focus-visible,
+.LicenseCenter-planAction:focus-visible,
+.LicenseCenter-codebase:focus-visible,
+.LicenseCenter-questionList summary:focus-visible,
+.LicenseCenter-legalEntry button:focus-visible,
+.LicenseCenter-legalRows button:focus-visible,
+.LicenseCenter-agreement input:focus-visible,
+.LicenseCenter-agreementLinks button:focus-visible,
+.LicenseCenter-agreementLinks a:focus-visible,
+.LicenseCenter-buyButton:focus-visible,
+.LicenseCenter-inlineLegalLink:focus-visible,
+.LicenseCenter-footer a:focus-visible {
+  outline: 2px solid var(--license-ink);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .LicenseCenter-preview {
+    height: 330px;
+  }
+
+  .LicenseCenter-device {
+    width: 226px;
+    height: 404px;
+  }
+
+  .LicenseCenter-device--left {
+    transform: translateX(-142%);
+  }
+
+  .LicenseCenter-device--center {
+    width: 248px;
+    height: 442px;
+  }
+
+  .LicenseCenter-device--right {
+    transform: translateX(42%);
+  }
+
+  .LicenseCenter-plans {
+    grid-template-columns: 1fr;
+  }
+
+  .LicenseCenter-plan {
+    min-height: 0;
+  }
+
+  .LicenseCenter-planTop,
+  .LicenseCenter-planDescription {
+    min-height: 0;
+  }
+
+  .LicenseCenter-planAction {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .LicenseCenter-panel,
+  .LicenseCenter-pagePanel,
+  .LicenseCenter-pagePanel--document {
+    width: 100vw;
+    height: var(--velvet-100lvh);
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .LicenseCenter-close {
+    top: calc(var(--license-depth-inset) + 12px);
+    left: 12px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .LicenseCenter-preview {
+    height: 276px;
+  }
+
+  .LicenseCenter-device {
+    top: 38px;
+    width: 164px;
+    height: 294px;
+    border-width: 6px;
+    border-radius: 24px;
+  }
+
+  .LicenseCenter-device--left {
+    top: 66px;
+    transform: translateX(-134%);
+  }
+
+  .LicenseCenter-device--center {
+    top: 28px;
+    width: 182px;
+    height: 326px;
+  }
+
+  .LicenseCenter-device--right {
+    top: 58px;
+    transform: translateX(35%);
+  }
+
+  .LicenseCenter-accessIntro {
+    padding: 44px 20px 36px;
+  }
+
+  .LicenseCenter-accessTitle {
+    font-size: 36px;
+    letter-spacing: -0.03em;
+  }
+
+  .LicenseCenter-accessDescription {
+    margin-top: 18px;
+    font-size: 18px;
+  }
+
+  .LicenseCenter-plans {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .LicenseCenter-plan {
+    padding: 24px;
+  }
+
+  .LicenseCenter-codebase,
+  .LicenseCenter-questions,
+  .LicenseCenter-legalEntry,
+  .LicenseCenter-footer {
+    width: calc(100% - 28px);
+  }
+
+  .LicenseCenter-codebase {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .LicenseCenter-questions {
+    padding-top: 76px;
+  }
+
+  .LicenseCenter-questions h2,
+  .LicenseCenter-legalEntry h2 {
+    font-size: 32px;
+  }
+
+  .LicenseCenter-legalEntry {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 76px;
+    padding: 26px;
+  }
+
+  .LicenseCenter-legalEntry button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .LicenseCenter-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 64px;
+  }
+
+  .LicenseCenter-pageHeader {
+    min-height: 62px;
+    padding-right: 12px;
+    padding-left: 8px;
+  }
+
+  .LicenseCenter-pageDescription {
+    display: none;
+  }
+
+  .LicenseCenter-legalIndex,
+  .LicenseCenter-checkout,
+  .LicenseCenter-documentPage {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .LicenseCenter-legalIndex {
+    padding-top: 52px;
+  }
+
+  .LicenseCenter-legalIndex > h2,
+  .LicenseCenter-checkoutIntro h2,
+  .LicenseCenter-documentIntro h2 {
+    font-size: 38px;
+  }
+
+  .LicenseCenter-legalRows {
+    margin-top: 44px;
+  }
+
+  .LicenseCenter-legalRows small {
+    white-space: normal;
+  }
+
+  .LicenseCenter-checkout {
+    padding-top: 48px;
+  }
+
+  .LicenseCenter-checkoutPrice strong {
+    font-size: 46px;
+  }
+
+  .LicenseCenter-checkoutFacts > div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .LicenseCenter-documentPage {
+    padding-top: 48px;
+  }
+
+  .LicenseCenter-documentIntro {
+    margin-bottom: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  .LicenseCenter-view,
+  .LicenseCenter-pageView {
+    --license-depth-inset: max(18px, env(safe-area-inset-top));
+    --license-depth-radius: 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .LicenseCenter-preview {
+    height: 248px;
+  }
+
+  .LicenseCenter-device {
+    width: 146px;
+    height: 262px;
+  }
+
+  .LicenseCenter-device--center {
+    width: 166px;
+    height: 296px;
+  }
+
+  .LicenseCenter-device--left {
+    transform: translateX(-130%);
+  }
+
+  .LicenseCenter-device--right {
+    transform: translateX(30%);
+  }
+
+  .LicenseCenter-planPrice {
+    min-height: 0;
+  }
+
+  .LicenseCenter-checkoutPrice {
+    grid-template-columns: 1fr;
+  }
+
+  .LicenseCenter-checkoutPrice strong {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 10px;
+  }
+
+  .LicenseCenter-legalRows button {
+    min-height: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .LicenseCenter-device,
+  .LicenseCenter-close,
+  .LicenseCenter-planAction,
+  .LicenseCenter-buyButton {
+    animation: none;
+    transition: none;
+  }
+}

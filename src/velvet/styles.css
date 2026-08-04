@@ -1,3 +1,8 @@
 @import "./base.css";
 @import "./sheet-theme.css";
+@import "./depth-sheet.css";
+@import "./card-expansion.css";
+@import "./bottom-sheet.css";
+@import "./persistent-sheet.css";
+@import "./lightbox.css";
 @import "./Toaster.css";

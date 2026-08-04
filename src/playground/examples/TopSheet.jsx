@@ -9,7 +9,7 @@ export const TopSheet = () => (
       <IconBell /> Show notification
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="TopSheet-view" contentPlacement="top">
+      <Sheet.View className="TopSheet-view" side="top">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.35 }} />
         <Sheet.Content className="TopSheet-content">
           <Sheet.BleedingBackground className="TopSheet-bg" />
@@ -27,10 +27,10 @@ export const TopSheet = () => (
               </div>
             </div>
             <div className="TopSheet-actions">
-              <Sheet.Trigger action="dismiss" className="TopSheet-action">
+              <Sheet.Trigger action="close" className="TopSheet-action">
                 <IconMessage size={14} /> Reply
               </Sheet.Trigger>
-              <Sheet.Trigger action="dismiss" className="TopSheet-action">Mark as read</Sheet.Trigger>
+              <Sheet.Trigger action="close" className="TopSheet-action">Mark as read</Sheet.Trigger>
             </div>
           </div>
           <Sheet.Handle className="TopSheet-handle" />

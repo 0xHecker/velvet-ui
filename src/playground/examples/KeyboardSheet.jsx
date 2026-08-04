@@ -41,7 +41,7 @@ export const KeyboardSheet = () => (
 
                     <div className="Keyboard-composer">
                       <input className="Keyboard-input" placeholder="Message Ava…" aria-label="Message Ava" />
-                      <Sheet.Trigger action="dismiss" className="Keyboard-send" aria-label="Send">
+                      <Sheet.Trigger action="close" className="Keyboard-send" aria-label="Send">
                         <IconSend size={16} />
                       </Sheet.Trigger>
                     </div>

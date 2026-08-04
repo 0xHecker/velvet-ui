@@ -1,0 +1,136 @@
+/*
+ * DepthSheet's complete visual contract. Consumers can use the composition
+ * without classes and retune it through the custom properties on Root.
+ */
+[data-velvet-depth="root"] {
+  --velvet-depth-inset: max(24px, env(safe-area-inset-top));
+  --velvet-depth-radius: 28px;
+  --velvet-depth-shift: 14px;
+  --velvet-depth-shift-limit: 80px;
+  --velvet-depth-scale-loss: 0.06;
+  --velvet-depth-scale-min: 0.76;
+  --velvet-depth-radius-step: 2px;
+  --velvet-depth-radius-limit: 42px;
+  --velvet-depth-dimming: 0.1;
+  --velvet-depth-brightness-min: 0.7;
+  --velvet-depth-page-background: #fff;
+  --velvet-depth-surface-background: #f8faf8;
+  --velvet-depth-backdrop-background: #020806;
+  --velvet-depth-handle-background: rgba(255, 255, 255, 0.74);
+  --velvet-depth-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.8),
+    0 -24px 70px -34px rgba(0, 0, 0, 0.5);
+
+  position: relative;
+  width: 100%;
+  height: var(--velvet-100lvh, 100dvh);
+  overflow: hidden;
+  background: var(--velvet-depth-backdrop-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-velvet-depth="page"] {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--velvet-depth-page-background);
+  scrollbar-color: rgba(112, 112, 112, 0.5) transparent;
+  scrollbar-width: auto;
+  will-change: transform, filter;
+}
+
+[data-velvet-depth="portal-host"] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+[data-velvet-depth="view"] {
+  height: var(--velvet-100lvh, 100dvh);
+}
+
+[data-velvet-depth="backdrop"] {
+  background: var(--velvet-depth-backdrop-background, #020806);
+}
+
+[data-velvet-depth="content"] {
+  isolation: isolate;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  overflow: visible;
+  background: transparent;
+}
+
+[data-velvet-depth="background"] {
+  top: var(--velvet-depth-inset, max(24px, env(safe-area-inset-top)));
+  border-radius:
+    var(--velvet-depth-radius, 28px)
+    var(--velvet-depth-radius, 28px)
+    0
+    0;
+  background: var(--velvet-depth-surface-background, #f8faf8);
+  box-shadow:
+    var(
+      --velvet-depth-shadow,
+      0 -1px 0 rgba(255, 255, 255, 0.8),
+      0 -24px 70px -34px rgba(0, 0, 0, 0.5)
+    );
+}
+
+[data-velvet-depth="scroll-root"] {
+  width: 100%;
+  height: 100%;
+}
+
+[data-velvet-depth="scroll"] {
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(100% - var(--velvet-depth-inset, max(24px, env(safe-area-inset-top))));
+  margin-top: var(--velvet-depth-inset, max(24px, env(safe-area-inset-top)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius:
+    var(--velvet-depth-radius, 28px)
+    var(--velvet-depth-radius, 28px)
+    0
+    0;
+  background: var(--velvet-depth-surface-background, #f8faf8);
+  scrollbar-color: rgba(112, 112, 112, 0.5) transparent;
+  scrollbar-width: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-velvet-depth="scroll-content"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+}
+
+[data-velvet-depth="handle"] {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--velvet-depth-inset, max(24px, env(safe-area-inset-top))) + 12px);
+  left: 50%;
+  margin: 0;
+  translate: -50% 0;
+  color: inherit;
+  background: var(--velvet-depth-handle-background, rgba(255, 255, 255, 0.74));
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 520px) {
+  [data-velvet-depth="root"] {
+    --velvet-depth-inset: max(18px, env(safe-area-inset-top));
+    --velvet-depth-radius: 24px;
+    --velvet-depth-shift: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-velvet-depth="page"] {
+    will-change: auto;
+  }
+}

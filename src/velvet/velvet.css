@@ -1,11 +1,12 @@
 /* Velvet UI — structural styles.
-   Components ship unstyled (likeß): these are only the structural rules and
+   Components ship unstyled: these are only the structural rules and
    the scroll-snap machinery that make the Sheet travel. Visual styling lives in
    your own CSS. Semantic data-velvet attributes drive everything. */
 
 :root {
-  /* Full viewport height that survives mobile URL-bar collapse. */
-  --velvet-100lvh: max(100%, 100vh);
+  /* Visible viewport height. The dynamic unit keeps bottom controls above
+     mobile browser chrome and the virtual keyboard. */
+  --velvet-100lvh: 100vh;
 
   /* Stacking layers. Sheets must float above page chrome (nav); toasts float
      above everything. */
@@ -15,7 +16,7 @@
 }
 @supports (height: 1dvh) {
   :root {
-    --velvet-100lvh: max(100dvh, 100lvh);
+    --velvet-100lvh: 100dvh;
   }
 }
 
@@ -44,36 +45,6 @@
   pointer-events: auto;
   /* opacity is driven imperatively via travel progress */
   will-change: opacity;
-}
-
-/* ---- Programmatic scroll trap -------------------------------------------
-   While a sheet is entering, stepping, or exiting, this native scroll surface
-   owns any gesture that starts above the staged sheet. The 300px runway on
-   every side and synchronous recentering mirror Silk's secondary ScrollTrap:
-   when staging ends, the browser keeps that gesture bound here instead of
-   handing its momentum tail to the sheet scroller. */
-[data-velvet="programmatic-scroll-trap"] {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: auto;
-  overflow: auto !important;
-  overscroll-behavior: none !important;
-  scrollbar-width: none !important;
-}
-[data-velvet="programmatic-scroll-trap"][data-velvet-active] {
-  z-index: 1;
-}
-[data-velvet="programmatic-scroll-trap"]::-webkit-scrollbar {
-  display: none !important;
-}
-[data-velvet="programmatic-scroll-trap"]::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: calc(100% + 600px);
-  height: calc(100% + 600px);
 }
 
 /* ---- Native sheet scroller ------------------------------------------------
@@ -413,6 +384,9 @@
   pointer-events: auto;
   max-width: 100%;
 }
+[data-velvet="content"]:focus {
+  outline: none;
+}
 
 /* ---- BleedingBackground (fills the panel; panel-sized so it never inflates
    the scroller). Dismiss-direction overshoot bleed is Safari/FF-only. ---- */
@@ -421,6 +395,50 @@
   z-index: -1;
   inset: 0;
   pointer-events: none;
+}
+
+[data-velvet="bleeding-background"]::before,
+[data-velvet="bleeding-background"]::after {
+  position: absolute;
+  background: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+[data-velvet="content-area"][data-velvet-placement="bottom"]
+  > [data-velvet="content"]:not([data-velvet-scroll="view"])
+  > [data-velvet="bleeding-background"]::after {
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--velvet-view-axis);
+}
+
+[data-velvet="content-area"][data-velvet-placement="top"]
+  > [data-velvet="content"]:not([data-velvet-scroll="view"])
+  > [data-velvet="bleeding-background"]::before {
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: var(--velvet-view-axis);
+}
+
+[data-velvet="content-area"][data-velvet-placement="right"]
+  > [data-velvet="content"]:not([data-velvet-scroll="view"])
+  > [data-velvet="bleeding-background"]::after {
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: var(--velvet-view-axis);
+}
+
+[data-velvet="content-area"][data-velvet-placement="left"]
+  > [data-velvet="content"]:not([data-velvet-scroll="view"])
+  > [data-velvet="bleeding-background"]::before {
+  top: 0;
+  right: 100%;
+  bottom: 0;
+  width: var(--velvet-view-axis);
 }
 
 /* ---- Handle ---- */
@@ -461,8 +479,22 @@
 }
 
 /* ---- Scroll component ---- */
+[data-velvet-scroll-root]:not([data-velvet-scroll="view"]) {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+[data-velvet-scroll-root]:not([data-velvet-scroll="view"])
+  > [data-velvet-scroll="view"] {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+}
 [data-velvet-scroll="view"] {
   position: relative;
+  min-width: 0;
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
 [data-velvet-scroll="view"][data-velvet-axis="y"] {

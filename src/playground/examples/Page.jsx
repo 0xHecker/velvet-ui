@@ -44,11 +44,12 @@ export const Page = () => (
       <IconGear /> Open settings
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Page-view" contentPlacement="right" nativeEdgeSwipePrevention>
+      <Sheet.View className="Page-view" side="right" nativeEdgeSwipePrevention>
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.18 }} />
         <Sheet.Content className="Page-content">
+          <Sheet.BleedingBackground className="Page-bg" />
           <header className="Page-head">
-            <Sheet.Trigger action="dismiss" className="Page-back">
+            <Sheet.Trigger action="close" className="Page-back">
               <IconChevronL size={17} /> Back
             </Sheet.Trigger>
             <Sheet.Title className="Page-title">Settings</Sheet.Title>

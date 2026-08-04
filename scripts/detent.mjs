@@ -4,7 +4,7 @@
 //   * scrolling to closed + scroll-end dismisses it
 // Same hang-proof harness as drag.mjs: in-process Vite, selector waits, watchdog.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const watchdog = setTimeout(() => {
@@ -23,12 +23,16 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4317, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1, hasTouch: true });
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
+  await page.waitForFunction(() => {
+    const preview = document.querySelector('[data-shot="detent"] .Card-preview');
+    return preview && Object.keys(preview).some((key) => key.startsWith("__reactProps$"));
+  });
 
   const idle = () => page.waitForFunction(() => window.__velvet && window.__velvet.count() > 0 && window.__velvet.idle(), { timeout: 8000 });
   const progress = () => page.evaluate(() => window.__velvet.progress());

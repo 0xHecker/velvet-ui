@@ -2,7 +2,7 @@
 // backdrop's opacity every frame and COUNT direction reversals (flickers).
 //   node scripts/flicker.mjs <shot> <dismissSelector>
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const shot = process.argv[2] || "bottom-sheet";
 const dismissSel = process.argv[3] || ".BottomSheet-actions .Btn";
@@ -15,7 +15,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4321, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });

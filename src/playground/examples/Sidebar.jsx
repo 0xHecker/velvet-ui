@@ -29,7 +29,7 @@ export const Sidebar = () => (
       Open workspace <IconChevronR />
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Sidebar-view" contentPlacement="right">
+      <Sheet.View className="Sidebar-view" side="right">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
         <Sheet.Content className="Sidebar-content">
           <Sheet.BleedingBackground className="Sidebar-bg" />
@@ -69,7 +69,7 @@ export const Sidebar = () => (
                 <strong>Rachel Torres</strong>
                 <span>rachel@velvet.studio</span>
               </div>
-              <Sheet.Trigger action="dismiss" className="Sidebar-close" aria-label="Close sidebar">
+              <Sheet.Trigger action="close" className="Sidebar-close" aria-label="Close sidebar">
                 <IconChevronR size={16} />
               </Sheet.Trigger>
             </div>

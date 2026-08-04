@@ -1,6 +1,6 @@
 // Screenshot the redesigned playground (Sheets / Toasts / Docs)
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -10,7 +10,7 @@ let server, browser;
 try {
   server = await createServer({ logLevel: "warn", server: { port: 4324, host: "127.0.0.1" } });
   await server.listen();
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.goto(server.resolvedUrls.local[0], { waitUntil: "networkidle2" });

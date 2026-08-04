@@ -27,6 +27,14 @@
   --velvet-100lvh: 100cqh;
 }
 
+/* The bottom sheet is taller than the default preview viewport. Give it a
+   larger logical canvas so the complete component remains visible on hover. */
+.Card[data-shot="bottom-sheet"] .DemoPreview-canvas {
+  width: 250%;
+  height: 250%;
+  transform: scale(0.4);
+}
+
 /* The stacked demo needs enough logical height for both full product sheets to
    exist at their real dimensions. A wider capture viewport is then scaled back
    into the same card instead of vertically cropping the second sheet. */

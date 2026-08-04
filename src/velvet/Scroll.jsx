@@ -11,7 +11,9 @@ import {
   useRef,
 } from "react";
 import { Polymorph } from "./core/Slot.jsx";
+import { composeEventHandlers } from "./core/events.js";
 import { useComposedRefs } from "./core/refs.js";
+import { useSheetScrollHandoff } from "./core/scrollHandoff.js";
 import { springScroll } from "./core/spring.js";
 
 const maxOf = (el, axis) =>
@@ -44,6 +46,11 @@ const visualViewportBounds = () => {
   };
 };
 const layoutViewportBounds = () => ({ top: 0, bottom: window.innerHeight });
+const FOCUS_VIEWPORT_GAP = 16;
+const DEVELOPMENT =
+  typeof process !== "undefined" && process.env?.NODE_ENV
+    ? process.env.NODE_ENV !== "production"
+    : import.meta.env?.DEV === true;
 const ScrollCtx = createContext(null);
 const useScroll = () => {
   const ctx = useContext(ScrollCtx);
@@ -164,25 +171,80 @@ const View = forwardRef(function View(
   forwardedRef
 ) {
   const { viewRef, axisRef, emitProgress, api } = useScroll();
+  const sheetScrollHandoff = useSheetScrollHandoff();
   const composed = useComposedRefs(forwardedRef, viewRef);
   const startSpacerRef = useRef(null);
   const endSpacerRef = useRef(null);
   const focusTimerRef = useRef(0);
+  const focusScrollFrameRef = useRef(0);
   const focusWantsScrollRef = useRef(false);
+  const focusOriginRef = useRef(null);
+  const focusViewportBottomRef = useRef(null);
+  const focusRestorePendingRef = useRef(false);
   axisRef.current = axis;
 
   const onScroll = useCallback(() => {
     const payload = emitProgress();
+    sheetScrollHandoff?.(payload);
     onScrollProgress && onScrollProgress({ ...payload, ...api });
-  }, [emitProgress, onScrollProgress, api]);
+  }, [emitProgress, onScrollProgress, api, sheetScrollHandoff]);
 
-  // Trapping a gesture at the edge = don't let it propagate to an ancestor sheet/scroller.
-  const trap =
-    scrollGestureTrap === true || !scrollGestureOvershoot
-      ? "contain"
-      : scrollGestureTrap
-        ? "contain"
-        : undefined;
+  // Trapping a gesture at the edge keeps it inside this Scroll.View instead
+  // of handing it to an ancestor Sheet, scroller, or the page.
+  const requestedTrap =
+    scrollGestureTrap && typeof scrollGestureTrap === "object"
+      ? scrollGestureTrap
+      : { x: scrollGestureTrap === true, y: scrollGestureTrap === true };
+  const trapX = !scrollGestureOvershoot || requestedTrap.x === true;
+  const trapY = !scrollGestureOvershoot || requestedTrap.y === true;
+  const trappedAxes = [trapX ? "x" : null, trapY ? "y" : null]
+    .filter(Boolean)
+    .join(" ");
+
+  useEffect(() => {
+    if (!DEVELOPMENT || typeof window === "undefined") return undefined;
+
+    const frame = requestAnimationFrame(() => {
+      const view = viewRef.current;
+      const sheetView = view?.closest('[data-velvet="view"]');
+      const sheetContent = view?.closest('[data-velvet="content"]');
+      if (!view || !sheetView || !sheetContent) return;
+
+      const placement = sheetView.getAttribute("data-velvet-placement");
+      const track = sheetView.getAttribute("data-velvet-track");
+      const horizontalSheet =
+        placement === "left" ||
+        placement === "right" ||
+        track === "left" ||
+        track === "right" ||
+        track === "horizontal";
+      if (!horizontalSheet) return;
+
+      const computed = getComputedStyle(view);
+      const crossAxisBehavior =
+        axis === "y"
+          ? computed.overscrollBehaviorX
+          : computed.overscrollBehaviorY;
+      if (crossAxisBehavior !== "contain" && crossAxisBehavior !== "none") {
+        return;
+      }
+
+      const viewRect = view.getBoundingClientRect();
+      const contentRect = sheetContent.getBoundingClientRect();
+      const pageSized =
+        viewRect.width >= contentRect.width * 0.8 &&
+        viewRect.height >= contentRect.height * 0.5;
+      if (!pageSized) return;
+
+      console.warn(
+        "[Velvet UI] This page-sized Scroll.View traps gesture handoff inside a horizontal Sheet. " +
+          "Remove scrollGestureTrap (and keep scrollGestureOvershoot at its default true) to preserve swipe-back. " +
+          "Use trapping only on an isolated nested scroller that must contain overscroll."
+      );
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [axis, trapX, trapY, viewRef]);
 
   const updateSafeArea = useCallback(() => {
     const view = viewRef.current;
@@ -224,7 +286,8 @@ const View = forwardRef(function View(
     const active = document.activeElement;
     if (!view || !isTextEntry(active) || !view.contains(active)) return;
     updateSafeArea();
-    requestAnimationFrame(() => {
+    cancelAnimationFrame(focusScrollFrameRef.current);
+    focusScrollFrameRef.current = requestAnimationFrame(() => {
       if (!viewRef.current?.contains(active)) return;
       const viewRect = viewRef.current.getBoundingClientRect();
       const elementRect = active.getBoundingClientRect();
@@ -234,20 +297,39 @@ const View = forwardRef(function View(
           : safeArea === "layout-viewport"
             ? layoutViewportBounds()
             : { top: viewRect.top, bottom: viewRect.bottom };
-      const safeTop = Math.max(viewRect.top, bounds.top) + 64;
-      const keyboardMargin = /Android/i.test(navigator.userAgent) ? 102 : 54;
-      const safeBottom = Math.min(viewRect.bottom, bounds.bottom) - keyboardMargin;
+      const safeTop = Math.max(viewRect.top, bounds.top) + FOCUS_VIEWPORT_GAP;
+      const safeBottom = Math.min(viewRect.bottom, bounds.bottom) - FOCUS_VIEWPORT_GAP;
       let delta = 0;
       if (elementRect.top < safeTop) delta = elementRect.top - safeTop;
       else if (elementRect.bottom > safeBottom) delta = elementRect.bottom - safeBottom;
       if (Math.abs(delta) < 1) return;
-      viewRef.current.scrollBy({
-        top: delta,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "auto"
-          : "smooth",
-      });
+      viewRef.current.scrollTop += delta;
     });
+  }, [safeArea, updateSafeArea, viewRef]);
+
+  const restoreFocusPosition = useCallback(() => {
+    const view = viewRef.current;
+    if (!view || !focusRestorePendingRef.current) return;
+    updateSafeArea();
+    const active = document.activeElement;
+    if (isTextEntry(active) && view.contains(active)) return;
+    const baselineBottom = focusViewportBottomRef.current;
+    if (
+      safeArea === "visual-viewport" &&
+      baselineBottom != null &&
+      visualViewportBounds().bottom < baselineBottom - 1
+    ) {
+      return;
+    }
+    const origin = focusOriginRef.current;
+    if (origin == null) {
+      focusRestorePendingRef.current = false;
+      return;
+    }
+    view.scrollTop = Math.min(Math.max(origin, 0), maxOf(view, "y"));
+    focusOriginRef.current = null;
+    focusViewportBottomRef.current = null;
+    focusRestorePendingRef.current = false;
   }, [safeArea, updateSafeArea, viewRef]);
 
   useEffect(() => {
@@ -255,9 +337,13 @@ const View = forwardRef(function View(
     const viewport = window.visualViewport;
     const scheduleFocusScroll = () => {
       updateSafeArea();
-      if (!focusWantsScrollRef.current) return;
       clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = window.setTimeout(scrollFocusedIntoView, 60);
+      cancelAnimationFrame(focusScrollFrameRef.current);
+      if (!focusWantsScrollRef.current) {
+        focusScrollFrameRef.current = requestAnimationFrame(restoreFocusPosition);
+        return;
+      }
+      scrollFocusedIntoView();
     };
     updateSafeArea();
     viewport?.addEventListener("resize", scheduleFocusScroll);
@@ -265,11 +351,12 @@ const View = forwardRef(function View(
     window.addEventListener("resize", scheduleFocusScroll);
     return () => {
       clearTimeout(focusTimerRef.current);
+      cancelAnimationFrame(focusScrollFrameRef.current);
       viewport?.removeEventListener("resize", scheduleFocusScroll);
       viewport?.removeEventListener("scroll", scheduleFocusScroll);
       window.removeEventListener("resize", scheduleFocusScroll);
     };
-  }, [axis, scrollFocusedIntoView, updateSafeArea]);
+  }, [axis, restoreFocusPosition, scrollFocusedIntoView, updateSafeArea]);
 
   const handleFocusCapture = useCallback(
     (event) => {
@@ -284,23 +371,39 @@ const View = forwardRef(function View(
       } else if (onFocusInside) {
         Object.assign(behavior, onFocusInside);
       }
+      if (focusOriginRef.current == null) {
+        focusOriginRef.current = viewRef.current?.scrollTop ?? 0;
+        focusViewportBottomRef.current = visualViewportBounds().bottom;
+      }
+      focusRestorePendingRef.current = false;
       focusWantsScrollRef.current = behavior.scrollIntoView;
       if (nativeFocusScrollPrevention) event.target.focus({ preventScroll: true });
       clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = window.setTimeout(scrollFocusedIntoView, 900);
+      scrollFocusedIntoView();
+      // Some mobile browsers publish their final visual viewport geometry
+      // after focus without another resize event. This is a fallback, not the
+      // primary path; normal keyboard motion is handled frame-for-frame above.
+      focusTimerRef.current = window.setTimeout(scrollFocusedIntoView, 250);
     },
-    [nativeFocusScrollPrevention, onFocusCapture, onFocusInside, scrollFocusedIntoView]
+    [nativeFocusScrollPrevention, onFocusCapture, onFocusInside, scrollFocusedIntoView, viewRef]
   );
 
   const handleBlurCapture = useCallback(
     (event) => {
       onBlurCapture?.(event);
+      // Only text-entry focus records an origin that should be restored after
+      // keyboard avoidance. A button that opens a child Sheet also blurs, but
+      // it has no saved origin; treating that as zero used to jump every
+      // containing Scroll.View back to the top during ordinary navigation.
+      if (focusOriginRef.current == null) return;
       if (isTextEntry(event.relatedTarget) && viewRef.current?.contains(event.relatedTarget)) return;
       focusWantsScrollRef.current = false;
+      focusRestorePendingRef.current = true;
       clearTimeout(focusTimerRef.current);
-      window.setTimeout(updateSafeArea, 0);
+      cancelAnimationFrame(focusScrollFrameRef.current);
+      focusScrollFrameRef.current = requestAnimationFrame(restoreFocusPosition);
     },
-    [onBlurCapture, updateSafeArea, viewRef]
+    [onBlurCapture, restoreFocusPosition, viewRef]
   );
 
   const scrollChildren = (
@@ -321,8 +424,18 @@ const View = forwardRef(function View(
       ref={composed}
       data-velvet-scroll="view"
       data-velvet-axis={axis}
+      data-velvet-scroll-handoff={trappedAxes || "open"}
       className={className}
-      style={{ overscrollBehavior: trap, ...style }}
+      // `scrollGestureTrap={false}` is an actual behavior guarantee, not an
+      // absence of styling. An explicit auto prevents a component class with
+      // `overscroll-behavior: contain` from silently disabling Sheet handoff.
+      // Authors can still override it deliberately through the style prop or
+      // use scrollGestureTrap for the documented containment behavior.
+      style={{
+        overscrollBehaviorX: trapX ? "contain" : "auto",
+        overscrollBehaviorY: trapY ? "contain" : "auto",
+        ...style,
+      }}
       onScroll={onScroll}
       onFocusCapture={handleFocusCapture}
       onBlurCapture={handleBlurCapture}
@@ -344,16 +457,20 @@ const Content = forwardRef(function Content({ children, asChild, className, styl
 
 // ---- Trigger: runs scroll-to / scroll-by on press ----
 const Trigger = forwardRef(function Trigger(
-  { children, asChild, className, style, action, onPress, ...rest },
+  { children, asChild, className, style, action, onClick, onPress, disabled, ...rest },
   forwardedRef
 ) {
   const { api } = useScroll();
-  const handle = (e) => {
-    if (onPress) onPress(e);
+  const activate = () => {
+    if (disabled) return;
     if (!action) return;
     if (action.type === "scroll-to") api.scrollTo(action);
     else if (action.type === "scroll-by") api.scrollBy(action);
   };
+  const handle = composeEventHandlers(
+    onClick,
+    composeEventHandlers(onPress, activate)
+  );
   return (
     <Polymorph
       as="button"
@@ -364,7 +481,9 @@ const Trigger = forwardRef(function Trigger(
       className={className}
       style={style}
       onClick={handle}
+      aria-disabled={disabled || undefined}
       {...rest}
+      disabled={disabled}
     >
       {children}
     </Polymorph>

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Sheet, SheetStack } from "../velvet/index.js";
+import { SheetPreviewEnvironment } from "../velvet/Sheet.jsx";
 import { px } from "./px.js";
 import {
   IconBag,
@@ -41,29 +42,65 @@ import { TopSheet } from "./examples/TopSheet.jsx";
 import "./preview.css";
 
 const cards = [
-  { id: "bottom-sheet", title: "Booking Sheet", desc: "A reservation flow in a bottom sheet.", icon: IconCalendar, Component: BottomSheet },
-  { id: "modal", title: "Invite Modal", desc: "A centered modal for a single decision.", icon: IconUsers, Component: Modal },
-  { id: "sidebar", title: "Sidebar Sheet", desc: "Navigation as an edge drawer.", icon: IconFolder, Component: Sidebar },
-  { id: "detent", title: "Queue Sheet", desc: "Snap points for an up-next queue.", icon: IconMusic, Component: DetentSheet },
-  { id: "top-sheet", title: "Top Sheet", desc: "A notification that drops from the top.", icon: IconBell, Component: TopSheet },
-  { id: "long-sheet", title: "Long Sheet", desc: "Long-form content that drags to close.", icon: IconFlame, Component: LongSheet },
-  { id: "stacked", title: "Stacked Sheets", desc: "One sheet presenting another.", icon: IconBag, Component: StackedSheets },
-  { id: "detached", title: "Quick View", desc: "A detached sheet, free of the edge.", icon: IconClock, Component: DetachedSheet },
-  { id: "page-from-bottom", title: "Compose Page", desc: "A full-height page over the screen.", icon: IconPlus, Component: PageFromBottom },
-  { id: "depth", title: "Depth Sheet", desc: "A full-width sheet that pushes the page back.", icon: IconCompass, Component: DepthSheet },
-  { id: "lightbox", title: "Lightbox Stack", desc: "Full-screen media over a page.", icon: IconImage, Component: Lightbox },
-  { id: "parallax", title: "Parallax Stack", desc: "A cover that scrolls under the page.", icon: IconCompass, Component: ParallaxPage },
-  { id: "page", title: "Settings Page", desc: "A full-height settings page from the right.", icon: IconGear, Component: Page },
-  { id: "keyboard", title: "Keyboard Sheet", desc: "A composer that follows the keyboard.", icon: IconMessage, Component: KeyboardSheet },
-  { id: "card", title: "Card to Page", desc: "A card that expands into a story.", icon: IconBook, Component: Card },
-  { id: "persistent", title: "Persistent Sheet", desc: "A mini player that never leaves.", icon: IconPlay, Component: PersistentSheet },
+  { id: "bottom-sheet", title: "Bottom Sheet", desc: "A bottom-aligned sheet with swipe dismissal.", icon: IconCalendar, Component: BottomSheet },
+  { id: "modal", title: "Modal Dialog", desc: "A centered modal surface for focused tasks.", icon: IconUsers, Component: Modal },
+  { id: "sidebar", title: "Navigation Drawer", desc: "A sheet presented from the left edge.", icon: IconFolder, Component: Sidebar },
+  { id: "detent", title: "Detent Sheet", desc: "A bottom sheet with multiple snap points.", icon: IconMusic, Component: DetentSheet },
+  { id: "top-sheet", title: "Top Sheet", desc: "A sheet presented from the top edge.", icon: IconBell, Component: TopSheet },
+  { id: "long-sheet", title: "Scrollable Sheet", desc: "Long content with coordinated scroll and drag.", icon: IconFlame, Component: LongSheet },
+  { id: "stacked", title: "Stacked Sheets", desc: "A sheet that presents a second sheet.", icon: IconBag, Component: StackedSheets },
+  { id: "detached", title: "Detached Sheet", desc: "A floating sheet detached from viewport edges.", icon: IconClock, Component: DetachedSheet },
+  { id: "page-from-bottom", title: "Full-Screen Sheet", desc: "A bottom-presented sheet that fills the viewport.", icon: IconPlus, Component: PageFromBottom },
+  { id: "depth", title: "Depth Sheet", desc: "A full-width sheet that scales the page behind it.", icon: IconCompass, Component: DepthSheet },
+  { id: "lightbox", title: "Lightbox", desc: "A full-screen modal surface for media.", icon: IconImage, Component: Lightbox },
+  { id: "parallax", title: "Parallax Sheet", desc: "A full-screen sheet with a parallax cover.", icon: IconCompass, Component: ParallaxPage },
+  { id: "page", title: "Side Sheet", desc: "A full-height sheet presented from the right edge.", icon: IconGear, Component: Page },
+  { id: "keyboard", title: "Keyboard-Aware Sheet", desc: "A sheet that follows the virtual keyboard.", icon: IconMessage, Component: KeyboardSheet },
+  { id: "card", title: "Card Expansion", desc: "A modal card with bidirectional swipe dismissal.", icon: IconBook, Component: Card },
+  { id: "persistent", title: "Persistent Sheet", desc: "A non-modal sheet with a persistent collapsed state.", icon: IconPlay, Component: PersistentSheet },
 ];
 
 const TABS = [
-  { id: "sheets", label: "Sheets" },
-  { id: "toasts", label: "Toasts" },
-  { id: "docs", label: "Docs" },
+  { id: "sheets", label: "Sheets", href: "/" },
+  { id: "toasts", label: "Toasts", href: "/toasts" },
+  { id: "docs", label: "Docs", href: "/docs" },
 ];
+
+const VIEW_PATHS = Object.fromEntries(TABS.map(({ id, href }) => [id, href]));
+const PATH_VIEWS = Object.fromEntries(TABS.map(({ id, href }) => [href, id]));
+const SCROLL_STATE_KEY = "velvetScrollTop";
+
+const viewFromLocation = () => {
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  return PATH_VIEWS[pathname] || "sheets";
+};
+
+const getScrollState = (state = window.history.state) =>
+  typeof state?.[SCROLL_STATE_KEY] === "number" ? state[SCROLL_STATE_KEY] : 0;
+
+const saveScrollPosition = () => {
+  const scrollTop = document.querySelector(".App-surface")?.scrollTop ?? 0;
+  const state = window.history.state;
+  window.history.replaceState(
+    {
+      ...(state && typeof state === "object" ? state : {}),
+      [SCROLL_STATE_KEY]: scrollTop,
+    },
+    "",
+  );
+};
+
+const applyScrollPosition = (scrollTop = 0) => {
+  const hash = window.location.hash.slice(1);
+  const target = hash && document.getElementById(decodeURIComponent(hash));
+
+  if (target) {
+    target.scrollIntoView({ block: "start" });
+    return;
+  }
+
+  document.querySelector(".App-surface")?.scrollTo({ top: scrollTop });
+};
 
 const FEATURES = [
   { title: "Spring physics", desc: "Fixed-timestep integrator, six presets" },
@@ -222,7 +259,14 @@ const PreviewBackdrop = ({ id }) => {
           </div>
         </section>
         <section className="DemoBackdrop-feature">
-          <img src={scene.image} alt="" />
+          <img
+            src={scene.image}
+            alt=""
+            width="720"
+            height="420"
+            loading="lazy"
+            decoding="async"
+          />
           <div><strong>{scene.title}</strong><span>{scene.detail}</span></div>
         </section>
         <aside className="DemoBackdrop-rail">
@@ -253,11 +297,13 @@ const NESTED_PREVIEWS = new Set(["stacked"]);
 
 const GalleryCard = ({ card }) => {
   const { id, title, desc, icon: CardIcon, Component } = card;
+  const cardRef = useRef(null);
   const [portalHost, setPortalHost] = useState(null);
   const [layers, setLayers] = useState([false, false]);
   const openTimer = useRef(0);
   const closeTimer = useRef(0);
   const nestedActivated = useRef(false);
+  const previewLocked = useRef(false);
   const nested = NESTED_PREVIEWS.has(id);
 
   const clearTimers = useCallback(() => {
@@ -299,14 +345,63 @@ const GalleryCard = ({ card }) => {
     setLayers((current) => current.map((value, index) => (index === depth ? presented : value)));
   }, []);
 
+  const lockPreview = useCallback(() => {
+    previewLocked.current = true;
+    hidePreview();
+  }, [hidePreview]);
+
+  const openCardDemo = useCallback((event) => {
+    lockPreview();
+    openDemo(event);
+  }, [lockPreview]);
+
+  const openCardDemoKey = useCallback((event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    lockPreview();
+    openDemo(event);
+  }, [lockPreview]);
+
+  useEffect(() => {
+    const unlockAfterRealDemo = (event) => {
+      if (!previewLocked.current || event.pointerType === "touch") return;
+      if (document.querySelector('[data-velvet="view"]:not([data-velvet-preview])')) return;
+
+      previewLocked.current = false;
+      if (cardRef.current?.matches(":hover")) showPreview();
+    };
+
+    document.addEventListener("pointermove", unlockAfterRealDemo, { passive: true });
+    return () => document.removeEventListener("pointermove", unlockAfterRealDemo);
+  }, [showPreview]);
+
   return (
     <section
+      ref={cardRef}
       className="Card"
       data-shot={id}
       data-preview-open={layers[0] || undefined}
-      onPointerEnter={(event) => event.pointerType !== "touch" && showPreview()}
-      onPointerLeave={(event) => event.pointerType !== "touch" && hidePreview()}
-      onFocusCapture={showPreview}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch" && !previewLocked.current) showPreview();
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "touch" && !previewLocked.current) hidePreview();
+      }}
+      onFocusCapture={(event) => {
+        // Touching a focusable card also fires focus before click. Opening the
+        // hover preview from that focus used to mount one sheet here, then the
+        // click immediately mounted the real sheet as well. Mobile paid for
+        // both first-open layouts and animations at once; later taps appeared
+        // smooth only because this card was already focused. Keep previews for
+        // keyboard navigation, where focus-visible represents real intent.
+        if (
+          !previewLocked.current &&
+          event.target instanceof Element &&
+          event.target.matches(":focus-visible")
+        ) {
+          showPreview();
+        }
+      }}
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) hidePreview();
       }}
@@ -316,14 +411,14 @@ const GalleryCard = ({ card }) => {
         role="button"
         tabIndex={0}
         aria-label={`Open the ${title} demo`}
-        onClick={openDemo}
-        onKeyDown={openDemoKey}
+        onClick={openCardDemo}
+        onKeyDown={openCardDemoKey}
       >
         <div className="DemoPreview" aria-hidden="true">
           <div className="DemoPreview-canvas" ref={setPortalHost}>
             <PreviewBackdrop id={id} />
             {portalHost && (
-              <Sheet.PreviewEnvironment
+              <SheetPreviewEnvironment
                 container={portalHost}
                 layers={layers}
                 onLayerPresentedChange={updateLayer}
@@ -331,11 +426,17 @@ const GalleryCard = ({ card }) => {
                 <SheetStack.Root className="Card-localStack">
                   <Component preview />
                 </SheetStack.Root>
-              </Sheet.PreviewEnvironment>
+              </SheetPreviewEnvironment>
             )}
           </div>
         </div>
-        <div className="Card-trigger" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="Card-trigger"
+          onClick={(event) => {
+            event.stopPropagation();
+            lockPreview();
+          }}
+        >
           <CardIcon className="Card-triggerIcon" size={14} />
           {id === "depth" ? (
             <Component />
@@ -359,15 +460,163 @@ const openDemo = (e) => {
   const card = e.currentTarget.closest(".Card");
   card?.querySelector(".Card-trigger [data-velvet-trigger]")?.click();
 };
-const openDemoKey = (e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    openDemo(e);
-  }
-};
+
+// The server-rendered site imports this focused page component. The legacy App
+// below remains only for the local visual harnesses that still import it.
+export const SheetGallery = () => (
+  <>
+    <header className="Hero">
+      <div className="Hero-glow" aria-hidden />
+      <div className="Hero-wash" aria-hidden />
+      <div className="Hero-eyebrow">
+        <IconSparkle size={13} />
+        Sheets, toasts, and motion for React
+      </div>
+      <h1 className="Hero-title">
+        Swipeable sheets that feel <em>native</em>
+      </h1>
+      <p className="Hero-sub">
+        <strong>Spring physics, real momentum, and native scroll-snap gestures</strong>,
+        driven by the Web Animations API and composed like building blocks.
+      </p>
+      <div className="Hero-actions">
+        <a className="Btn Btn--primary Btn--pill" href="/docs">
+          Read the docs <IconChevronR size={16} />
+        </a>
+        <a className="Btn Btn--soft Btn--pill" href="/toasts">
+          Try the toasts <IconChevronR size={16} />
+        </a>
+      </div>
+      <dl className="Hero-features">
+        {FEATURES.map((feature) => (
+          <div className="Hero-feature" key={feature.title}>
+            <dt>{feature.title}</dt>
+            <dd>{feature.desc}</dd>
+          </div>
+        ))}
+      </dl>
+    </header>
+
+    <div className="GalleryHead">
+      <div>
+        <div className="GalleryHead-eyebrow">The gallery</div>
+        <h2 className="GalleryHead-title">
+          Explore every <em>sheet pattern</em>
+        </h2>
+        <p className="GalleryHead-sub">
+          Hover a card to preview its motion. Open it to drag, scroll, stack, and
+          dismiss the real component.
+        </p>
+      </div>
+      <span className="GalleryHead-count">{cards.length} interactive examples</span>
+    </div>
+
+    <main className="Gallery">
+      {cards.map((card) => <GalleryCard card={card} key={card.id} />)}
+    </main>
+
+    <footer className="Footer">
+      Velvet UI — a clean-room reimplementation built for the craft. Photos by Pexels.
+    </footer>
+  </>
+);
 
 export const App = () => {
-  const [view, setView] = useState("sheets");
+  const [view, setView] = useState(viewFromLocation);
+  const viewRef = useRef(view);
+  const pendingScrollRef = useRef(getScrollState());
+  const scrollRestoreFrameRef = useRef(0);
+  viewRef.current = view;
+
+  const scheduleScrollPosition = useCallback((scrollTop) => {
+    window.cancelAnimationFrame(scrollRestoreFrameRef.current);
+    scrollRestoreFrameRef.current = window.requestAnimationFrame(() => {
+      scrollRestoreFrameRef.current = window.requestAnimationFrame(() => {
+        applyScrollPosition(scrollTop);
+      });
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const scrollTop = pendingScrollRef.current ?? getScrollState();
+    pendingScrollRef.current = null;
+    scheduleScrollPosition(scrollTop);
+    return () => window.cancelAnimationFrame(scrollRestoreFrameRef.current);
+  }, [scheduleScrollPosition, view]);
+
+  useEffect(() => {
+    const scroller = document.querySelector(".App-surface");
+    const previousScrollRestoration = window.history.scrollRestoration;
+    let scrollFrame = 0;
+
+    window.history.scrollRestoration = "manual";
+
+    const syncView = (event) => {
+      const nextView = viewFromLocation();
+      const scrollTop = getScrollState(event.state);
+
+      if (viewRef.current === nextView) {
+        scheduleScrollPosition(scrollTop);
+        return;
+      }
+
+      pendingScrollRef.current = scrollTop;
+      setView(nextView);
+    };
+    const syncHash = () => {
+      if (viewRef.current === viewFromLocation()) {
+        scheduleScrollPosition(getScrollState());
+      }
+    };
+    const persistScroll = () => {
+      window.cancelAnimationFrame(scrollFrame);
+      scrollFrame = window.requestAnimationFrame(saveScrollPosition);
+    };
+
+    window.addEventListener("popstate", syncView);
+    window.addEventListener("hashchange", syncHash);
+    scroller?.addEventListener("scroll", persistScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("popstate", syncView);
+      window.removeEventListener("hashchange", syncHash);
+      scroller?.removeEventListener("scroll", persistScroll);
+      window.cancelAnimationFrame(scrollFrame);
+      window.cancelAnimationFrame(scrollRestoreFrameRef.current);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, [scheduleScrollPosition]);
+
+  const navigate = useCallback((nextView) => {
+    const pathname = VIEW_PATHS[nextView] || VIEW_PATHS.sheets;
+    saveScrollPosition();
+
+    if (window.location.pathname !== pathname || window.location.hash) {
+      window.history.pushState({ [SCROLL_STATE_KEY]: 0 }, "", pathname);
+    }
+
+    if (viewRef.current === nextView) {
+      scheduleScrollPosition(0);
+      return;
+    }
+
+    pendingScrollRef.current = 0;
+    setView(nextView);
+  }, [scheduleScrollPosition]);
+
+  const followRoute = useCallback((event, nextView) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) return;
+
+    event.preventDefault();
+    navigate(nextView);
+  }, [navigate]);
+
   return (
     <SheetStack.Root className="App-depthRoot">
       <SheetStack.Outlet asChild stackingAnimation={APP_DEPTH}>
@@ -375,23 +624,24 @@ export const App = () => {
           <nav className="Nav">
         <div className="Nav-left" role="tablist" aria-label="Sections">
           {TABS.map((t) => (
-            <button
+            <a
               key={t.id}
               className="Nav-tab"
               role="tab"
+              href={t.href}
               aria-selected={view === t.id}
               data-view={t.id}
-              onClick={() => setView(t.id)}
+              onClick={(event) => followRoute(event, t.id)}
             >
               {t.label}
-            </button>
+            </a>
           ))}
         </div>
         <div className="Nav-brand">Velvet</div>
         <div className="Nav-right">
-          <button className="Nav-cta" onClick={() => setView("docs")}>
+          <a className="Nav-cta" href="/docs" onClick={(event) => followRoute(event, "docs")}>
             Get the code <IconChevronR size={15} />
-          </button>
+          </a>
         </div>
           </nav>
 
@@ -400,7 +650,7 @@ export const App = () => {
           <Docs />
         ) : (
           <>
-            <header className="Hero">
+            {view === "sheets" ? <header className="Hero">
               <div className="Hero-glow" aria-hidden />
               <div className="Hero-wash" aria-hidden />
               <div className="Hero-eyebrow">
@@ -415,15 +665,20 @@ export const App = () => {
                 driven by the Web Animations API and composed like building blocks.
               </p>
               <div className="Hero-actions">
-                <button className="Btn Btn--primary Btn--pill" onClick={() => setView("docs")}>
+                <a
+                  className="Btn Btn--primary Btn--pill"
+                  href="/docs"
+                  onClick={(event) => followRoute(event, "docs")}
+                >
                   Read the docs <IconChevronR size={16} />
-                </button>
-                <button
+                </a>
+                <a
                   className="Btn Btn--soft Btn--pill"
-                  onClick={() => setView(view === "toasts" ? "sheets" : "toasts")}
+                  href={view === "toasts" ? "/" : "/toasts"}
+                  onClick={(event) => followRoute(event, view === "toasts" ? "sheets" : "toasts")}
                 >
                   {view === "toasts" ? "Browse sheets" : "Try the toasts"} <IconChevronR size={16} />
-                </button>
+                </a>
               </div>
               <dl className="Hero-features">
                 {FEATURES.map((f) => (
@@ -433,7 +688,7 @@ export const App = () => {
                   </div>
                 ))}
               </dl>
-            </header>
+            </header> : null}
 
             {view === "toasts" ? (
               <ToastPlayground />
@@ -443,14 +698,14 @@ export const App = () => {
                   <div>
                     <div className="GalleryHead-eyebrow">The gallery</div>
                     <h2 className="GalleryHead-title">
-                      Sixteen patterns, <em>production-ready</em>
+                      Explore every <em>sheet pattern</em>
                     </h2>
                     <p className="GalleryHead-sub">
-                      Every card below is a live demo — hover to preview the motion, then open it
-                      and swipe it around.
+                      Hover a card to preview its motion. Open it to drag, scroll, stack, and
+                      dismiss the real component.
                     </p>
                   </div>
-                  <span className="GalleryHead-count">{cards.length} demos</span>
+                  <span className="GalleryHead-count">{cards.length} interactive examples</span>
                 </div>
 
                 <main className="Gallery">

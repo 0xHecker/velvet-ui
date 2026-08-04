@@ -18,12 +18,12 @@ const QUEUE = [
 ];
 
 export const DetentSheet = () => (
-  <Sheet.Root defaultActiveDetent={1}>
+  <Sheet.Root defaultSnap={1}>
     <Sheet.Trigger className="Btn">
       <IconMusic /> Open queue
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Queue-view" detents="58%">
+      <Sheet.View className="Queue-view" snapPoints="58%">
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => Math.min(progress * 0.5, 0.5) }} />
         <Sheet.Content className="Queue-content">
           <Sheet.BleedingBackground className="Queue-bg" />

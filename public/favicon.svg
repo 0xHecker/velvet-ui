@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Velvet UI">
+  <rect width="64" height="64" rx="16" fill="#fbf8f3"/>
+  <rect x="11" y="30" width="42" height="23" rx="9" fill="#f18b91" transform="rotate(-5 32 41.5)"/>
+  <rect x="11" y="21" width="42" height="24" rx="9" fill="#cda5df" transform="rotate(3 32 33)"/>
+  <rect x="11" y="11" width="42" height="25" rx="9" fill="#382040" transform="rotate(-4 32 23.5)"/>
+  <circle cx="20" cy="20" r="3.5" fill="#d49be2"/>
+  <path d="M27 21h17M27 27h12" stroke="#cfa1de" stroke-width="3" stroke-linecap="round"/>
+</svg>

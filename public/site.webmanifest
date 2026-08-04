@@ -1,0 +1,21 @@
+{
+  "name": "Velvet UI",
+  "short_name": "Velvet UI",
+  "description": "Native-feeling React sheets and toasts with resilient gestures and spring motion.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#fbf8f3",
+  "theme_color": "#fbf8f3",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

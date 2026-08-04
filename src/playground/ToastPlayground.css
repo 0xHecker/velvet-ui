@@ -1,6 +1,6 @@
 .Toastpg {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  padding-bottom: 48px;
+  padding: clamp(40px, 7vw, 72px) 0 48px;
 }
 
 .Toastpg-head {
@@ -13,6 +13,13 @@
   font-size: clamp(26px, 4vw, 34px);
   font-weight: 700;
   letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+.Toastpg-subtitle {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
   text-wrap: balance;
 }
 .Toastpg-lead {

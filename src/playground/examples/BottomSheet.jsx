@@ -1,16 +1,16 @@
-import { Sheet } from "../../velvet/index.js";
+import { Sheet, ThemeBackdrop } from "../../velvet/index.js";
 import { px } from "../px.js";
 import { IconCalendar, IconChevronR, IconHeart, IconPin, IconShare, IconStar, IconUsers } from "../icons.jsx";
 import "./BottomSheet.css";
 
 export const BottomSheet = () => (
-  <Sheet.Root license="commercial">
+  <Sheet.Root>
     <Sheet.Trigger className="Btn">
       View stay <IconChevronR />
     </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View className="Booking-view" nativeEdgeSwipePrevention>
-        <Sheet.Backdrop themeColorDimming="auto" travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
+        <ThemeBackdrop themeColor="auto" travelAnimation={{ opacity: ({ progress }) => progress * 0.4 }} />
         <Sheet.Content className="Booking-content">
           <Sheet.BleedingBackground className="Booking-bg" />
           <Sheet.Handle className="Booking-handle" />
@@ -61,7 +61,7 @@ export const BottomSheet = () => (
                   <strong>$248</strong> night
                   <span className="Booking-total">$1,412 total after taxes</span>
                 </div>
-                <Sheet.Trigger action="dismiss" className="Btn Btn--primary Booking-reserve">
+                <Sheet.Trigger action="close" className="Btn Btn--primary Booking-reserve">
                   Reserve
                 </Sheet.Trigger>
               </div>

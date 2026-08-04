@@ -95,7 +95,7 @@ export const StackedSheets = () => (
                           <span data-dot="green">In stock — ships today</span>
                           <span>Size guide</span>
                         </div>
-                        <Sheet.Trigger action="dismiss" className="Btn Btn--primary Stack-cta Stack-cta--bottom">
+                        <Sheet.Trigger action="close" className="Btn Btn--primary Stack-cta Stack-cta--bottom">
                           Add to bag · $180
                         </Sheet.Trigger>
                       </div>

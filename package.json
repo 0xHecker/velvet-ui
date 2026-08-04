@@ -1,8 +1,9 @@
 {
-  "name": "velvet-ui",
+  "name": "@velvetui/react",
   "version": "0.1.0",
   "type": "module",
   "description": "Velvet UI — native-like swipeable sheets for the web. Spring physics + WAAPI.",
+  "license": "SEE LICENSE IN LICENSE.md",
   "keywords": [
     "react",
     "sheet",
@@ -12,16 +13,16 @@
     "scroll-snap",
     "headless-ui"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/0xHecker/velvet-ui.git"
-  },
   "bugs": {
-    "url": "https://github.com/0xHecker/velvet-ui/issues"
+    "url": "https://github.com/0xHecker/velvetui-support/issues"
   },
-  "homepage": "https://github.com/0xHecker/velvet-ui#readme",
+  "homepage": "https://velvetui.co",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",
@@ -37,19 +38,77 @@
       "import": "./dist/sheet.js",
       "require": "./dist/sheet.cjs"
     },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.js",
+      "require": "./dist/motion.cjs"
+    },
+    "./motion/react": {
+      "types": "./dist/motion-react.d.ts",
+      "import": "./dist/motion-react.js",
+      "require": "./dist/motion-react.cjs"
+    },
+    "./utilities": {
+      "types": "./dist/utilities.d.ts",
+      "import": "./dist/utilities.js",
+      "require": "./dist/utilities.cjs"
+    },
+    "./sheet-morph": {
+      "types": "./dist/sheet-morph.d.ts",
+      "import": "./dist/sheet-morph.js",
+      "require": "./dist/sheet-morph.cjs"
+    },
+    "./theme-backdrop": {
+      "types": "./dist/theme-backdrop.d.ts",
+      "import": "./dist/theme-backdrop.js",
+      "require": "./dist/theme-backdrop.cjs"
+    },
     "./toast": {
       "types": "./dist/toast.d.ts",
       "import": "./dist/toast.js",
       "require": "./dist/toast.cjs"
     },
+    "./card-expansion": {
+      "types": "./dist/card-expansion.d.ts",
+      "import": "./dist/card-expansion.js",
+      "require": "./dist/card-expansion.cjs"
+    },
+    "./depth-sheet": {
+      "types": "./dist/depth-sheet.d.ts",
+      "import": "./dist/depth-sheet.js",
+      "require": "./dist/depth-sheet.cjs"
+    },
+    "./bottom-sheet": {
+      "types": "./dist/bottom-sheet.d.ts",
+      "import": "./dist/bottom-sheet.js",
+      "require": "./dist/bottom-sheet.cjs"
+    },
+    "./persistent-sheet": {
+      "types": "./dist/persistent-sheet.d.ts",
+      "import": "./dist/persistent-sheet.js",
+      "require": "./dist/persistent-sheet.cjs"
+    },
+    "./lightbox": {
+      "types": "./dist/lightbox.d.ts",
+      "import": "./dist/lightbox.js",
+      "require": "./dist/lightbox.cjs"
+    },
     "./base.css": "./dist/base.css",
-    "./velvet.css": "./dist/base.css",
+    "./sheet.css": "./dist/sheet.css",
+    "./toast.css": "./dist/toast.css",
+    "./toast-theme.css": "./dist/toast-theme.css",
     "./styles.css": "./dist/styles.css",
+    "./card-expansion.css": "./dist/card-expansion.css",
+    "./depth-sheet.css": "./dist/depth-sheet.css",
+    "./bottom-sheet.css": "./dist/bottom-sheet.css",
+    "./persistent-sheet.css": "./dist/persistent-sheet.css",
+    "./lightbox.css": "./dist/lightbox.css",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -59,34 +118,49 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build:demo && npm run build:lib",
-    "build:demo": "vite build --outDir demo-dist",
-    "build:lib": "vite build --config vite.lib.config.js",
-    "deploy": "npm run build:demo && wrangler deploy",
+    "dev": "vite dev",
+    "browsers:install": "puppeteer browsers install chrome",
+    "build": "npm run build:site && npm run build:lib",
+    "build:site": "npm run docs:generate && vite build",
+    "build:lib": "npm run generate:types && vite build --config vite.lib.config.js",
+    "generate:types": "tsc -p tsconfig.declarations.json",
+    "deploy": "npm run build:site && wrangler deploy --config site-dist/server/wrangler.json",
+    "docs:generate": "node scripts/generate-doc-assets.mjs",
+    "docs:check": "node scripts/generate-doc-assets.mjs --check",
+    "typecheck:site": "tsc -p tsconfig.site.json",
     "types:check": "tsc -p tsconfig.types.json && tsc -p tsconfig.nodenext.json",
     "typecheck": "npm run build:lib && npm run types:check",
-    "verify:package": "node --input-type=module --eval \"const root=await import('velvet-ui'); const sheet=await import('velvet-ui/sheet'); const toast=await import('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('velvet-ui'); const sheet=require('velvet-ui/sheet'); const toast=require('velvet-ui/toast'); if(root.Sheet!==sheet.Sheet || root.toast!==toast.toast) throw new Error('CJS export identity mismatch')\"",
-    "verify:sheet": "node scripts/sheet-api.mjs && node scripts/gesture-boundaries.mjs && node scripts/preview-hover.mjs && node scripts/stacking.mjs && node scripts/detent.mjs && node scripts/drag.mjs",
+    "verify:package": "node --input-type=module --eval \"const root=await import('@velvetui/react'); const sheet=await import('@velvetui/react/sheet'); const motion=await import('@velvetui/react/motion'); const motionReact=await import('@velvetui/react/motion/react'); const utilities=await import('@velvetui/react/utilities'); const morph=await import('@velvetui/react/sheet-morph'); const theme=await import('@velvetui/react/theme-backdrop'); const toast=await import('@velvetui/react/toast'); const card=await import('@velvetui/react/card-expansion'); const depth=await import('@velvetui/react/depth-sheet'); const bottom=await import('@velvetui/react/bottom-sheet'); const persistent=await import('@velvetui/react/persistent-sheet'); const lightbox=await import('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('@velvetui/react'); const sheet=require('@velvetui/react/sheet'); const motion=require('@velvetui/react/motion'); const motionReact=require('@velvetui/react/motion/react'); const utilities=require('@velvetui/react/utilities'); const morph=require('@velvetui/react/sheet-morph'); const theme=require('@velvetui/react/theme-backdrop'); const toast=require('@velvetui/react/toast'); const card=require('@velvetui/react/card-expansion'); const depth=require('@velvetui/react/depth-sheet'); const bottom=require('@velvetui/react/bottom-sheet'); const persistent=require('@velvetui/react/persistent-sheet'); const lightbox=require('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('CJS export identity mismatch')\"",
+    "verify:bundle": "node scripts/bundle-budget.mjs",
+    "verify:motion": "node scripts/motion.mjs && node scripts/depth-contract.mjs",
+    "verify:sheet": "node scripts/compositions.mjs && node scripts/sheet-api.mjs && node scripts/gesture-boundaries.mjs && node scripts/preview-hover.mjs && node scripts/stacking.mjs && node scripts/detent.mjs && node scripts/drag.mjs",
     "verify:toast": "node scripts/toast.mjs && node scripts/toast-drag.mjs",
-    "verify": "npm run build && npm run types:check && npm run verify:package && npm run verify:sheet && npm run verify:toast",
+    "verify": "npm run build && npm run types:check && npm run verify:package && npm run verify:bundle && npm run verify:motion && npm run verify:sheet && npm run verify:toast",
     "test": "npm run verify",
     "prepack": "npm run typecheck",
     "pack:check": "npm pack --dry-run",
-    "preview": "vite preview --outDir demo-dist --port 4317",
+    "preview": "wrangler dev",
     "shots": "node scripts/screenshot.mjs"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.46.0",
+    "@tanstack/react-router": "^1.170.18",
+    "@tanstack/react-start": "^1.168.32",
+    "@tanstack/router-plugin": "^1.168.23",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.4",
+    "lightningcss": "^1.33.0",
     "puppeteer": "^25.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-grab": "^0.1.44",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "sharp": "^0.33.5",
+    "terser": "^5.49.0",
     "typescript": "^5.9.3",
-    "vite": "^5.4.11",
+    "vite": "^8.1.5",
     "wrangler": "^4.112.0"
   }
 }

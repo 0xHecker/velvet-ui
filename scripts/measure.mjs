@@ -1,5 +1,5 @@
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const watchdog = setTimeout(() => process.exit(1), 60000);
 watchdog.unref();
@@ -8,7 +8,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4316, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 860 });
   await page.goto(base, { waitUntil: "load" });

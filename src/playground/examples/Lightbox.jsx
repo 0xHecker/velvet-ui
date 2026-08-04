@@ -9,7 +9,7 @@ export const Lightbox = () => (
       <IconImage /> Open photo
     </Sheet.Trigger>
     <Sheet.Portal>
-      <Sheet.View className="Lightbox-view" contentPlacement="center">
+      <Sheet.View className="Lightbox-view" side="center" tracks={["top", "bottom"]}>
         <Sheet.Backdrop className="Lightbox-backdrop" travelAnimation={{ opacity: ({ progress }) => progress * 0.92 }} />
         <Sheet.Content
           className="Lightbox-content"
@@ -27,11 +27,11 @@ export const Lightbox = () => (
             <figcaption className="Lightbox-caption">
               <Sheet.Title className="Lightbox-title">Golden hour pups</Sheet.Title>
               <Sheet.Description className="Lightbox-desc">
-                Shot on a Sunday morning — swipe down or tap anywhere to close.
+                Shot on a Sunday morning — swipe up, swipe down, or tap anywhere to close.
               </Sheet.Description>
             </figcaption>
           </figure>
-          <Sheet.Trigger action="dismiss" className="Lightbox-close" aria-label="Close">
+          <Sheet.Trigger action="close" className="Lightbox-close" aria-label="Close">
             <IconClose size={16} />
           </Sheet.Trigger>
         </Sheet.Content>

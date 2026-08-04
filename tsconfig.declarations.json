@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": ".velvet-types",
+    "rootDir": "src/velvet",
+    "types": ["react", "react-dom"]
+  },
+  "include": ["src/velvet/entries/**/*.ts"]
+}

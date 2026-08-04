@@ -142,6 +142,7 @@ body {
   letter-spacing: -0.02em;
   color: var(--ink);
   text-align: center;
+  text-decoration: none;
 }
 
 .Nav-right {
@@ -157,6 +158,7 @@ body {
   font-size: 15px;
   font-weight: 500;
   color: var(--muted);
+  text-decoration: none;
   padding: 6px 12px;
   border-radius: 9px;
   cursor: pointer;
@@ -168,7 +170,8 @@ body {
   color: var(--ink-strong);
 }
 
-.Nav-tab[aria-selected="true"] {
+.Nav-tab[aria-selected="true"],
+.Nav-tab[aria-current="page"] {
   color: var(--ink);
   background: var(--fill);
 }
@@ -233,6 +236,20 @@ body {
 
   .Nav-cta {
     padding-inline: 11px;
+  }
+}
+
+@media (max-width: 520px) {
+  .Nav {
+    grid-template-columns: 1fr;
+  }
+
+  .Nav-left {
+    justify-content: space-between;
+  }
+
+  .Nav-right {
+    display: none;
   }
 }
 
@@ -427,6 +444,7 @@ body {
   border: 1px solid transparent;
   background: var(--fill);
   color: var(--ink);
+  text-decoration: none;
   font: inherit;
   font-size: 15px;
   font-weight: 600;
@@ -724,9 +742,8 @@ body {
   color: #171716;
   cursor: pointer;
   font-size: 0;
-  opacity: 0;
-  transform: translate(-3px, 3px);
-  transition: opacity 200ms ease, transform 260ms var(--ease);
+  opacity: 1;
+  transform: none;
 }
 
 .Card-trigger [data-velvet-trigger]>* {
@@ -740,19 +757,6 @@ body {
   margin: auto;
   color: #171716;
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-3px, 3px);
-  transition: opacity 200ms ease, transform 260ms var(--ease);
-}
-
-.Card:hover .Card-trigger [data-velvet-trigger],
-.Card-trigger [data-velvet-trigger]:focus-visible {
-  opacity: 1;
-  transform: none;
-}
-
-.Card:hover .Card-triggerIcon,
-.Card-trigger:focus-within .Card-triggerIcon {
   opacity: 1;
   transform: none;
 }

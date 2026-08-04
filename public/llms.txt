@@ -1,0 +1,64 @@
+# Velvet UI
+
+> Velvet UI is the @velvetui/react package: headless, native-feeling React sheets and toasts with resilient gestures, nested stacks, and spring motion.
+
+Install with `npm install @velvetui/react`. Start with the sheet or toast quick start, then use the focused package subpaths and CSS entries for the pieces your interface needs.
+
+## Start here
+
+- [NPM package](https://www.npmjs.com/package/@velvetui/react)
+- [Documentation index](https://velvetui.co/docs)
+- [Interactive sheet gallery](https://velvetui.co/)
+- [Interactive toast gallery](https://velvetui.co/toasts)
+- [License options and terms](https://velvetui.co/?license=open)
+
+## License summary
+
+- Free: non-commercial use, unlimited projects, forever access, and free support.
+- Individual: $20 plus tax for commercial use by an individual or a team with fewer than three members.
+- Organization: $129 plus tax for commercial use limited to one organization.
+- Codebase access: contact sales through the license dialog.
+
+## Documentation
+
+- [Overview](https://velvetui.co/docs): Velvet UI is a headless React sheet and toast toolkit built around composable primitives, resilient gestures, and WAAPI-driven motion. ([Markdown](https://velvetui.co/docs/overview.md))
+- [Installation](https://velvetui.co/docs/installation): Install Velvet UI, then add the base stylesheet once at your application boundary. ([Markdown](https://velvetui.co/docs/installation.md))
+- [Package exports](https://velvetui.co/docs/package-exports): Choose focused JavaScript and CSS entry points for smaller bundles, predictable style order, and server-rendered React applications. ([Markdown](https://velvetui.co/docs/package-exports.md))
+- [Server rendering](https://velvetui.co/docs/server-rendering): Keep routes server rendered while placing the smallest possible client boundary around interactive sheets, portals, and toast calls. ([Markdown](https://velvetui.co/docs/server-rendering.md))
+- [Styling](https://velvetui.co/docs/styling): Velvet exposes semantic classes and CSS custom properties so the component can inherit your design system without a styling runtime. ([Markdown](https://velvetui.co/docs/styling.md))
+- [CSS reference](https://velvetui.co/docs/css-reference): Use the stable CSS entries, variables, and semantic data hooks without depending on internal wrapper order. ([Markdown](https://velvetui.co/docs/css-reference.md))
+- [Sheet quick start](https://velvetui.co/docs/sheet-quick-start): A Sheet groups a trigger, portal, motion surface, accessible title, description, and close action under one controlled or uncontrolled state. ([Markdown](https://velvetui.co/docs/sheet-quick-start.md))
+- [Anatomy](https://velvetui.co/docs/anatomy): The primitive tree separates state, trigger, portal, view, backdrop, content, and accessible labels. ([Markdown](https://velvetui.co/docs/anatomy.md))
+- [Gallery recipes](https://velvetui.co/docs/gallery-recipes): The gallery demonstrates production-shaped layouts such as bottom sheets, drawers, modals, detents, lightboxes, and persistent surfaces. ([Markdown](https://velvetui.co/docs/gallery-recipes.md))
+- [Open state](https://velvetui.co/docs/open-state): Sheets support uncontrolled defaults and controlled state for coordination with your router, form flow, or application state. ([Markdown](https://velvetui.co/docs/open-state.md))
+- [Placement](https://velvetui.co/docs/placement): The panel side determines both the origin and the dismiss direction: bottom, top, left, right, or center. ([Markdown](https://velvetui.co/docs/placement.md))
+- [Detents](https://velvetui.co/docs/detents): Snap points create intermediate resting positions without a separate gesture implementation. ([Markdown](https://velvetui.co/docs/detents.md))
+- [Dismissal](https://velvetui.co/docs/dismissal): Dismissal is configurable per view: gestures, outside press, and Escape can each be allowed, prevented, or decided at runtime. ([Markdown](https://velvetui.co/docs/dismissal.md))
+- [Travel animation](https://velvetui.co/docs/travel-animation): Travel animation maps a shared open progress value onto any visual property, keeping panel, backdrop, and surrounding UI synchronized. ([Markdown](https://velvetui.co/docs/travel-animation.md))
+- [Shared-origin motion](https://velvetui.co/docs/shared-origin-motion): SheetMorph starts content at the trigger or a supplied element’s measured geometry, then settles it into its authored layout. ([Markdown](https://velvetui.co/docs/shared-origin-motion.md))
+- [Springs](https://velvetui.co/docs/springs): Presets make interaction tuning consistent across a product while retaining an escape hatch for custom physical values. ([Markdown](https://velvetui.co/docs/springs.md))
+- [Motion API](https://velvetui.co/docs/motion-api): Use Velvet's interruptible springs, WAAPI orchestration, travel interpolation, reduced-motion handling, and React lifecycle hooks anywhere. ([Markdown](https://velvetui.co/docs/motion-api.md))
+- [Triggers and actions](https://velvetui.co/docs/triggers): Trigger, Close, and Step communicate intent directly and can render through your own button using asChild. ([Markdown](https://velvetui.co/docs/triggers.md))
+- [Accessibility](https://velvetui.co/docs/accessibility): Modal sheets apply dialog semantics, focus management, Escape handling, inert background treatment, and focus restoration. ([Markdown](https://velvetui.co/docs/accessibility.md))
+- [Sheet API](https://velvetui.co/docs/sheet-api): The sheet API is assembled from state, view, content, and action primitives so consumers can adopt only the layers they need. ([Markdown](https://velvetui.co/docs/sheet-api.md))
+- [Depth Sheet](https://velvetui.co/docs/depth-sheet): DepthSheet gives a full-width surface the visual hierarchy of iOS stacked sheets by scaling and rounding the page behind it. ([Markdown](https://velvetui.co/docs/depth-sheet.md))
+- [Card Expansion](https://velvetui.co/docs/card-expansion): CardExpansion opens a card into a focused modal surface while retaining the scale and edge response expected from a lightbox. ([Markdown](https://velvetui.co/docs/card-expansion.md))
+- [Styled compositions](https://velvetui.co/docs/styled-compositions): Styled compositions package the visual grammar for common interactions while preserving the underlying primitive API. ([Markdown](https://velvetui.co/docs/styled-compositions.md))
+- [Composition API](https://velvetui.co/docs/composition-api): Compare every supplied composition, its parts, defaults, escape hatches, and CSS contract. ([Markdown](https://velvetui.co/docs/composition-api.md))
+- [Toast quick start](https://velvetui.co/docs/toast-quick-start): Render one Toaster near the application root and call toast from any client interaction. ([Markdown](https://velvetui.co/docs/toast-quick-start.md))
+- [Toast variants](https://velvetui.co/docs/toast-variants): Toast variants cover neutral, success, error, warning, info, loading, action, promise, and custom JSX states. ([Markdown](https://velvetui.co/docs/toast-variants.md))
+- [Toast positioning](https://velvetui.co/docs/toast-positioning): The Toaster supports the six viewport corners and centers with a fixed viewport layer that does not inherit local layout offsets. ([Markdown](https://velvetui.co/docs/toast-positioning.md))
+- [Toast options](https://velvetui.co/docs/toast-options): Toast options control duration, description, action, close affordance, visual treatment, and stacked expansion. ([Markdown](https://velvetui.co/docs/toast-options.md))
+- [Toast promise](https://velvetui.co/docs/toast-promise): toast.promise binds an async result to one continuous feedback item with loading, success, and error states. ([Markdown](https://velvetui.co/docs/toast-promise.md))
+- [Toast API](https://velvetui.co/docs/toast-api): The toast API is a small imperative dispatcher with a single declarative renderer, Toaster. ([Markdown](https://velvetui.co/docs/toast-api.md))
+- [Scroll coordination](https://velvetui.co/docs/scroll): A scrollable sheet hands a downward drag to the sheet only when its internal scroll container has reached the top. ([Markdown](https://velvetui.co/docs/scroll.md))
+- [Scroll API](https://velvetui.co/docs/scroll-api): Coordinate nested scrolling, virtual keyboards, focus, progress, and imperative spring scrolling. ([Markdown](https://velvetui.co/docs/scroll-api.md))
+- [Sheet stacks](https://velvetui.co/docs/sheet-stack): SheetStack coordinates layering, backdrop ownership, focus restoration, and depth transforms for any number of nested sheets. ([Markdown](https://velvetui.co/docs/sheet-stack.md))
+- [Utilities](https://velvetui.co/docs/utilities): Utilities cover scroll coordination, visually hidden labels, autofocus targets, fixed surfaces, islands, and external overlays. ([Markdown](https://velvetui.co/docs/utilities.md))
+- [Troubleshooting](https://velvetui.co/docs/troubleshooting): Diagnose missing styles, swallowed refs, controlled-state loops, gesture handoff, mobile keyboards, nested sheets, and third-party portals. ([Markdown](https://velvetui.co/docs/troubleshooting.md))
+- [Production checklist](https://velvetui.co/docs/production-checklist): A manual release checklist for state, gestures, scroll, mobile keyboards, accessibility, arbitrary-depth stacks, portals, and bundle cost. ([Markdown](https://velvetui.co/docs/production-checklist.md))
+- [Changelog](https://velvetui.co/docs/changelog): Release notes for changes that affect installation, APIs, styling, behavior, performance, or upgrades. ([Markdown](https://velvetui.co/docs/changelog.md))
+
+## Full reference
+
+- [Complete documentation](https://velvetui.co/llms-full.txt)

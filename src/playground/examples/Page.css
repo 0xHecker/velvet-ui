@@ -6,9 +6,11 @@
   box-sizing: border-box;
   width: 100vw;
   height: var(--velvet-100lvh);
-  background: #f6f7f9;
   display: flex;
   flex-direction: column;
+}
+.Page-bg {
+  background: #f6f7f9;
 }
 .Page-head {
   display: grid;

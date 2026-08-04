@@ -16,11 +16,23 @@
   max-height: calc(100vh - var(--nav-h) - 48px);
   overflow-y: auto;
 }
+
+.Docs-desktopNav {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.Docs-mobileNav {
+  display: none;
+}
+
 .Docs-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .Docs-groupLabel {
   font-size: 13px;
   font-weight: 700;
@@ -28,6 +40,7 @@
   color: var(--ink-strong);
   padding: 0 10px 6px;
 }
+
 .Docs-navLink {
   font-size: 14.5px;
   font-weight: 500;
@@ -37,10 +50,12 @@
   border-radius: 8px;
   transition: color 0.15s ease, background 0.15s ease;
 }
+
 .Docs-navLink:hover {
   color: var(--ink-strong);
   background: var(--fill);
 }
+
 .Docs-navLink[aria-current] {
   color: var(--ink);
   background: var(--fill);
@@ -51,6 +66,7 @@
   min-width: 0;
   max-width: 780px;
 }
+
 .Docs-title {
   margin: 0 0 14px;
   font-size: clamp(38px, 5vw, 48px);
@@ -58,7 +74,9 @@
   letter-spacing: -0.025em;
   line-height: 1.1;
   color: var(--ink-strong);
+  scroll-margin-top: calc(var(--nav-h) + 24px);
 }
+
 .Docs-meta {
   display: flex;
   gap: 8px;
@@ -66,6 +84,7 @@
   color: var(--muted);
   margin-bottom: 30px;
 }
+
 .Docs-lead {
   margin: 0 0 8px;
   font-size: 19px;
@@ -73,6 +92,57 @@
   color: var(--ink-body);
   text-wrap: pretty;
 }
+
+.Docs-pageHead {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Docs-pageEyebrow {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.Docs-pageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.Docs-pageAction {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink-body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.Docs-pageAction:hover {
+  border-color: color-mix(in srgb, var(--ink) 24%, var(--line));
+  background: var(--fill);
+  color: var(--ink-strong);
+}
+
+.Docs-pageAction:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .Docs-h2 {
   margin: 52px 0 14px;
   font-size: 24px;
@@ -82,6 +152,7 @@
   color: var(--ink-strong);
   scroll-margin-top: calc(var(--nav-h) + 24px);
 }
+
 .Docs-h3 {
   margin: 30px 0 12px;
   font-size: 16px;
@@ -89,6 +160,7 @@
   letter-spacing: -0.01em;
   color: var(--ink-strong);
 }
+
 .Docs-p {
   margin: 0 0 18px;
   font-size: 16.5px;
@@ -97,6 +169,144 @@
   max-width: 68ch;
   text-wrap: pretty;
 }
+
+.Docs-markdown>.Docs-p:first-child {
+  margin-top: 26px;
+  font-size: 17.5px;
+  color: var(--ink-body);
+}
+
+.Docs-pagination {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.Docs-pagination a {
+  display: flex;
+  min-height: 82px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink-strong);
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.Docs-pagination a:last-child {
+  text-align: right;
+}
+
+.Docs-pagination a:hover {
+  border-color: color-mix(in srgb, var(--ink) 24%, var(--line));
+  background: var(--fill);
+}
+
+.Docs-pagination span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.Docs-pagination strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.Docs-markdown .Docs-p a,
+.Docs-markdown .Docs-list a {
+  color: var(--ink-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.Docs-markdown .Docs-p code,
+.Docs-markdown .Docs-list code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--fill);
+  color: var(--ink-strong);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+.Docs-list {
+  display: grid;
+  gap: 9px;
+  max-width: 68ch;
+  margin: -2px 0 22px;
+  padding-left: 22px;
+  color: var(--ink-body);
+  font-size: 15.5px;
+  line-height: 1.58;
+}
+
+.Docs-list li::marker {
+  color: color-mix(in srgb, var(--ink) 46%, transparent);
+}
+
+.Docs-list--ordered {
+  padding-left: 25px;
+}
+
+.Docs-tableWrap {
+  max-width: 100%;
+  margin: 2px 0 24px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.Docs-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  color: var(--ink-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.Docs-table th,
+.Docs-table td {
+  padding: 11px 13px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.Docs-table th:last-child,
+.Docs-table td:last-child {
+  border-right: 0;
+}
+
+.Docs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.Docs-table th {
+  background: var(--fill-2);
+  color: var(--ink-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.Docs-table code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--fill);
+  color: var(--ink-strong);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  white-space: nowrap;
+}
+
 .Docs-p code,
 .Docs-apiDesc code {
   font-family: var(--font-mono);
@@ -115,6 +325,7 @@
   margin: 0 0 20px;
   background: var(--surface);
 }
+
 .Code-head {
   display: flex;
   align-items: center;
@@ -123,11 +334,13 @@
   background: var(--fill-2);
   border-bottom: 1px solid var(--line);
 }
+
 .Code-lang {
   font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
 }
+
 .Code-copy {
   appearance: none;
   border: 1px solid transparent;
@@ -141,15 +354,18 @@
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
+
 .Code-copy:hover {
   background: var(--surface);
   color: var(--ink-strong);
   border-color: var(--line);
 }
+
 .Code-copy:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
 .Code-body {
   margin: 0;
   padding: 16px;
@@ -160,24 +376,30 @@
   color: #1f2937;
   tab-size: 2;
 }
+
 .Code-body code {
   font: inherit;
 }
+
 /* Syntax highlight tokens, restrained to fit the grayscale theme. */
 .Code-body .tok-c {
   color: #97a0af;
   font-style: italic;
 }
+
 .Code-body .tok-s {
   color: #3f8f5b;
 }
+
 .Code-body .tok-k {
   color: #8a4fd0;
 }
+
 .Code-body .tok-t,
 .Code-body .tok-y {
   color: #2f6f9f;
 }
+
 .Code-body .tok-a,
 .Code-body .tok-n {
   color: #b5723a;
@@ -189,6 +411,7 @@
   gap: 22px;
   margin-top: 6px;
 }
+
 .Docs-recipe .Code {
   margin: 0;
 }
@@ -198,6 +421,7 @@
   margin: 4px 0 0;
   border-top: 1px solid var(--line);
 }
+
 .Docs-apiRow {
   display: grid;
   grid-template-columns: 200px 1fr;
@@ -205,12 +429,14 @@
   padding: 14px 2px;
   border-bottom: 1px solid var(--line);
 }
+
 .Docs-apiName {
   font-family: var(--font-mono);
   font-size: 13.5px;
   font-weight: 500;
   color: var(--ink);
 }
+
 .Docs-apiDesc {
   margin: 0;
   font-size: 14.5px;
@@ -226,12 +452,14 @@
   flex-direction: column;
   gap: 3px;
 }
+
 .Docs-tocLabel {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-strong);
   margin-bottom: 8px;
 }
+
 .Docs-tocLink {
   font-size: 13.5px;
   color: var(--muted);
@@ -242,9 +470,11 @@
   margin-left: -14px;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
+
 .Docs-tocLink:hover {
   color: var(--ink-strong);
 }
+
 .Docs-tocLink[aria-current] {
   color: var(--ink);
   border-color: var(--ink);
@@ -255,6 +485,7 @@
   margin: 0 0 22px;
   border-top: 1px solid var(--line);
 }
+
 .Docs-prop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
@@ -262,12 +493,14 @@
   padding: 15px 2px;
   border-bottom: 1px solid var(--line);
 }
+
 .Docs-prop-sig {
   display: flex;
   flex-direction: column;
   gap: 5px;
   min-width: 0;
 }
+
 .Docs-prop-name {
   font-family: var(--font-mono);
   font-size: 13.5px;
@@ -275,6 +508,7 @@
   color: var(--ink-strong);
   overflow-wrap: anywhere;
 }
+
 .Docs-prop-type {
   font-family: var(--font-mono);
   font-size: 12.5px;
@@ -282,11 +516,13 @@
   color: var(--accent);
   overflow-wrap: anywhere;
 }
+
 .Docs-prop-def {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--muted);
 }
+
 .Docs-prop-desc {
   min-width: 0;
   font-size: 14.5px;
@@ -305,6 +541,7 @@
   color: var(--muted);
   max-width: 68ch;
 }
+
 .Docs-note code {
   font-family: var(--font-mono);
   font-size: 0.86em;
@@ -312,6 +549,44 @@
   border-radius: 6px;
   background: var(--fill);
   color: var(--ink-strong);
+}
+
+.Docs-note>.Docs-p {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Changelog uses the same typography with a light release timeline. */
+.Docs-article--changelog .Docs-markdown {
+  position: relative;
+  padding-left: 24px;
+}
+
+.Docs-article--changelog .Docs-markdown::before {
+  content: "";
+  position: absolute;
+  inset: 38px auto 0 5px;
+  width: 1px;
+  background: var(--line);
+}
+
+.Docs-article--changelog .Docs-markdown>.Docs-h2 {
+  position: relative;
+  margin-top: 42px;
+}
+
+.Docs-article--changelog .Docs-markdown>.Docs-h2::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 0.55em;
+  width: 11px;
+  height: 11px;
+  border: 3px solid var(--surface);
+  border-radius: 999px;
+  background: var(--ink-strong);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 /* TOC scrolls when there are many sections */
@@ -325,22 +600,93 @@
     grid-template-columns: 200px minmax(0, 1fr);
     gap: 40px;
   }
+
   .Docs-toc {
     display: none;
   }
 }
+
 @media (max-width: 760px) {
   .Docs {
     grid-template-columns: 1fr;
   }
+
   .Docs-side {
     position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 14px 24px;
+    display: block;
     max-height: none;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--line);
     margin-bottom: 20px;
+    overflow: visible;
+  }
+
+  .Docs-desktopNav {
+    display: none;
+  }
+
+  .Docs-mobileNav {
+    display: block;
+  }
+
+  .Docs-mobileNav summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 46px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .Docs-mobileNav summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .Docs-mobileNav summary::after {
+    content: "+";
+    color: var(--ink-strong);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .Docs-mobileNav[open] summary::after {
+    content: "−";
+  }
+
+  .Docs-mobileNav summary strong {
+    margin-left: auto;
+    color: var(--ink-strong);
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .Docs-mobileMenu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+    max-height: min(62vh, 520px);
+    margin-top: 10px;
+    padding: 14px 6px 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .Docs-mobileMenu .Docs-navLink {
+    font-size: 13.5px;
+  }
+
+  .Docs-pagination {
+    grid-template-columns: 1fr;
+  }
+
+  .Docs-pagination a:last-child {
+    text-align: left;
   }
 }

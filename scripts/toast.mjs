@@ -2,7 +2,7 @@
 // longer imports its stylesheet as a side effect, so this harness opts into the
 // public CSS explicitly while exercising the real playground <Toaster />.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 import { resolve } from "node:path";
 
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -35,7 +35,7 @@ const createToasts = (page, entries) => page.evaluate(async (items) => {
 try {
   server = await createServer({ logLevel: "warn", server: { port: 4319, host: "127.0.0.1" } });
   await server.listen();
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
   const page = await browser.newPage();
   page.on("pageerror", (error) => errors.push(`pageerror: ${String(error)}`));
   page.on("console", (message) => {
@@ -46,9 +46,8 @@ try {
   });
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
-  await page.goto(server.resolvedUrls.local[0], { waitUntil: "load" });
+  await page.goto(new URL("/toasts", server.resolvedUrls.local[0]).href, { waitUntil: "load" });
   await page.addStyleTag({ path: resolve("src/velvet/Toaster.css") });
-  await page.click('.Nav-tab[data-view="toasts"]');
   await page.waitForSelector(".Toastpg");
 
   // === 0) Store identity and loading-update invariants ====================

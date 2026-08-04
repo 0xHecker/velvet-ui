@@ -27,10 +27,10 @@ export const DetachedSheet = () => (
               sheet — it floats inset from every edge, like a card lifted off the table.
             </Sheet.Description>
             <div className="Detached-actions">
-              <Sheet.Trigger action="dismiss" className="Btn Btn--primary">
+              <Sheet.Trigger action="close" className="Btn Btn--primary">
                 <IconBag size={15} /> Add to bag
               </Sheet.Trigger>
-              <Sheet.Trigger action="dismiss" className="Btn Btn--soft">
+              <Sheet.Trigger action="close" className="Btn Btn--soft">
                 Details
               </Sheet.Trigger>
             </div>

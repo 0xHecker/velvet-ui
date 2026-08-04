@@ -1,65 +1,120 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/0xHecker/velvetui-support/main/codex-clipboard-0e5fefd8-81b6-4328-ad3b-9ee1681587ea.png" alt="Velvet UI" width="640" />
+</p>
+
 # Velvet UI
 
-Native-feeling sheets and production-ready toasts for React 18 and 19. Sheet
-gestures use the browser's scroll-snap momentum; programmatic travel uses a
-fixed-timestep spring sampled into WAAPI.
+Native-feeling sheets, production-ready toasts, and spring motion for React 18 and 19.
+
+Velvet uses browser scroll-snap momentum for direct manipulation and sampled springs through the Web Animations API for programmatic motion.
+
+- Headless primitives with optional production-ready compositions
+- Bottom, top, side, center, persistent, stacked, and morphing sheets
+- Accessible dialogs, focus management, keyboard controls, and SSR safety
+- Promise-aware toasts with gestures, queues, live regions, and RTL support
+- Framework-free motion utilities with React hooks when you need them
+- ESM, CommonJS, TypeScript declarations, and tree-shakable subpath exports
+
+[Documentation](https://velvetui.co/docs) · [Examples](https://velvetui.co) · [Licensing](https://velvetui.co/?license=open)
 
 ## Install
 
 ```bash
-npm install velvet-ui
+npm install @velvetui/react
 ```
 
-Choose one CSS entry at your application root:
+React and React DOM are peer dependencies:
 
-```tsx
-// Functional layout only. No surfaces, colors, shadows, or typography.
-import "velvet-ui/base.css";
-
-// Or: base styles plus Velvet's optional sheet and toast skin.
-import "velvet-ui/styles.css";
+```bash
+npm install react react-dom
 ```
 
-JavaScript imports have no CSS side effects. Tailwind, CSS Modules,
-styled-components, vanilla CSS, and other styling systems can all use the same
-unstyled primitives.
+## Start in 60 seconds
 
-## Sheet quick start
-
-`Sheet` is both the root component and a compound namespace. `Sheet.Panel` is
-the concise path: it composes the portal, travel view, backdrop, content, and
-handle while leaving the lower-level parts available.
+Import one stylesheet at your application root:
 
 ```tsx
-import { Sheet } from "velvet-ui/sheet";
-import "velvet-ui/styles.css";
+import "@velvetui/react/styles.css";
+```
 
-export function ProfileSheet() {
+Add a sheet and one toaster:
+
+```tsx
+import { Sheet } from "@velvetui/react/sheet";
+import { Toaster, toast } from "@velvetui/react/toast";
+import "@velvetui/react/styles.css";
+
+export function App() {
   return (
-    <Sheet>
-      <Sheet.Trigger>Edit profile</Sheet.Trigger>
+    <>
+      <Sheet>
+        <Sheet.Trigger>Edit profile</Sheet.Trigger>
 
-      <Sheet.Panel
-        side="bottom"
-        className="profile-sheet"
-        backdropProps={{ className: "profile-backdrop" }}
-      >
-        <Sheet.Title>Edit profile</Sheet.Title>
-        <Sheet.Description>
-          Changes sync across your devices.
-        </Sheet.Description>
+        <Sheet.Panel side="bottom">
+          <Sheet.Title>Edit profile</Sheet.Title>
+          <Sheet.Description>
+            Changes sync across your devices.
+          </Sheet.Description>
 
-        <ProfileForm />
-        <Sheet.Close>Done</Sheet.Close>
-      </Sheet.Panel>
-    </Sheet>
+          <button onClick={() => toast.success("Saved")}>Save</button>
+          <Sheet.Close>Done</Sheet.Close>
+        </Sheet.Panel>
+      </Sheet>
+
+      <Toaster position="bottom-end" />
+    </>
   );
 }
 ```
 
-`Sheet.Panel` defaults to a backdrop, a handle, a body portal, bottom
-placement, modal behavior, and swipe dismissal. Each can be changed or
-disabled:
+`Sheet.Panel` supplies the portal, travel view, backdrop, content, and handle. Its defaults give you a modal bottom sheet with swipe dismissal.
+
+## Choose your CSS
+
+JavaScript imports have no CSS side effects. Import only the structural rules and optional skins your application needs.
+
+| Import | Use it for |
+| --- | --- |
+| `@velvetui/react/sheet.css` | Structural Sheet, Scroll, portal, and stack rules |
+| `@velvetui/react/toast.css` | Structural Toaster rules without the default skin |
+| `@velvetui/react/toast-theme.css` | Toaster structure plus the default skin |
+| `@velvetui/react/base.css` | Sheet and Toaster structure without composition skins |
+| `@velvetui/react/styles.css` | All structure and every optional default skin |
+
+Composition styles are separate. Import them only with the matching component:
+
+```tsx
+import "@velvetui/react/depth-sheet.css";
+import "@velvetui/react/card-expansion.css";
+import "@velvetui/react/bottom-sheet.css";
+import "@velvetui/react/persistent-sheet.css";
+import "@velvetui/react/lightbox.css";
+```
+
+## Sheets
+
+### The concise API
+
+Use `Sheet.Panel` for most product surfaces:
+
+```tsx
+<Sheet defaultOpen>
+  <Sheet.Trigger>Open filters</Sheet.Trigger>
+
+  <Sheet.Panel
+    side="right"
+    className="filters"
+    backdropProps={{ className: "filters-backdrop" }}
+  >
+    <Sheet.Title>Filters</Sheet.Title>
+    <Sheet.Description>Narrow the visible results.</Sheet.Description>
+    <Filters />
+    <Sheet.Close>Apply</Sheet.Close>
+  </Sheet.Panel>
+</Sheet>
+```
+
+Change or disable the composed parts when needed:
 
 ```tsx
 <Sheet.Panel
@@ -73,9 +128,11 @@ disabled:
   handle={false}
   viewProps={{ enteringAnimationSettings: "snappy" }}
 >
-  {/* ... */}
+  {/* content */}
 </Sheet.Panel>
 ```
+
+Supported sides are `top`, `right`, `bottom`, `left`, and `center`.
 
 ### Controlled state and snap points
 
@@ -90,6 +147,7 @@ const [snap, setSnap] = useState(1);
   onSnapChange={setSnap}
 >
   <Sheet.Trigger>Open queue</Sheet.Trigger>
+
   <Sheet.Panel side="bottom" snapPoints={["96px", "55dvh"]}>
     <Sheet.Step direction="up">Expand</Sheet.Step>
     <Sheet.Step snapTo={1}>Collapse</Sheet.Step>
@@ -98,19 +156,18 @@ const [snap, setSnap] = useState(1);
 </Sheet>
 ```
 
-Snap indexes are 1-based. `0` is closed; the final index is fully open.
-With snap points, `dismissible={false}` keeps a persistent sheet at its lowest
-visible stop instead of letting a swipe dismiss it. Escape and `Sheet.Close`
-can still dismiss it.
+Snap indexes are 1-based. Index `0` is closed, while the final index is fully open.
+
+With snap points, `dismissible={false}` keeps the sheet at its lowest visible stop during a swipe. Escape and `Sheet.Close` can still dismiss it.
 
 ### Advanced composition
 
-Use the primitives when the backdrop, content, or animated outlets need a
-different DOM arrangement:
+Use the primitives when you need full control over the DOM:
 
 ```tsx
 <Sheet.Root>
-  <Sheet.Trigger>Open</Sheet.Trigger>
+  <Sheet.Trigger>Invite teammates</Sheet.Trigger>
+
   <Sheet.Portal>
     <Sheet.View
       side="center"
@@ -118,6 +175,7 @@ different DOM arrangement:
       enteringAnimationSettings="snappy"
     >
       <Sheet.Backdrop />
+
       <Sheet.Content className="dialog">
         <Sheet.Title>Invite teammates</Sheet.Title>
         <Sheet.Description>Choose a workspace role.</Sheet.Description>
@@ -128,20 +186,54 @@ different DOM arrangement:
 </Sheet.Root>
 ```
 
-The established API remains supported. Modern aliases map directly onto it:
+The primitive namespace includes `Root`, `Trigger`, `Portal`, `View`, `Backdrop`, `Content`, `BleedingBackground`, `Handle`, `Close`, `Step`, `Title`, `Description`, and `Outlet`.
 
-| Modern | Established alias |
-| --- | --- |
-| `open`, `defaultOpen`, `onOpenChange` | `presented`, `defaultPresented`, `onPresentedChange` |
-| `snap`, `defaultSnap`, `onSnapChange` | `activeDetent`, `defaultActiveDetent`, `onActiveDetentChange` |
-| `side` | `contentPlacement` |
-| `snapPoints` | `detents` |
-| `draggable` | `swipe` |
-| `dismissible` | `swipeDismissal` |
-| `modal` | `inertOutside` |
+### Gesture tracks
 
-If both forms are supplied, the established prop wins. This keeps upgrades
-backward-compatible while new code uses familiar React naming.
+`tracks` chooses the directions that can manipulate or dismiss a sheet:
+
+```tsx
+<Sheet.View side="center" tracks={["top", "bottom"]}>
+  {/* content */}
+</Sheet.View>
+```
+
+Use `tracks="auto"` with a nested `Scroll.View`. Velvet keeps stable bidirectional sheet geometry; native scroll chaining hands a downward gesture to the bottom track at the content start and an upward gesture to the top track at the content end. Ordinary content scrolling never rebuilds the sheet or interrupts a click.
+
+### Coordinated scrolling
+
+```tsx
+import { Scroll } from "@velvetui/react/utilities";
+
+<Sheet>
+  <Sheet.Trigger>Read article</Sheet.Trigger>
+
+  <Sheet.Portal>
+    <Sheet.View side="center" tracks="auto">
+      <Sheet.Content asChild>
+        <Scroll.Root asChild>
+          <Scroll.View className="article-scroll">
+            <Scroll.Content>
+              <Article />
+            </Scroll.Content>
+          </Scroll.View>
+        </Scroll.Root>
+      </Sheet.Content>
+    </Sheet.View>
+  </Sheet.Portal>
+</Sheet>
+```
+
+`Scroll.View` defaults to `safeArea="visual-viewport"` for software-keyboard avoidance. It restores the previous position after focus leaves.
+
+For stable Chromium keyboard behavior, include this viewport value:
+
+```html
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+/>
+```
 
 ### Motion customization
 
@@ -156,6 +248,7 @@ backward-compatible while new code uses familiar React naming.
   }}
 >
   <Sheet.Backdrop travelAnimation={{ opacity: [0, 0.4] }} />
+
   <Sheet.Content
     travelAnimation={{
       opacity: ({ progress }) => Math.min(progress * 2, 1),
@@ -165,18 +258,43 @@ backward-compatible while new code uses familiar React naming.
 </Sheet.View>
 ```
 
-Available presets are `gentle`, `smooth`, `snappy`, `brisk`, `bouncy`, and
-`elastic`. Presets are atomic; to tune individual values, use a full object
-with `easing: "spring"`. Reduced-motion preferences skip spring travel by
-default.
+Spring presets are `gentle`, `smooth`, `snappy`, `brisk`, `bouncy`, and `elastic`. Pass a full spring object to tune individual values.
+
+Reduced-motion preferences skip spring travel by default.
+
+### Shared-origin expansion
+
+`SheetMorph.Content` expands a card or trigger into a sheet using measured source and destination geometry.
+
+```tsx
+import { Sheet } from "@velvetui/react/sheet";
+import { SheetMorph } from "@velvetui/react/sheet-morph";
+import { ThemeBackdrop } from "@velvetui/react/theme-backdrop";
+
+<Sheet>
+  <Sheet.Trigger className="story-card">Read story</Sheet.Trigger>
+
+  <Sheet.Portal>
+    <Sheet.View side="center" tracks={["top", "bottom"]}>
+      <ThemeBackdrop themeColor="auto" />
+
+      <SheetMorph.Content className="story-page" from="trigger">
+        <Story />
+      </SheetMorph.Content>
+    </Sheet.View>
+  </Sheet.Portal>
+</Sheet>
+```
+
+Pass an element or element ref to `from` when the visual source differs from the trigger.
 
 ## Toasts
 
-Render one `Toaster`, then call `toast` from any client component or event
-handler.
+Render one `Toaster`, then call `toast` from client components and event handlers.
 
 ```tsx
-import { Toaster, toast } from "velvet-ui/toast";
+import { Toaster, toast } from "@velvetui/react/toast";
+import "@velvetui/react/toast-theme.css";
 
 export function App() {
   return (
@@ -196,18 +314,21 @@ toast.success("Saved", {
 });
 ```
 
-### Update and promise flows
-
-Reusing an id updates a toast in place. `toast.update` is the explicit form.
+### Update an existing toast
 
 ```tsx
 const id = toast.loading("Uploading…");
+
 toast.update(id, {
   type: "success",
   message: "Uploaded",
   duration: 3000,
 });
+```
 
+### Track a promise
+
+```tsx
 await toast.promise(saveDraft(), {
   loading: { message: "Saving…", description: "Draft 4" },
   success: (draft) => ({
@@ -223,28 +344,22 @@ await toast.promise(saveDraft(), {
 });
 ```
 
-Available commands are `toast`, `toast.success`, `toast.error`, `toast.info`,
-`toast.warning`, `toast.message`, `toast.loading`, `toast.custom`,
-`toast.update`, `toast.promise`, and `toast.dismiss`.
+Commands include `toast`, `success`, `error`, `info`, `warning`, `message`, `loading`, `custom`, `update`, `promise`, and `dismiss`.
 
 Toast behavior includes:
 
-- immediate neighboring reflow while a toast exits;
-- dynamic-height measurement for loading-to-result updates;
-- a visible queue cap with promotion when a slot opens;
-- timers paused by hover, keyboard focus, or a hidden tab;
-- distance-and-velocity swipe dismissal with elastic wrong-way resistance;
-- pointer-cancel recovery and mid-spring re-grab;
-- logical `start`/`end` positions and swipe directions in RTL;
-- separate polite and assertive live announcers so visual reordering is not
-  announced twice;
-- <kbd>Alt</kbd>+<kbd>T</kbd> to focus the front toast and <kbd>Escape</kbd> to
-  dismiss a focused toast.
+- Immediate neighboring reflow while a toast exits
+- Dynamic-height measurement during updates
+- Visible queue limits with automatic promotion
+- Timers paused by hover, keyboard focus, or a hidden tab
+- Distance-and-velocity swipe dismissal
+- Pointer-cancel recovery and mid-spring re-grab
+- Logical `start` and `end` positions in RTL
+- Separate polite and assertive live regions
+- <kbd>Alt</kbd>+<kbd>T</kbd> to focus the front toast
+- <kbd>Escape</kbd> to dismiss a focused toast
 
-### Toast styling
-
-Use `className`, `style`, `classNames`, `toastOptions`, or per-toast overrides.
-`unstyled` removes Velvet's skin while retaining positioning and motion.
+### Unstyled toasts
 
 ```tsx
 <Toaster
@@ -259,65 +374,286 @@ Use `className`, `style`, `classNames`, `toastOptions`, or per-toast overrides.
 />
 ```
 
-Stable hooks include `data-slot`, `data-state`, `data-type`, `data-position`,
-`data-dragging`, and `data-unstyled`. Theme tokens start with
-`--velvet-toast-`, including width, offset, radius, surface, foreground,
-muted color, accent, and shadow.
+Stable hooks include `data-slot`, `data-state`, `data-type`, `data-position`, `data-dragging`, and `data-unstyled`.
 
-## Styling-library integration
+Toast CSS variables begin with `--velvet-toast-` and cover width, offset, radius, surface, foreground, muted color, accent, and shadow.
 
-- **Tailwind / utility CSS:** pass classes directly; use data variants such as
-  `data-[state=exiting]:opacity-0`.
-- **CSS Modules / vanilla CSS:** target your classes or stable `data-*` hooks.
-- **styled-components / Emotion:** every DOM primitive forwards `className`,
-  `style`, and refs; wrap `Sheet.Panel`, `Sheet.Content`, or `Sheet.Trigger`
-  normally.
-- **Custom elements:** `asChild` merges Velvet behavior onto your element.
+## Motion outside sheets
 
-`base.css` contains the structural scroll-snap, portal, stack, toast placement,
-and visually-hidden announcer rules. `styles.css` adds the optional default
-sheet surface, backdrop, handle, toast skin, responsive safe-area offsets, and
-dark-mode tokens.
+The motion entry is framework-free. It does not import React, Sheet, Scroll, or Toast.
 
-## Accessibility and SSR
+```ts
+import { animate } from "@velvetui/react/motion";
 
-`Sheet.Title` and `Sheet.Description` wire the dialog name and description.
-Modal sheets restore focus and keep the outside inert. Escape and outside-click
-behavior remain configurable; `alertdialog` is non-dismissible by default.
+const playback = animate(
+  card,
+  {
+    transform: ["translateY(12px) scale(.98)", "translateY(0) scale(1)"],
+    opacity: [0, 1],
+  },
+  {
+    id: "card-enter",
+    preset: "snappy",
+  },
+);
 
-Portals return an empty server result instead of reading `document`, so sheets
-can be present in SSR trees. The imperative `toast` store is client process
-state; call it from client code, not while rendering a server request.
+await playback.finished; // "finished", "cancelled", or "skipped"
+```
+
+Animations with the same element and `id` interrupt each other cleanly. Missing WAAPI, invalid keyframes, reduced motion, and missing elements settle safely.
+
+Framework-free exports include `animate`, `springEasing`, `sampleSpring`, `resolveMotionTiming`, `prefersReducedMotion`, `resolveTravelStyles`, and `applyTravelStyles`.
+
+React consumers can use:
+
+```tsx
+import {
+  useAnimate,
+  useReducedMotion,
+  useSpringEasing,
+} from "@velvetui/react/motion/react";
+```
+
+`useAnimate` cancels its owned playbacks when the component unmounts.
+
+## Production compositions
+
+Each composition is a separate export, so importing one does not pull every composition into your bundle.
+
+| Component | Best for |
+| --- | --- |
+| `BottomSheet` | Mobile sheets with coordinated nested scrolling |
+| `PersistentSheet` | Non-modal surfaces that collapse instead of dismissing |
+| `Lightbox` | Solid full-screen media with bidirectional dismissal |
+| `CardExpansion` | Cards that expand from their trigger into a modal |
+| `DepthSheet` | Nested full-width sheets with bounded depth transforms |
+
+### Bottom, persistent, and lightbox surfaces
+
+```tsx
+import { BottomSheet } from "@velvetui/react/bottom-sheet";
+import { PersistentSheet } from "@velvetui/react/persistent-sheet";
+import { Lightbox } from "@velvetui/react/lightbox";
+
+import "@velvetui/react/base.css";
+import "@velvetui/react/bottom-sheet.css";
+import "@velvetui/react/persistent-sheet.css";
+import "@velvetui/react/lightbox.css";
+
+<BottomSheet.Root>
+  <BottomSheet.Trigger>Open details</BottomSheet.Trigger>
+  <BottomSheet.Content>
+    <BottomSheet.Title>Trip details</BottomSheet.Title>
+    <BottomSheet.Description>Swipe down to close.</BottomSheet.Description>
+    <BottomSheet.Close>Done</BottomSheet.Close>
+  </BottomSheet.Content>
+</BottomSheet.Root>
+
+<PersistentSheet.Root defaultOpen defaultSnap={1}>
+  <PersistentSheet.Content>
+    <PersistentSheet.Title>Now playing</PersistentSheet.Title>
+    <PersistentSheet.Step direction="up">Expand</PersistentSheet.Step>
+  </PersistentSheet.Content>
+</PersistentSheet.Root>
+
+<Lightbox.Root>
+  <Lightbox.Trigger>Open photo</Lightbox.Trigger>
+  <Lightbox.Content>
+    <img src="/photo.jpg" alt="Snow-covered mountain at dusk" />
+    <Lightbox.Close>Close</Lightbox.Close>
+  </Lightbox.Content>
+</Lightbox.Root>
+```
+
+### Card expansion
+
+```tsx
+import { CardExpansion } from "@velvetui/react/card-expansion";
+import "@velvetui/react/base.css";
+import "@velvetui/react/card-expansion.css";
+
+<CardExpansion.Root>
+  <CardExpansion.Trigger className="story-card">
+    Read story
+  </CardExpansion.Trigger>
+
+  <CardExpansion.Content>
+    <CardExpansion.Title>Motion that feels real</CardExpansion.Title>
+    <CardExpansion.Description>Six minute read</CardExpansion.Description>
+    <Article />
+    <CardExpansion.Close>Close</CardExpansion.Close>
+  </CardExpansion.Content>
+</CardExpansion.Root>
+```
+
+The content expands from the trigger by default. Use `from={null}` for a normal modal entrance and `scroll={false}` for a content-sized card.
+
+### Depth sheets
+
+```tsx
+import { DepthSheet } from "@velvetui/react/depth-sheet";
+import "@velvetui/react/sheet.css";
+import "@velvetui/react/depth-sheet.css";
+
+<DepthSheet.Root>
+  <DepthSheet.Page asChild>
+    <main>
+      <DepthSheet.Trigger>Open profile</DepthSheet.Trigger>
+    </main>
+  </DepthSheet.Page>
+
+  <DepthSheet.Content>
+    <DepthSheet.Title>Mara Vale</DepthSheet.Title>
+    <DepthSheet.Description>Photographer and writer.</DepthSheet.Description>
+
+    <DepthSheet.Root>
+      <DepthSheet.Trigger>Open field notes</DepthSheet.Trigger>
+      <DepthSheet.Content>
+        <DepthSheet.Title>Field notes</DepthSheet.Title>
+        <DepthSheet.Close>Done</DepthSheet.Close>
+      </DepthSheet.Content>
+    </DepthSheet.Root>
+  </DepthSheet.Content>
+</DepthSheet.Root>
+```
+
+Nested roots join the nearest stack and reuse its portal host. Depth transforms are bounded, so deep stacks remain readable.
+
+Customize the visual contract through `DepthSheet.Root`:
+
+```tsx
+<DepthSheet.Root
+  tokens={{
+    inset: "24px",
+    radius: "30px",
+    shift: "16px",
+    shiftLimit: "72px",
+    scaleLoss: 0.055,
+    scaleMinimum: 0.78,
+    dimming: 0.085,
+    brightnessMinimum: 0.72,
+    surfaceBackground: "#f8faf8",
+  }}
+>
+  {/* page and sheets */}
+</DepthSheet.Root>
+```
+
+`depthSheetVariables`, `depthSheetDefaultTokens`, and `depthSheetStackingAnimation` expose the CSS-property mapping, shipped defaults, and bounded stack animation.
+
+## Utilities
+
+Import utility primitives without pulling in the higher-level compositions:
+
+```tsx
+import {
+  AutoFocusTarget,
+  ExternalOverlay,
+  Fixed,
+  Island,
+  Scroll,
+  VisuallyHidden,
+} from "@velvetui/react/utilities";
+```
+
+- `Scroll` coordinates nested scrolling, safe areas, focus, and sheet boundaries.
+- `ExternalOverlay.Root` includes a third-party portal in the owning modal sheet.
+- `Island` keeps a separate interactive region available inside sheet modality.
+- `Fixed` preserves fixed-position behavior inside transformed surfaces.
+- `AutoFocusTarget` and `VisuallyHidden` provide accessible focus and labeling helpers.
+
+The utility entry also exports `useClientMediaQuery`, `updateThemeColor`, and `useThemeColorDimmingOverlay`.
+
+## Styling
+
+Velvet works with vanilla CSS, CSS Modules, Tailwind, styled-components, Emotion, and other styling systems.
+
+- Pass `className`, `style`, and refs to DOM primitives.
+- Use `asChild` to merge Velvet behavior onto your own element.
+- Target stable `data-*` attributes for interaction states.
+- Import structural CSS once, then author the visual layer however you prefer.
+
+Example Tailwind state styling:
+
+```tsx
+<Sheet.Content className="data-[state=exiting]:opacity-0" />
+```
+
+## Accessibility
+
+`Sheet.Title` and `Sheet.Description` provide the accessible dialog name and description.
+
+Triggers expose `aria-expanded`, `aria-controls`, and `aria-haspopup="dialog"`. Modal sheets contain focus, restore focus to the opener, and make unrelated document branches inert.
+
+Nested sheets dismiss one layer at a time. `alertdialog` uses safer dismissal defaults. Escape and outside-click behavior remain configurable.
+
+Toasts use separate polite and assertive live regions, so visual reordering is not announced twice.
+
+## Server rendering
+
+Sheets can exist in an SSR tree. Portals return an empty server result instead of reading `document`, then activate after hydration.
+
+The imperative toast store is client process state. Call `toast()` from client code or an event handler, not while rendering a server request.
 
 ## Package exports
 
 | Import | Contents |
 | --- | --- |
-| `velvet-ui` | Full public API |
-| `velvet-ui/sheet` | `Sheet`, `SheetStack`, spring presets |
-| `velvet-ui/toast` | `Toaster`, `toast` |
-| `velvet-ui/base.css` | Unstyled structural CSS |
-| `velvet-ui/velvet.css` | Backward-compatible alias of `base.css` |
-| `velvet-ui/styles.css` | Structural CSS + optional default theme |
+| `@velvetui/react` | Complete public API |
+| `@velvetui/react/sheet` | `Sheet`, `SheetStack`, and sheet types |
+| `@velvetui/react/motion` | Framework-free springs, WAAPI, and travel helpers |
+| `@velvetui/react/motion/react` | React motion hooks |
+| `@velvetui/react/utilities` | Scroll, focus, fixed, island, and overlay helpers |
+| `@velvetui/react/sheet-morph` | Shared-origin geometry primitive |
+| `@velvetui/react/theme-backdrop` | Browser-theme dimming backdrop |
+| `@velvetui/react/depth-sheet` | `DepthSheet` composition and tokens |
+| `@velvetui/react/card-expansion` | `CardExpansion` composition |
+| `@velvetui/react/bottom-sheet` | `BottomSheet` composition |
+| `@velvetui/react/persistent-sheet` | `PersistentSheet` composition |
+| `@velvetui/react/lightbox` | `Lightbox` composition |
+| `@velvetui/react/toast` | `Toaster`, `toast`, and toast types |
 
-The package ships ESM, CommonJS, source maps, and TypeScript declarations, with
-React and React DOM as peer dependencies.
+The package ships minified ESM and CommonJS builds plus TypeScript declarations. React and React DOM remain peer dependencies.
 
-## Development and verification
+## Licensing
+
+Velvet UI is proprietary software distributed in compiled form, not open-source software. See [LICENSE.md](./LICENSE.md) for the complete terms.
+
+| License | Use |
+| --- | --- |
+| Free | Unlimited non-commercial usage and projects |
+| Individual | Commercial usage for an individual or team with fewer than three members |
+| Organization | Commercial usage limited to one organization |
+| Codebase access | Available through a separate sales agreement |
+
+Paid licenses are one-time purchases and include future public package versions. Dodo Payments calculates tax and delivers the license key after payment. The key is proof of entitlement; Velvet UI does not require a key prop or runtime activation. See [licenses and terms](https://velvetui.co/?license=open).
+
+## Development
 
 ```bash
 npm install
+npm run browsers:install
 npm run dev
 npm run verify
-
-node scripts/gesture-boundaries.mjs
-node scripts/preview-hover.mjs
-node scripts/stacking.mjs
-node scripts/sheet-api.mjs
-node scripts/toast.mjs
-node scripts/toast-drag.mjs
 npm run pack:check
 ```
 
-The gallery lives in `src/playground`. Motion tests use real browser scroll,
-pointer, and keyboard paths through Puppeteer.
+Focused verification commands:
+
+```bash
+npm run typecheck
+npm run verify:package
+npm run verify:bundle
+npm run verify:motion
+npm run verify:sheet
+npm run verify:toast
+```
+
+`npm run browsers:install` is a one-time setup for the Chrome build matched to Puppeteer. The example gallery lives in `src/playground`. Browser tests exercise real scroll, pointer, keyboard, stacking, detent, drag, and toast behavior through Puppeteer.
+
+## Documentation
+
+- [Getting started](https://velvetui.co/docs)
+- [Live examples](https://velvetui.co)
+- [Licenses and terms](https://velvetui.co/?license=open)
+- [Issue tracker](https://github.com/0xHecker/velvetui-support/issues)

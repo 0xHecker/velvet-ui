@@ -14,16 +14,16 @@ import {
 import "./PersistentSheet.css";
 
 export const PersistentSheet = () => (
-  <Sheet.Root defaultActiveDetent={1}>
+  <Sheet.Root defaultSnap={1}>
     <Sheet.Trigger className="Btn">
       <IconMusic /> Show player
     </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View
         className="Player-view"
-        detents="96px"
-        swipeDismissal={false}
-        inertOutside={false}
+        snapPoints="96px"
+        dismissible={false}
+        modal={false}
       >
         <Sheet.Backdrop travelAnimation={{ opacity: ({ progress }) => Math.max(0, progress - 0.35) * 0.8 }} />
         <Sheet.Content className="Player-content">
@@ -42,7 +42,7 @@ export const PersistentSheet = () => (
             <Sheet.Trigger action={{ type: "step", direction: "up" }} className="Player-iconBtn" aria-label="Expand player">
               <IconChevronUp size={16} />
             </Sheet.Trigger>
-            <Sheet.Trigger action="dismiss" className="Player-iconBtn" aria-label="Close player">
+            <Sheet.Trigger action="close" className="Player-iconBtn" aria-label="Close player">
               <IconClose size={15} />
             </Sheet.Trigger>
           </div>

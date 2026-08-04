@@ -3,7 +3,7 @@
 // drag-down dismiss, samples travel progress every frame, filters out post-unmount
 // frames, and reports any non-monotonic rebound (the visible flicker) + the tail.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const watchdog = setTimeout(() => process.exit(1), 120000);
@@ -70,7 +70,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4323, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox", "--force-color-profile=srgb"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860 });

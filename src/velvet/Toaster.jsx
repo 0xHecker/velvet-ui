@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { dismissToast, finalizeToast, subscribeToasts } from "./toast.js";
 import { solveSpring } from "./core/spring.js";
 
@@ -56,9 +57,9 @@ const matchesHotkey = (event, hotkey) => {
 function springValue(from, to, settings, { v0 = 0, onValue, onDone } = {}) {
   const finish = () => { onValue?.(to); onDone?.(); };
   const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (from === to || reduce) { finish(); return { cancel() {} }; }
+  if (from === to || reduce) { finish(); return { cancel() { } }; }
   const { values, duration } = solveSpring(settings, from, to, v0);
-  if (duration === 0) { finish(); return { cancel() {} }; }
+  if (duration === 0) { finish(); return { cancel() { } }; }
   const delta = to - from;
   const timeScale = (typeof window !== "undefined" && window.__VELVET_TIME_SCALE) || 1;
   let raf = 0;
@@ -259,10 +260,11 @@ function ToastItem({
     setDragging(true);
     try {
       element.setPointerCapture(event.pointerId);
-      if (!element.hasPointerCapture(event.pointerId)) addFallbackListeners();
-    } catch {
-      addFallbackListeners();
-    }
+    } catch { }
+    // Always keep the window fallback active. Pointer capture can be reported
+    // as acquired and still be lost when a portalled toast is re-grabbed
+    // during its return spring; duplicate bubbled moves are idempotent.
+    addFallbackListeners();
   };
 
   function moveGesture(event) {
@@ -304,7 +306,7 @@ function ToastItem({
     const element = ref.current;
     try {
       if (element?.hasPointerCapture(state.pointerId)) element.releasePointerCapture(state.pointerId);
-    } catch {}
+    } catch { }
 
     if (!state.axis) {
       clearGestureStyles();
@@ -376,7 +378,7 @@ function ToastItem({
       if (activeGesture && element.hasPointerCapture(activeGesture.pointerId)) {
         element.releasePointerCapture(activeGesture.pointerId);
       }
-    } catch {}
+    } catch { }
     animation.current?.cancel();
     element.style.transition = "none";
     animation.current = springValue(0, sign * 56, "snappy", {
@@ -555,6 +557,7 @@ export const Toaster = ({
   const [direction, setDirection] = useState(() => resolveDirection(dir));
   const [politeAnnouncement, setPoliteAnnouncement] = useState({ sequence: 0, text: "" });
   const [assertiveAnnouncement, setAssertiveAnnouncement] = useState({ sequence: 0, text: "" });
+  const [portalHost, setPortalHost] = useState(null);
   const heights = useRef(new Map());
   const mountedIds = useRef(new Set());
   const announced = useRef(new Map());
@@ -562,6 +565,10 @@ export const Toaster = ({
   const previousFocus = useRef(null);
   const restoringFocus = useRef(false);
   const [, rerenderLayout] = useState(0);
+
+  useLayoutEffect(() => {
+    setPortalHost(document.body);
+  }, []);
 
   useEffect(() => subscribeToasts(setToasts), []);
   useEffect(() => {
@@ -682,7 +689,7 @@ export const Toaster = ({
     });
   };
 
-  return (
+  const contents = (
     <>
       <ol
         ref={regionRef}
@@ -783,4 +790,5 @@ export const Toaster = ({
       </div>
     </>
   );
+  return portalHost ? createPortal(contents, portalHost) : null;
 };

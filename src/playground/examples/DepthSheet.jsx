@@ -1,4 +1,3 @@
-import { useCallback, useState } from "react";
 import { Scroll, Sheet } from "../../velvet/index.js";
 import { px } from "../px.js";
 import {
@@ -77,34 +76,18 @@ const UPCOMING_ROUTES = [
 ];
 
 export const DepthSheet = ({ preview = false }) => {
-  const [presented, setPresented] = useState(false);
-  const [track, setTrack] = useState("bottom");
-
-  const handleScroll = useCallback(
-    ({ progress }) => {
-      if (!presented) return;
-      setTrack(progress < 0.5 ? "bottom" : "top");
-    },
-    [presented]
-  );
-
-  const handleTravelStatus = useCallback((status) => {
-    if (status === "idleOutside") setTrack("bottom");
-  }, []);
-
   return (
-  <Sheet.Root presented={presented} onPresentedChange={setPresented}>
+  <Sheet.Root>
     <Sheet.Trigger className="Btn">
       View profile <IconChevronR />
     </Sheet.Trigger>
     <Sheet.Portal>
       <Sheet.View
         className={`Depth-view${preview ? " Depth-view--preview" : ""}`}
-        contentPlacement="center"
-        tracks={track}
+        side="center"
+        tracks="auto"
         swipeOvershoot={false}
         nativeEdgeSwipePrevention
-        onTravelStatusChange={handleTravelStatus}
         enteringAnimationSettings={{ easing: "spring", stiffness: 420, damping: 42, mass: 1.2 }}
       >
         <Sheet.Backdrop
@@ -112,15 +95,16 @@ export const DepthSheet = ({ preview = false }) => {
           travelAnimation={{ opacity: ({ progress }) => Math.min(progress * 0.28, 0.28) }}
         />
         <Sheet.Content className="Depth-content">
+          <Sheet.BleedingBackground className="Depth-bg" />
           <Scroll.Root className="Depth-scrollRoot">
-            <Scroll.View className="Depth-scrollView" onScrollProgress={handleScroll}>
+            <Scroll.View className="Depth-scrollView">
               <Scroll.Content className="Depth-scrollContent">
                 <article className="Depth-profile">
                   <div className="Depth-cover">
-                    <img src={px(1287145, 1600, 900)} alt="Snow-covered mountains at dusk" />
+                    <img src={px(417074, 1600, 900)} alt="An alpine lake surrounded by mountains" />
                     <div className="Depth-coverShade" />
                     <Sheet.Handle className="Depth-handle" />
-                    <Sheet.Trigger action="dismiss" className="Depth-close" aria-label="Close profile">
+                    <Sheet.Trigger action="close" className="Depth-close" aria-label="Close profile">
                       <IconChevronUp size={20} />
                     </Sheet.Trigger>
                     <span className="Depth-coverTag">

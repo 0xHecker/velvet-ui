@@ -1,9 +1,7 @@
-.Card2-view {
-  height: var(--velvet-100lvh);
-}
 .Card2-content {
   box-sizing: border-box;
   width: min(86vw, 380px);
+  height: auto;
   background: var(--cream-surface);
   border-radius: 22px;
   overflow: hidden;

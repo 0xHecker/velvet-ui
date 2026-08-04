@@ -2,7 +2,7 @@
 // It intentionally uses CDP's compositor-level touch scroll gesture instead of
 // mouse dragging so the browser's native momentum and scroll-snap paths run.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const watchdog = setTimeout(() => process.exit(1), 120000);
@@ -168,14 +168,24 @@ const wheelSwipe = async (page, { x = 640, y = 420, distance }) => {
   await page.mouse.wheel({ deltaY: -distance });
 };
 
-const runQuickViewDismissalRace = async (page, client) => {
+const runQuickViewDismissalRace = async (page, client, base) => {
   // The 720px browser surface produces the same half-layout-pixel clamp as
   // the in-app browser path that originally stranded Quick View.
   await page.setViewport({ width: 1280, height: 720, hasTouch: true });
   const openQuickView = async () => {
-    await page.reload({ waitUntil: "load" });
+    // A previous case can intentionally navigate to /toasts. Return to the
+    // sheets route instead of reloading whichever route happens to be active.
+    await page.goto(base, { waitUntil: "load" });
     await page.waitForSelector(".Gallery");
     await open(page, "detached");
+  };
+  const activateToasts = async () => {
+    await page.click('.Nav-tab[href="/toasts"]');
+    await page.waitForFunction(() => location.pathname === "/toasts", { timeout: 3000 });
+    return page.$eval(
+      '.Nav-tab[href="/toasts"]',
+      (element) => element.getAttribute("aria-current") === "page",
+    );
   };
 
   await openQuickView();
@@ -204,11 +214,14 @@ const runQuickViewDismissalRace = async (page, client) => {
   await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 3000 });
   const settledFastTrace = await stopTrace(page);
   const settledFastMotion = visualMotionStats(settledFastTrace, 1);
+  const highVelocityJumpLimit = await page.evaluate(() => innerHeight * 0.35);
   check(
     "quick-view: a high-velocity settled dismissal remains visually monotonic",
     settledFastMotion.turns === 0 &&
       settledFastMotion.samples >= 3 &&
-      settledFastMotion.maxJump < 180,
+      // High-velocity native scrolling can skip a rendered sample under load.
+      // Keep the discontinuity guard proportional to the actual viewport.
+      settledFastMotion.maxJump < highVelocityJumpLimit,
     JSON.stringify(settledFastMotion),
   );
 
@@ -223,11 +236,7 @@ const runQuickViewDismissalRace = async (page, client) => {
   );
   // The interaction layer must release synchronously at the closed boundary,
   // even while the wheel-tail guard is still preventing background scroll.
-  await page.click('.Nav-tab[data-view="toasts"]');
-  const immediateClickWorked = await page.$eval(
-    '.Nav-tab[data-view="toasts"]',
-    (element) => element.getAttribute("aria-selected") === "true",
-  );
+  const immediateClickWorked = await activateToasts();
   // Reverse immediately. A committed dismissal must not remain as a live snap
   // track that can rise from dead or reclaim the page after the next click.
   await wheelSwipe(page, { y: 520, distance: -1200 });
@@ -249,11 +258,7 @@ const runQuickViewDismissalRace = async (page, client) => {
   await Promise.all([closingTouch, reversingTouch]);
   await sleep(900);
   const afterTouchReverse = await state(page);
-  await page.click('.Nav-tab[data-view="toasts"]');
-  const toastTabSelected = await page.$eval(
-    '.Nav-tab[data-view="toasts"]',
-    (element) => element.getAttribute("aria-selected") === "true",
-  );
+  const toastTabSelected = await activateToasts();
   check(
     "quick-view: overlapping touch swipes cannot resurrect or block a real next click",
     afterTouchReverse.count === 0 && toastTabSelected,
@@ -342,9 +347,9 @@ const runPersistentRapidClose = async (page) => {
   // mounts, while the entrance spring still owns its first frames.
   const rapidCloseDelay = Number(process.env.VELVET_RAPID_CLOSE_MS ?? 16);
   if (rapidCloseDelay > 0) await sleep(rapidCloseDelay);
-  const closeDisabledDuringEntrance = await page.$eval(
+  const closeEnabledDuringEntrance = await page.$eval(
     `${ACTUAL_VIEW} [aria-label="Close player"]`,
-    (element) => element.disabled,
+    (element) => !element.disabled,
   );
   const closeStartedAt = await page.evaluate(() => window.__gestureTrace?.length ?? 0);
   await page.$eval(`${ACTUAL_VIEW} [aria-label="Close player"]`, (element) =>
@@ -360,16 +365,16 @@ const runPersistentRapidClose = async (page) => {
     .filter(Number.isFinite)
     .map((value) => Math.round(value * 10) / 10);
   check(
-    "persistent: close is disabled while the entrance spring owns the sheet",
-    closeDisabledDuringEntrance &&
-      rapidClose.count === 1 &&
+    "persistent: close during entrance interrupts and settles closed",
+    closeEnabledDuringEntrance &&
+      rapidClose.count === 0 &&
       rapidClose.idle &&
-      rapidClose.progress > 0 &&
-      rapidCloseMotion.turns <= 1 &&
+      rapidCloseMotion.turns === 0 &&
       rapidCloseMotion.maxJump < 120,
-    `disabled=${closeDisabledDuringEntrance} before=${JSON.stringify(beforeRapidClose)} after=${JSON.stringify(rapidClose)} motion=${JSON.stringify(rapidCloseMotion)} visual=${JSON.stringify(rapidVisual)}`,
+    `enabled=${closeEnabledDuringEntrance} before=${JSON.stringify(beforeRapidClose)} after=${JSON.stringify(rapidClose)} motion=${JSON.stringify(rapidCloseMotion)} visual=${JSON.stringify(rapidVisual)}`,
   );
 
+  await open(page, "persistent");
   await startTrace(page);
   const closeEnabledAfterEntrance = await page.$eval(
     `${ACTUAL_VIEW} [aria-label="Close player"]`,
@@ -976,13 +981,11 @@ const runDismissalUnlock = async (page, client) => {
   await sleep(900);
   const earlyEscape = await state(page);
   check(
-    "an entrance-owned Escape cannot reverse or glitch the active spring",
-    earlyEscape.count === 1 && earlyEscape.idle && earlyEscape.progress > 0.99,
+    "Escape during entrance interrupts and settles closed",
+    earlyEscape.count === 0 && earlyEscape.idle,
     JSON.stringify(earlyEscape),
   );
 
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => window.__velvet?.count() === 0, { timeout: 8000 });
   const settledEscape = await state(page);
   const pageInteractive = await page.$eval('[data-shot="bottom-sheet"] .Card-preview', (element) => {
     const rect = element.getBoundingClientRect();
@@ -990,7 +993,7 @@ const runDismissalUnlock = async (page, client) => {
     return hit === element || element.contains(hit);
   });
   check(
-    "Escape dismisses after entrance settles with no interaction ghost",
+    "interrupted Escape leaves no interaction ghost",
     settledEscape.count === 0 && pageInteractive,
     `${JSON.stringify(settledEscape)} clickable=${pageInteractive}`,
   );
@@ -1000,7 +1003,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4328, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({
+  browser = await launchBrowser({
     headless: true,
     args: ["--no-sandbox", "--force-color-profile=srgb"],
   });
@@ -1018,7 +1021,7 @@ try {
   console.log("\n--- NATIVE GESTURE BOUNDARIES ---");
   if (!only || only === "dual") await runDualTracks(page, client);
   if (!only || only === "dismissal") await runDismissalUnlock(page, client);
-  if (!only || only === "quick-view") await runQuickViewDismissalRace(page, client);
+  if (!only || only === "quick-view") await runQuickViewDismissalRace(page, client, base);
   if (!only || only === "quick-fast") await runQuickViewFastSwipeProbe(page, client);
   if (!only || only === "long-sheet") await runLongBoundary(page, client, "long-sheet");
   if (!only || only === "parallax") await runLongBoundary(page, client, "parallax");

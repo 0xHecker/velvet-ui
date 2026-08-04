@@ -1,6 +1,7 @@
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transform as transformCss } from "lightningcss";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -19,6 +20,17 @@ function inlineCss(file, seen = new Set()) {
   );
 }
 
+function writeMinifiedCss(outputName, sourceFile) {
+  const source = inlineCss(resolve(root, sourceFile));
+  const { code } = transformCss({
+    filename: sourceFile,
+    code: Buffer.from(source),
+    minify: true,
+    sourceMap: false,
+  });
+  writeFileSync(resolve(root, `dist/${outputName}`), code);
+}
+
 function explicitCssEntries() {
   return {
     name: "velvet-explicit-css-entries",
@@ -32,11 +44,36 @@ function explicitCssEntries() {
       if (id === emptyToastCssId) return "";
     },
     writeBundle() {
-      writeFileSync(resolve(root, "dist/base.css"), inlineCss(resolve(root, "src/velvet/base.css")));
-      writeFileSync(resolve(root, "dist/styles.css"), inlineCss(resolve(root, "src/velvet/styles.css")));
-      copyFileSync(resolve(root, "src/velvet/index.d.ts"), resolve(root, "dist/index.d.ts"));
-      copyFileSync(resolve(root, "src/velvet/entries/sheet.d.ts"), resolve(root, "dist/sheet.d.ts"));
-      copyFileSync(resolve(root, "src/velvet/entries/toast.d.ts"), resolve(root, "dist/toast.d.ts"));
+      writeMinifiedCss("base.css", "src/velvet/base.css");
+      writeMinifiedCss("sheet.css", "src/velvet/sheet.css");
+      writeMinifiedCss("toast.css", "src/velvet/toast.css");
+      writeMinifiedCss("toast-theme.css", "src/velvet/toast-theme.css");
+      writeMinifiedCss("styles.css", "src/velvet/styles.css");
+      writeMinifiedCss("card-expansion.css", "src/velvet/card-expansion.css");
+      writeMinifiedCss("depth-sheet.css", "src/velvet/depth-sheet.css");
+      writeMinifiedCss("bottom-sheet.css", "src/velvet/bottom-sheet.css");
+      writeMinifiedCss("persistent-sheet.css", "src/velvet/persistent-sheet.css");
+      writeMinifiedCss("lightbox.css", "src/velvet/lightbox.css");
+      for (const entry of [
+        "index",
+        "sheet",
+        "motion",
+        "motion-react",
+        "utilities",
+        "sheet-morph",
+        "theme-backdrop",
+        "toast",
+        "card-expansion",
+        "depth-sheet",
+        "bottom-sheet",
+        "persistent-sheet",
+        "lightbox",
+      ]) {
+        copyFileSync(
+          resolve(root, `.velvet-types/entries/${entry}.d.ts`),
+          resolve(root, `dist/${entry}.d.ts`)
+        );
+      }
     },
   };
 }
@@ -52,14 +89,38 @@ export default defineConfig({
   build: {
     copyPublicDir: false,
     emptyOutDir: true,
-    minify: false,
-    sourcemap: true,
+    minify: "terser",
+    sourcemap: false,
     target: "es2019",
+    terserOptions: {
+      compress: {
+        passes: 5,
+        pure_getters: true,
+        unsafe_arrows: true,
+        unsafe_methods: true,
+      },
+      mangle: {
+        toplevel: true,
+      },
+      format: {
+        comments: false,
+      },
+    },
     lib: {
       entry: {
-        index: resolve(root, "src/velvet/index.js"),
-        sheet: resolve(root, "src/velvet/entries/sheet.js"),
-        toast: resolve(root, "src/velvet/entries/toast.js"),
+        index: resolve(root, "src/velvet/entries/index.ts"),
+        sheet: resolve(root, "src/velvet/entries/sheet.ts"),
+        motion: resolve(root, "src/velvet/entries/motion.ts"),
+        "motion-react": resolve(root, "src/velvet/entries/motion-react.ts"),
+        utilities: resolve(root, "src/velvet/entries/utilities.ts"),
+        "sheet-morph": resolve(root, "src/velvet/entries/sheet-morph.ts"),
+        "theme-backdrop": resolve(root, "src/velvet/entries/theme-backdrop.ts"),
+        toast: resolve(root, "src/velvet/entries/toast.ts"),
+        "card-expansion": resolve(root, "src/velvet/entries/card-expansion.ts"),
+        "depth-sheet": resolve(root, "src/velvet/entries/depth-sheet.ts"),
+        "bottom-sheet": resolve(root, "src/velvet/entries/bottom-sheet.ts"),
+        "persistent-sheet": resolve(root, "src/velvet/entries/persistent-sheet.ts"),
+        lightbox: resolve(root, "src/velvet/entries/lightbox.ts"),
       },
       formats: ["es", "cjs"],
       fileName: (format, entryName) =>
@@ -67,9 +128,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: externalReact,
-      output: {
-        exports: "named",
-      },
+      output: { exports: "named" },
     },
   },
 });

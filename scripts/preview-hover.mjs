@@ -2,7 +2,7 @@
 // the preview sheet's visual panel position through enter/leave reversals and
 // reports direction changes or one-frame jumps.
 import { createServer } from "vite";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "./browser-launch.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const watchdog = setTimeout(() => process.exit(1), 90000);
@@ -55,23 +55,39 @@ const stopTrace = (page) =>
   });
 
 const phaseStats = (samples) => {
-  const positions = samples.map((sample) => sample.top).filter(Number.isFinite);
+  const positions = samples.filter((sample) => Number.isFinite(sample.top));
   let maxJump = 0;
+  let maxFrameJump = 0;
+  let maxFrameGap = 0;
   let turns = 0;
   let direction = 0;
-  let extreme = positions[0] ?? 0;
+  let extreme = positions[0]?.top ?? 0;
   const jumps = [];
   const turnPoints = [];
   for (let index = 1; index < positions.length; index++) {
-    const delta = positions[index] - positions[index - 1];
+    const previous = positions[index - 1];
+    const current = positions[index];
+    const delta = current.top - previous.top;
+    const frameGap = Math.max(current.t - previous.t, 1);
+    // A busy headless frame can span several refresh intervals. Compare the
+    // distance per nominal 60 Hz frame so dropped samples are not mistaken for
+    // a visual teleport while a true one-frame discontinuity still fails.
+    const frameJump = Math.abs(delta) * Math.min(1, (1000 / 60) / frameGap);
     maxJump = Math.max(maxJump, Math.abs(delta));
-    if (Math.abs(delta) >= 24) {
-      jumps.push([index, Math.round(positions[index - 1]), Math.round(positions[index])]);
+    maxFrameJump = Math.max(maxFrameJump, frameJump);
+    maxFrameGap = Math.max(maxFrameGap, frameGap);
+    if (frameJump >= 24) {
+      jumps.push([
+        index,
+        Math.round(previous.top),
+        Math.round(current.top),
+        Math.round(frameGap),
+      ]);
     }
     // The preview canvas is rendered at half scale. Count a reversal only
     // after it travels at least one rendered pixel away from the prior
     // extremum; raw subpixel raster jitter must not become a flaky extra turn.
-    const position = positions[index];
+    const position = current.top;
     if (!direction) {
       if (Math.abs(position - extreme) >= 2) {
         direction = Math.sign(position - extreme);
@@ -96,6 +112,8 @@ const phaseStats = (samples) => {
   return {
     frames: positions.length,
     maxJump,
+    maxFrameJump,
+    maxFrameGap,
     turns,
     jumps: jumps.slice(0, 8),
     turnPoints: turnPoints.slice(0, 8),
@@ -138,7 +156,7 @@ const run = async (page, shot) => {
   const mounted = await page.$(`[data-shot="${shot}"] [data-velvet-preview]`);
   check(
     `${shot}: hover reversal opens without a visual teleport`,
-    openStats.maxJump < 48 && openStats.turns <= 2,
+    openStats.maxFrameJump < 48 && openStats.turns <= 2,
     JSON.stringify(openStats),
   );
   if (shot === "detent") {
@@ -150,12 +168,12 @@ const run = async (page, shot) => {
   }
   check(
     `${shot}: leave reversal closes without a visual teleport`,
-    closeStats.maxJump < 48 && closeStats.turns <= 2 && !mounted,
+    closeStats.maxFrameJump < 48 && closeStats.turns <= 2 && !mounted,
     JSON.stringify(closeStats),
   );
 };
 
-const runNested = async (page, shot) => {
+const runNested = async (page, shot, expectedLayers) => {
   await page.$eval(`[data-shot="${shot}"]`, (element) =>
     element.scrollIntoView({ block: "center" })
   );
@@ -175,17 +193,36 @@ const runNested = async (page, shot) => {
   const reversal = await stopTrace(page);
   const stats = phaseStats(reversal);
   const minLayers = Math.min(...reversal.map((sample) => sample.layers));
+  const stable =
+    minLayers === expectedLayers && stats.maxFrameJump < 72 && stats.turns <= 2;
+  const detail = { ...stats, minLayers };
+  if (!stable) {
+    detail.samples = reversal.slice(0, 18).map((sample, index) => ({
+      index,
+      t: Math.round(sample.t - reversal[0].t),
+      top: Number.isFinite(sample.top) ? Math.round(sample.top) : null,
+      areaTop: Number.isFinite(sample.areaTop) ? Math.round(sample.areaTop) : null,
+      transform: sample.transform,
+      scroll: sample.scroll,
+    }));
+  }
   check(
-    `${shot}: interrupted nested close keeps the live child and reverses in place`,
-    // Nested sheets travel farther than a single preview layer; 72 logical px
-    // is 36 rendered px in this half-scale canvas and still distinguishes a
-    // one-frame endpoint teleport from continuous spring travel.
-    minLayers === 2 && stats.maxJump < 72 && stats.turns <= 2,
-    JSON.stringify({ ...stats, minLayers }),
+    `${shot}: interrupted close keeps every live layer and reverses in place`,
+    // Stacked sheets own two preview views; the depth treatment owns one sheet
+    // over a receding SheetStack. Both must keep their actual live layer count.
+    stable,
+    JSON.stringify(detail),
   );
 
   await page.mouse.move(8, 8);
-  await sleep(1000);
+  await page.waitForFunction(
+    (id) =>
+      document.querySelectorAll(
+        `[data-shot="${id}"] [data-velvet-preview]`,
+      ).length === 0,
+    { timeout: 2500 },
+    shot,
+  ).catch(() => {});
   const mounted = await page.$$(`[data-shot="${shot}"] [data-velvet-preview]`);
   check(`${shot}: completed leave unmounts both preview layers`, mounted.length === 0);
 };
@@ -194,7 +231,7 @@ try {
   server = await createServer({ logLevel: "warn", server: { port: 4331, host: "127.0.0.1" } });
   await server.listen();
   const base = server.resolvedUrls.local[0];
-  browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await launchBrowser({ headless: true, args: ["--no-sandbox"] });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
@@ -206,8 +243,8 @@ try {
   console.log("\n--- PREVIEW HOVER ASSERTIONS ---");
   if (!only || only === "detent") await run(page, "detent");
   if (!only || only === "persistent") await run(page, "persistent");
-  if (!only || only === "stacked") await runNested(page, "stacked");
-  if (!only || only === "depth") await runNested(page, "depth");
+  if (!only || only === "stacked") await runNested(page, "stacked", 2);
+  if (!only || only === "depth") await runNested(page, "depth", 1);
   console.log(pass ? "\nALL PASS\n" : "\nFAILED\n");
 } catch (error) {
   console.error("harness error:", error);

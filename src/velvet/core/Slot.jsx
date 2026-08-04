@@ -1,4 +1,5 @@
 import { Children, cloneElement, forwardRef, isValidElement, version } from "react";
+import { composeEventHandlers } from "./events.js";
 import { composeRefs } from "./refs.js";
 
 // React 19 exposes ref as a normal prop; React 18 keeps it on element.ref.
@@ -6,26 +7,21 @@ import { composeRefs } from "./refs.js";
 const REACT_19 = Number((version || "18").split(".")[0]) >= 19;
 const childRefOf = (child) => (REACT_19 ? child.props.ref : child.ref);
 
-// Merge props from the Slot onto the single child element. Event handlers are
-// chained (slot handler runs, then child's), className/style are concatenated.
+// Merge props from the Slot onto the single child element. The child's event
+// handler runs first and may prevent the Slot's behavior with preventDefault.
+// className/style are concatenated.
 const mergeProps = (slotProps, childProps) => {
   const merged = { ...childProps };
   for (const key in slotProps) {
     const slotValue = slotProps[key];
     const childValue = childProps[key];
     if (/^on[A-Z]/.test(key)) {
-      merged[key] =
-        slotValue && childValue
-          ? (...args) => {
-              childValue(...args);
-              slotValue(...args);
-            }
-          : slotValue || childValue;
+      merged[key] = composeEventHandlers(childValue, slotValue);
     } else if (key === "style") {
       merged.style = { ...slotValue, ...childValue };
     } else if (key === "className") {
       merged.className = [slotValue, childValue].filter(Boolean).join(" ");
-    } else {
+    } else if (slotValue !== undefined) {
       merged[key] = slotValue;
     }
   }
