@@ -1031,6 +1031,11 @@ toast.custom(
   changelog: guide(
     "A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.",
     section(
+      "0.2.1 · 2026-08-05",
+      "### Fixed",
+      "- Replaced the jagged Settings glyph in the gallery examples with a clean, balanced cog that stays legible at small sizes.",
+    ),
+    section(
       "0.2.0 · 2026-08-04",
       "### Documentation",
       "- Moved every guide to its own server-rendered route.\n- Added a Markdown response for every page at `/docs/<slug>.md`.\n- Added View as Markdown and Copy Markdown controls.\n- Added complete nested-modal navigation recipes for plain CSS and Tailwind CSS v4.\n- Added a bring-your-own-components guide covering custom actions, surfaces, Views, visual parts, layouts, refs, and event precedence.\n- Added Bun alongside npm, pnpm, and Yarn in installation examples.\n- Documented label ownership, native scrollbar placement, swipe-back through content, button semantics, and mobile verification.\n- Documented framework-free motion, React motion hooks, interruption, failure behavior, focused CSS, and the complete Depth contract.",

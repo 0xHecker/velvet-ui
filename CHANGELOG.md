@@ -6,6 +6,12 @@ Web: https://velvetui.co/docs/changelog
 
 A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.
 
+## 0.2.1 · 2026-08-05
+
+### Fixed
+
+- Replaced the jagged Settings glyph in the gallery examples with a clean, balanced cog that stays legible at small sizes.
+
 ## 0.2.0 · 2026-08-04
 
 ### Documentation
