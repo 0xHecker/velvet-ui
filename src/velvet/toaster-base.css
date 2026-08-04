@@ -107,19 +107,35 @@
 }
 .Toast-act,
 .Toast-cancel,
-.Toast-x {
+:where(.Toast-x) {
   flex: 0 0 auto;
 }
-.Toast-x {
-  position: relative;
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-}
-.Toast-x::before {
+:where(.Toast-x) {
+  --velvet-toast-close-shift: 35%;
   position: absolute;
-  inset: -7px;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: auto;
+  display: grid;
+  width: var(--velvet-toast-close-size, 20px);
+  height: var(--velvet-toast-close-size, 20px);
+  place-items: center;
+  transform: translate(var(--velvet-toast-close-shift), -35%);
+}
+:where(.Toast-x[data-side="left"]) {
+  --velvet-toast-close-shift: -35%;
+  right: auto;
+  left: 0;
+}
+:where(.Toast-xIcon) {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+:where(.Toast-x)::before {
+  position: absolute;
+  inset: -12px;
   content: "";
 }
 .Toast[data-front="true"]:hover .Toast-x,

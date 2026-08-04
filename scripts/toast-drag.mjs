@@ -567,6 +567,46 @@ try {
   );
   await clearToasts(page);
 
+  // A pointer swipe can focus the toast it begins on. Removing that focused
+  // node does not reliably dispatch blur in browsers, so the stack must
+  // reconcile focus ownership after the exit node unmounts. Otherwise it
+  // remains expanded and every remaining timeout stays paused forever.
+  await page.mouse.move(420, 420);
+  await page.evaluate(async () => {
+    const { toast } = await import("/src/velvet/toast.js");
+    for (let index = 1; index <= 3; index++) {
+      toast(`Timed ${index}`, { id: `post-swipe-timer-${index}`, duration: 1600 });
+    }
+  });
+  await page.waitForSelector('[data-toast-id="post-swipe-timer-3"][data-state="open"]');
+  await sleep(420);
+  await page.focus('[data-toast-id="post-swipe-timer-3"]');
+  const timedBox = await page.$eval(
+    '[data-toast-id="post-swipe-timer-3"]',
+    (element) => {
+      const rect = element.getBoundingClientRect();
+      return { cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2 };
+    }
+  );
+  await page.mouse.move(timedBox.cx, timedBox.cy);
+  await page.mouse.down();
+  await page.mouse.move(timedBox.cx + 110, timedBox.cy, { steps: 5 });
+  await page.mouse.up();
+  const focusedSwipeDismissed = await waitForDismissal(page, "post-swipe-timer-3", 1800);
+  await page.mouse.move(420, 420);
+  await sleep(2100);
+  const postFocusedSwipe = await page.evaluate(() => ({
+    count: document.querySelectorAll(".Toast").length,
+    expanded: document.querySelector(".Toaster")?.hasAttribute("data-expanded"),
+    activeToast: document.activeElement?.closest?.('[data-slot="toast"]')?.getAttribute("data-toast-id") || null,
+  }));
+  check(
+    "swiping a focused toast releases stack expansion and resumes remaining timers",
+    focusedSwipeDismissed && postFocusedSwipe.count === 0 && !postFocusedSwipe.expanded,
+    `dismissed=${focusedSwipeDismissed} state=${JSON.stringify(postFocusedSwipe)}`
+  );
+  await clearToasts(page);
+
   // Auto direction follows a live document dir change. Logical start/end are
   // resolved from this same direction inside Toaster.
   await page.evaluate(() => { document.documentElement.dir = "rtl"; });

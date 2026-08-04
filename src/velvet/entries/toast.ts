@@ -22,6 +22,7 @@ export type ToastPosition =
   | "bottom-start"
   | "bottom-end";
 export type ToastSwipeDirection = "top" | "right" | "bottom" | "left" | "start" | "end";
+export type ToastCloseButtonPosition = "left" | "right";
 export type ToastDismissReason =
   | "programmatic"
   | "timeout"
@@ -42,6 +43,7 @@ export interface ToastClassNames {
   action?: string;
   cancel?: string;
   closeButton?: string;
+  closeIcon?: string;
   liveRegion?: string;
 }
 
@@ -65,6 +67,7 @@ export interface ToastOptions {
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   };
   closeButton?: boolean;
+  closeButtonPosition?: ToastCloseButtonPosition;
   closeButtonAriaLabel?: string;
   className?: string;
   descriptionClassName?: string;
@@ -145,6 +148,7 @@ export interface ToasterProps {
   expand?: boolean;
   visibleToasts?: number;
   closeButton?: boolean;
+  closeButtonPosition?: ToastCloseButtonPosition;
   richColors?: boolean;
   swipeDirections?: readonly ToastSwipeDirection[];
   hotkey?: readonly string[] | null;

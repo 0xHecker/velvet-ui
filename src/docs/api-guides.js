@@ -71,6 +71,7 @@ const toasterProps = `| Prop | Type | Default |
 | \`expand\` | boolean | \`false\` |
 | \`visibleToasts\` | number | \`3\` |
 | \`closeButton\` | boolean | \`true\` |
+| \`closeButtonPosition\` | \`left \\| right\` | \`right\` |
 | \`richColors\` | boolean | \`false\` |
 | \`swipeDirections\` | direction array | both directions on the placement axis |
 | \`hotkey\` | key descriptor array or null | \`["altKey", "KeyT"]\` |
@@ -96,8 +97,9 @@ const toastOptions = `| Option | Type | Notes |
 | \`important\` | boolean | Uses the assertive live region |
 | \`action\`, \`cancel\` | \`{ label, onClick }\` | Return \`false\` from action to keep it open |
 | \`closeButton\` | boolean | Per-toast override |
+| \`closeButtonPosition\` | \`left \\| right\` | Per-toast physical side override |
 | \`closeButtonAriaLabel\` | string | Accessible close label |
-| \`className\`, \`descriptionClassName\`, \`classNames\` | strings or map | Fine-grained styling |
+| \`className\`, \`descriptionClassName\`, \`classNames\` | strings or map | Includes \`closeButton\` and \`closeIcon\` hooks |
 | \`style\` | CSSProperties | Per-toast custom properties |
 | \`unstyled\` | boolean | Retains behavior and structural a11y only |
 | \`onDismiss\` | callback | Includes dismissal reason |
@@ -1220,6 +1222,38 @@ try {
     section(
       "Controls and custom content",
       "A tap on a button or link activates it normally. Once movement passes the gesture slop, the same pointer stream becomes a toast swipe and its compatibility click is suppressed, so an action cannot fire accidentally after dismissal.",
+      "The built-in close button floats outside the content row, so it never consumes action space. Set `closeButtonPosition=\"left\"` or `\"right\"` globally, or in one toast's options. Use `icons.close` to replace the cross; `classNames.closeButton` and `classNames.closeIcon` style the two layers independently.",
+      code("tsx", `<Toaster
+  closeButtonPosition="left"
+  icons={{ close: <CloseIcon /> }}
+  classNames={{
+    closeButton: "AppToast-close",
+    closeIcon: "AppToast-closeIcon",
+  }}
+/>`),
+      code("css", `.AppToast-close {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #e8e8ec;
+  border-radius: 999px;
+  background: white;
+  color: #34343a;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 12%);
+}
+
+.AppToast-closeIcon {
+  width: 12px;
+  height: 12px;
+}`),
+      code("tsx", `<Toaster
+  icons={{ close: <CloseIcon /> }}
+  classNames={{
+    closeButton:
+      "size-5 rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:bg-zinc-50",
+    closeIcon: "size-2.5",
+  }}
+/>`),
+      "Plain CSS, CSS Modules, and Tailwind utilities work directly through the class hooks. The default skin uses low-specificity selectors, so ordinary properties can override it without `!important`. You may also target `[data-slot=\"close-button\"]` and `[data-slot=\"close-icon\"]`; the `--velvet-toast-close-*` variables are optional shorthand.",
       "Inputs, textareas, selects, and editable content do not begin a toast swipe. Put `data-velvet-toast-swipe-ignore` on any additional custom region that must retain pointer ownership.",
       code("tsx", `toast.custom(
   <div className="upload-toast">
@@ -1248,7 +1282,7 @@ try {
     ),
     section(
       "Accessibility behavior",
-      "Ordinary updates use a polite live region. Errors and `important` updates use an assertive region. Alt+T focuses the front toast by default; Escape dismisses the focused or front toast.",
+      "Ordinary updates use a polite live region. Errors and `important` updates use an assertive region. Option+T on macOS, or Alt+T elsewhere, focuses the front toast by default; Escape dismisses the focused or front toast.",
       "Actions are real buttons. After keyboard dismissal, focus moves to the next toast or returns to the element focused before the toast stack.",
     ),
     section(

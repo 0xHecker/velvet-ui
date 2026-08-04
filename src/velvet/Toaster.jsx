@@ -120,6 +120,7 @@ function ToastItem({
   directions,
   position,
   closeButton,
+  closeButtonPosition,
   icons,
   classNames,
   unstyled,
@@ -494,6 +495,7 @@ function ToastItem({
 
   const state = removing ? "exiting" : dragging ? "dragging" : mounted && measured ? "open" : "entering";
   const showClose = (entry.closeButton ?? closeButton) && dismissible;
+  const closeSide = entry.closeButtonPosition ?? closeButtonPosition;
   const itemClassNames = classNames || {};
   const itemStyle = {
     ...entry.style,
@@ -605,13 +607,20 @@ function ToastItem({
               type="button"
               className={cx("Toast-x", itemClassNames.closeButton)}
               data-slot="close-button"
+              data-side={closeSide === "left" ? "left" : "right"}
               aria-label={entry.closeButtonAriaLabel || "Dismiss notification"}
               onClick={(event) => {
                 dismissToast(entry.id, "close-button");
                 if (event.detail === 0) onFocusDismissal?.();
               }}
             >
-              {icons?.close || "✕"}
+              <span
+                className={cx("Toast-xIcon", itemClassNames.closeIcon)}
+                data-slot="close-icon"
+                aria-hidden="true"
+              >
+                {icons?.close || "✕"}
+              </span>
             </button>
           )}
         </>
@@ -628,6 +637,7 @@ export const Toaster = ({
   expand = false,
   visibleToasts = 3,
   closeButton = true,
+  closeButtonPosition = "right",
   richColors = false,
   swipeDirections,
   hotkey = DEFAULT_HOTKEY,
@@ -663,6 +673,17 @@ export const Toaster = ({
   }, []);
 
   useEffect(() => subscribeToasts(setToasts), []);
+  useLayoutEffect(() => {
+    if (!focused) return;
+    const region = regionRef.current;
+    if (region && !region.contains(region.ownerDocument.activeElement)) {
+      // Browsers do not consistently dispatch blur when a focused toast is
+      // removed after a pointer swipe. Reconcile against the real active
+      // element whenever the store changes so focus cannot pause the stack
+      // after its owning node has disappeared.
+      setFocused(false);
+    }
+  }, [focused, toasts]);
   useEffect(() => {
     const ownerDocument = portalHost?.ownerDocument;
     if (!ownerDocument) return undefined;
@@ -678,6 +699,28 @@ export const Toaster = ({
       const count = (toasterCounts.get(ownerDocument) || 1) - 1;
       if (count > 0) toasterCounts.set(ownerDocument, count);
       else toasterCounts.delete(ownerDocument);
+    };
+  }, [portalHost]);
+  useEffect(() => {
+    const ownerDocument = portalHost?.ownerDocument;
+    const ownerWindow = ownerDocument?.defaultView;
+    if (!ownerDocument || !ownerWindow) return undefined;
+    let frame = 0;
+    const reconcileHover = (event) => {
+      ownerWindow.cancelAnimationFrame(frame);
+      frame = ownerWindow.requestAnimationFrame(() => {
+        const region = regionRef.current;
+        setHovered(event.pointerType === "touch" ? false : Boolean(region?.matches(":hover")));
+      });
+    };
+    ownerDocument.addEventListener("pointerup", reconcileHover, true);
+    ownerDocument.addEventListener("pointercancel", reconcileHover, true);
+    ownerDocument.addEventListener("lostpointercapture", reconcileHover, true);
+    return () => {
+      ownerWindow.cancelAnimationFrame(frame);
+      ownerDocument.removeEventListener("pointerup", reconcileHover, true);
+      ownerDocument.removeEventListener("pointercancel", reconcileHover, true);
+      ownerDocument.removeEventListener("lostpointercapture", reconcileHover, true);
     };
   }, [portalHost]);
   useEffect(() => {
@@ -819,8 +862,12 @@ export const Toaster = ({
         data-queue-count={Math.max(0, activeToasts.length - visibleActive.length)}
         dir={direction}
         style={rootStyle}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onPointerEnter={(event) => {
+          if (event.pointerType !== "touch") setHovered(true);
+        }}
+        onPointerLeave={(event) => {
+          if (event.pointerType !== "touch") setHovered(false);
+        }}
         onFocusCapture={() => setFocused(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -872,6 +919,7 @@ export const Toaster = ({
               directions={directionFlagsFor(item.swipeDirections ?? requestedDirections)}
               position={resolvedPosition}
               closeButton={toastOptions.closeButton ?? closeButton}
+              closeButtonPosition={toastOptions.closeButtonPosition ?? closeButtonPosition}
               icons={icons}
               classNames={perToastClassNames}
               unstyled={entry.unstyled ?? toastOptions.unstyled ?? unstyled}

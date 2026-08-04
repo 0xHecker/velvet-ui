@@ -165,6 +165,7 @@ const RESET_PHASE_OPTIONS = {
   action: undefined,
   cancel: undefined,
   closeButton: undefined,
+  closeButtonPosition: undefined,
   closeButtonAriaLabel: undefined,
   className: undefined,
   descriptionClassName: undefined,

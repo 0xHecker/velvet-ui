@@ -452,8 +452,63 @@ Toast behavior includes:
 - Pointer-cancel recovery, capture-loss fallback, and mid-spring re-grab
 - Logical `start` and `end` positions in RTL
 - Separate polite and assertive live regions
-- <kbd>Alt</kbd>+<kbd>T</kbd> to focus the front toast
+- <kbd>⌥ Option</kbd>+<kbd>T</kbd> on macOS, or <kbd>Alt</kbd>+<kbd>T</kbd> elsewhere, to focus the front toast
 - <kbd>Escape</kbd> to dismiss a focused toast
+
+### Close button placement and styling
+
+The close button floats outside the content row, so actions keep their space. Put it on either physical side and replace or style the cross independently:
+
+```tsx
+<Toaster
+  closeButton
+  closeButtonPosition="left"
+  icons={{ close: <CloseIcon /> }}
+  classNames={{
+    closeButton: "AppToast-close",
+    closeIcon: "AppToast-closeIcon",
+  }}
+/>
+```
+
+```css
+.AppToast-close {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #e8e8ec;
+  border-radius: 999px;
+  background: #fff;
+  color: #34343a;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 12%);
+}
+
+.AppToast-close:hover {
+  background: #f7f7f8;
+}
+
+.AppToast-closeIcon {
+  width: 12px;
+  height: 12px;
+}
+```
+
+Tailwind utilities work through those same slots:
+
+```tsx
+<Toaster
+  closeButtonPosition="right"
+  icons={{ close: <CloseIcon /> }}
+  classNames={{
+    closeButton:
+      "size-5 rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:bg-zinc-50",
+    closeIcon: "size-2.5",
+  }}
+/>
+```
+
+You can also target `[data-slot="close-button"]` and `[data-slot="close-icon"]` in ordinary CSS. The `--velvet-toast-close-*` variables remain available as an optional shorthand.
+
+Use `closeButtonPosition` in `toast(...)` options to override the side for one toast.
 
 ### Swipe behavior
 

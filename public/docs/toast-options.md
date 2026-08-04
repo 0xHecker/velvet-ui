@@ -19,7 +19,8 @@ toast("Update available", {
     onClick: () => window.location.reload(),
   },
   closeButton: true,
+  closeButtonPosition: "left",
 });
 ```
 
-Common options include `id`, `description`, `duration`, `icon`, `action`, `closeButton`, `important`, `dismissible`, and per-toast class or style overrides.
+Common options include `id`, `description`, `duration`, `icon`, `action`, `closeButton`, `closeButtonPosition`, `important`, `dismissible`, and per-toast class or style overrides.

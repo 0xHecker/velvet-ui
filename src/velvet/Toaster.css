@@ -170,7 +170,7 @@
 
 .Toast-act,
 .Toast-cancel,
-.Toast-x {
+:where(.Toast-x) {
   flex: 0 0 auto;
   appearance: none;
   border: 0;
@@ -193,27 +193,45 @@
 .Toast:not([data-unstyled]) .Toast-act:active,
 .Toast:not([data-unstyled]) .Toast-cancel:active { transform: scale(0.96); }
 
-.Toast-x {
-  position: relative;
-  width: 26px;
-  height: 26px;
+:where(.Toast-x) {
+  --velvet-toast-close-shift: 35%;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: auto;
+  width: var(--velvet-toast-close-size, 20px);
+  height: var(--velvet-toast-close-size, 20px);
   display: grid;
   place-items: center;
   opacity: 0;
+  transform: translate(var(--velvet-toast-close-shift), -35%);
 }
-.Toast:not([data-unstyled]) .Toast-x {
-  border-radius: 999px;
-  background: none;
-  color: var(--velvet-toast-muted);
-  font-size: 11px;
+:where(.Toast-x[data-side="left"]) {
+  --velvet-toast-close-shift: -35%;
+  right: auto;
+  left: 0;
+}
+:where(.Toast-xIcon) {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+:where(.Toast:not([data-unstyled]) .Toast-x) {
+  border: 1px solid var(--velvet-toast-close-border, var(--velvet-toast-border));
+  border-radius: var(--velvet-toast-close-radius, 999px);
+  background: var(--velvet-toast-close-background, var(--velvet-toast-background));
+  color: var(--velvet-toast-close-color, var(--velvet-toast-muted));
+  font-size: 9px;
+  box-shadow: var(--velvet-toast-close-shadow, 0 2px 8px rgba(0, 0, 0, 0.14));
   transition:
     opacity 0.2s ease,
     transform 0.14s var(--velvet-toast-ease),
     background 0.2s ease;
 }
-.Toast-x::before { content: ""; position: absolute; inset: -7px; }
-.Toast:not([data-unstyled]) .Toast-x:hover { background: var(--velvet-toast-control-background); }
-.Toast:not([data-unstyled]) .Toast-x:active { transform: scale(0.96); }
+:where(.Toast-x)::before { content: ""; position: absolute; inset: -12px; }
+:where(.Toast:not([data-unstyled]) .Toast-x:hover) { background: var(--velvet-toast-close-hover-background, var(--velvet-toast-control-background)); }
+:where(.Toast:not([data-unstyled]) .Toast-x:active) { transform: translate(var(--velvet-toast-close-shift), -35%) scale(0.94); }
 .Toast[data-front="true"]:hover .Toast-x,
 .Toaster[data-expanded] .Toast-x,
 .Toast:focus-within .Toast-x { opacity: 1; }

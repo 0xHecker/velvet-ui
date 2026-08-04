@@ -40,7 +40,7 @@
 
 /* One surface, no nested cards. Outer radius 22 with 22 padding. */
 .Toastpg-stage {
-  max-width: 560px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 22px;
   background: var(--cream-surface);
@@ -48,9 +48,23 @@
   box-shadow: var(--ios-shadow);
 }
 
+.Toastpg-examples {
+  display: grid;
+  gap: 20px;
+}
+.Toastpg-exampleGroup {
+  min-width: 0;
+}
+.Toastpg-exampleGroup h2 {
+  margin: 0 0 9px;
+  color: #6b6b70;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+}
 .Toastpg-triggers {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 10px;
 }
 .Toastpg-triggers .Btn {
@@ -65,9 +79,9 @@
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--cream-line);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px 40px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px 28px;
   align-items: flex-start;
 }
 .Field {
@@ -78,6 +92,22 @@
   font-size: 13px;
   font-weight: 600;
   color: #6b6b70;
+}
+.Toastpg-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--cream-line);
+  border-radius: 10px;
+  background: var(--cream-surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.Toastpg-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Position picker — a dot in each cell maps to where the toaster sits. */
@@ -194,6 +224,30 @@
   width: 100%;
   color: var(--ink);
 }
+.Toastpg-hint {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--cream-bg-2);
+  color: #6b6b70;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.Toastpg-hint kbd {
+  display: inline-flex;
+  min-width: 20px;
+  min-height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid var(--cream-line);
+  border-radius: 6px;
+  background: var(--cream-surface);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
 
 /* Custom toast — provides its own chrome since .Toast--custom is stripped bare. */
 .CustomToast {
@@ -258,6 +312,58 @@
 .CustomToast-btn:focus-visible {
   outline: 2px solid #fff;
   outline-offset: -4px;
+}
+
+.DemoToastUnstyled {
+  box-sizing: border-box;
+  width: var(--velvet-toast-width, 356px);
+  padding: 14px 16px;
+  border: 1px solid rgba(24, 24, 27, 0.09);
+  border-radius: 14px;
+  background: #fff8ed;
+  color: #332a20;
+  box-shadow: 0 14px 34px -22px rgba(48, 38, 25, 0.46);
+}
+.DemoToastUnstyled .Toast-icon {
+  color: #c56b18;
+}
+.DemoToastUnstyled .Toast-desc {
+  color: #786b5b;
+}
+
+.DemoToastClose {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #ddd4ec;
+  border-radius: 999px;
+  background: #faf7ff;
+  color: #695877;
+  box-shadow: 0 4px 12px rgb(67 48 82 / 14%);
+  opacity: 1;
+}
+.DemoToastClose:hover {
+  background: #f3ecfb;
+}
+.DemoToastCloseIcon {
+  font-size: 8px;
+}
+
+@media (max-width: 700px) {
+  .Toastpg-stage {
+    padding: 18px;
+  }
+  .Toastpg-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .Toastpg-panel {
+    grid-template-columns: 1fr;
+  }
+  .Toastpg-triggers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

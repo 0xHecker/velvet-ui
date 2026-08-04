@@ -47,6 +47,8 @@ A human-readable record of the changes that affect how Velvet is installed, comp
 - Prevented non-text focus and sheet action clicks from resetting coordinated content to the top.
 - Hardened Toast swipes against duplicate fallback events, touch streams reporting `buttons: 0`, coalesced pointer-up coordinates, pointer-capture loss, direction reversal, and secondary-pointer takeover.
 - Made Toast dismissal bidirectional on its natural placement axis, allowed swipes to begin on action controls without firing them, and stopped non-dismissible toasts from blocking mobile page panning.
+- Reconciled focus and hover ownership after swipe removal so the remaining stack collapses and paused timeout countdowns resume.
+- Floated the built-in Toast close control outside the content row, added left/right placement plus low-specificity CSS/Tailwind button and icon hooks, and clarified the macOS Option shortcut.
 - Added a clear development error for invalid `asChild` children.
 - Restored the shared trigger-geometry helper after the controller split.
 - Removed the obsolete SPA entry that could override TanStack Start SSR during development.

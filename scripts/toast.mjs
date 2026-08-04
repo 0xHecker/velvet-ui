@@ -47,6 +47,12 @@ try {
   page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 860, deviceScaleFactor: 1 });
   await page.goto(new URL("/toasts", server.resolvedUrls.local[0]).href, { waitUntil: "load" });
+  // Consumer CSS intentionally loads first. Its class selectors must still
+  // beat the default skin's low-specificity close-button declarations.
+  await page.addStyleTag({ content: `
+    .consumer-close { width: 24px; height: 24px; background: rgb(250, 240, 255); }
+    .consumer-close-icon { font-size: 7px; }
+  ` });
   await page.addStyleTag({ path: resolve("src/velvet/Toaster.css") });
   await page.waitForSelector(".Toastpg");
 
@@ -300,6 +306,63 @@ try {
     keyboardCloseFocus === "success",
     `focus=${keyboardCloseFocus}`
   );
+
+  await createToasts(page, [
+    {
+      message: "Close on left",
+      options: {
+        id: "close-left",
+        duration: Infinity,
+        closeButton: true,
+        closeButtonPosition: "left",
+        classNames: { closeButton: "consumer-close", closeIcon: "consumer-close-icon" },
+      },
+    },
+    {
+      message: "Close on right",
+      options: { id: "close-right", duration: Infinity, closeButton: true },
+    },
+  ]);
+  await page.waitForFunction(() => document.querySelectorAll('[data-slot="close-button"]').length === 2);
+  const closeButtonContract = await page.evaluate(() => {
+    const read = (id) => {
+      const toast = document.querySelector(`[data-toast-id="${id}"]`);
+      const button = toast?.querySelector('[data-slot="close-button"]');
+      const icon = button?.querySelector('[data-slot="close-icon"]');
+      const toastRect = toast?.getBoundingClientRect();
+      const buttonRect = button?.getBoundingClientRect();
+      return {
+        side: button?.dataset.side,
+        closeClass: button?.classList.contains("consumer-close"),
+        iconClass: icon?.classList.contains("consumer-close-icon"),
+        size: buttonRect?.width,
+        cssSize: button ? Number.parseFloat(getComputedStyle(button).width) : 0,
+        background: button ? getComputedStyle(button).backgroundColor : "",
+        iconSize: icon ? Number.parseFloat(getComputedStyle(icon).fontSize) : 0,
+        leftDistance: buttonRect && toastRect
+          ? Math.abs(buttonRect.left + buttonRect.width / 2 - toastRect.left)
+          : Infinity,
+        rightDistance: buttonRect && toastRect
+          ? Math.abs(buttonRect.left + buttonRect.width / 2 - toastRect.right)
+          : Infinity,
+      };
+    };
+    return { left: read("close-left"), right: read("close-right") };
+  });
+  check(
+    "close button supports left/right placement and separate icon styling",
+    closeButtonContract.left.side === "left" &&
+      closeButtonContract.right.side === "right" &&
+      closeButtonContract.left.closeClass &&
+      closeButtonContract.left.iconClass &&
+      Math.abs(closeButtonContract.left.cssSize - 24) < 0.5 &&
+      closeButtonContract.left.background === "rgb(250, 240, 255)" &&
+      Math.abs(closeButtonContract.left.iconSize - 7) < 0.5 &&
+      closeButtonContract.left.leftDistance < 4 &&
+      closeButtonContract.right.rightDistance < 4,
+    JSON.stringify(closeButtonContract)
+  );
+  await clearToasts(page);
 
   // === 4) additive update/promise/styling hooks ===========================
   await page.evaluate(async () => {
