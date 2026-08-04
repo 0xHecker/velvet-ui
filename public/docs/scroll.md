@@ -1,6 +1,6 @@
 # Scroll coordination
 
-> A scrollable sheet hands a downward drag to the sheet only when its internal scroll container has reached the top.
+> A scrollable sheet hands a drag to the sheet only when its internal Scroll.View reaches the matching boundary.
 
 Web: https://velvetui.co/docs/scroll
 

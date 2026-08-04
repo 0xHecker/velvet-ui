@@ -19,9 +19,9 @@ Start with a composition when its behavior matches the task. Drop to Sheet primi
 
 ## Compositions stay headless where it matters
 
-Every Content forwards refs and DOM props. `viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive.
+Every Content forwards refs and DOM props and supports `asChild`. Supply your own `view`, `backdrop`, `handle`, and `bleedingBackground` elements where that part exists; Velvet composes primitive behavior onto those nodes.
 
-The supplied CSS establishes responsive geometry and safe-area behavior. Color and product layout remain overrideable through variables and classes.
+`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/custom-components).
 
 ## Imports
 

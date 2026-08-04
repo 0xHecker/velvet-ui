@@ -50,7 +50,7 @@
   transition:
     transform 0.42s var(--velvet-toast-ease),
     opacity 0.3s var(--velvet-toast-ease);
-  touch-action: none;
+  touch-action: auto;
   user-select: none;
   will-change: transform;
 }

@@ -2,7 +2,7 @@
 
 > Velvet UI is the @velvetui/react package: headless, native-feeling React sheets and toasts with resilient gestures, nested stacks, and spring motion.
 
-Install with `npm install @velvetui/react`. Start with the sheet or toast quick start, then use the focused package subpaths and CSS entries for the pieces your interface needs.
+Install with `npm install @velvetui/react` or `bun add @velvetui/react`. Start with the sheet or toast quick start, then use the focused package subpaths and CSS entries for the pieces your interface needs.
 
 ## Start here
 
@@ -22,13 +22,15 @@ Install with `npm install @velvetui/react`. Start with the sheet or toast quick 
 ## Documentation
 
 - [Overview](https://velvetui.co/docs): Velvet UI is a headless React sheet and toast toolkit built around composable primitives, resilient gestures, and WAAPI-driven motion. ([Markdown](https://velvetui.co/docs/overview.md))
-- [Installation](https://velvetui.co/docs/installation): Install Velvet UI, then add the base stylesheet once at your application boundary. ([Markdown](https://velvetui.co/docs/installation.md))
+- [Installation](https://velvetui.co/docs/installation): Install Velvet UI, then import the structural stylesheet required by the primitive or composition you use. ([Markdown](https://velvetui.co/docs/installation.md))
 - [Package exports](https://velvetui.co/docs/package-exports): Choose focused JavaScript and CSS entry points for smaller bundles, predictable style order, and server-rendered React applications. ([Markdown](https://velvetui.co/docs/package-exports.md))
 - [Server rendering](https://velvetui.co/docs/server-rendering): Keep routes server rendered while placing the smallest possible client boundary around interactive sheets, portals, and toast calls. ([Markdown](https://velvetui.co/docs/server-rendering.md))
 - [Styling](https://velvetui.co/docs/styling): Velvet exposes semantic classes and CSS custom properties so the component can inherit your design system without a styling runtime. ([Markdown](https://velvetui.co/docs/styling.md))
+- [Bring your own components](https://velvetui.co/docs/custom-components): Keep Velvet's gestures, focus, accessibility, and motion while your design system owns every visible element. ([Markdown](https://velvetui.co/docs/custom-components.md))
 - [CSS reference](https://velvetui.co/docs/css-reference): Use the stable CSS entries, variables, and semantic data hooks without depending on internal wrapper order. ([Markdown](https://velvetui.co/docs/css-reference.md))
 - [Sheet quick start](https://velvetui.co/docs/sheet-quick-start): A Sheet groups a trigger, portal, motion surface, accessible title, description, and close action under one controlled or uncontrolled state. ([Markdown](https://velvetui.co/docs/sheet-quick-start.md))
 - [Anatomy](https://velvetui.co/docs/anatomy): The primitive tree separates state, trigger, portal, view, backdrop, content, and accessible labels. ([Markdown](https://velvetui.co/docs/anatomy.md))
+- [Nested modal navigation](https://velvetui.co/docs/nested-modal-navigation): Keep a side sheet inside a centered modal with an independent native scrollbar, swipe-back through content, and separate Back and Close actions. ([Markdown](https://velvetui.co/docs/nested-modal-navigation.md))
 - [Gallery recipes](https://velvetui.co/docs/gallery-recipes): The gallery demonstrates production-shaped layouts such as bottom sheets, drawers, modals, detents, lightboxes, and persistent surfaces. ([Markdown](https://velvetui.co/docs/gallery-recipes.md))
 - [Open state](https://velvetui.co/docs/open-state): Sheets support uncontrolled defaults and controlled state for coordination with your router, form flow, or application state. ([Markdown](https://velvetui.co/docs/open-state.md))
 - [Placement](https://velvetui.co/docs/placement): The panel side determines both the origin and the dismiss direction: bottom, top, left, right, or center. ([Markdown](https://velvetui.co/docs/placement.md))
@@ -51,7 +53,7 @@ Install with `npm install @velvetui/react`. Start with the sheet or toast quick 
 - [Toast options](https://velvetui.co/docs/toast-options): Toast options control duration, description, action, close affordance, visual treatment, and stacked expansion. ([Markdown](https://velvetui.co/docs/toast-options.md))
 - [Toast promise](https://velvetui.co/docs/toast-promise): toast.promise binds an async result to one continuous feedback item with loading, success, and error states. ([Markdown](https://velvetui.co/docs/toast-promise.md))
 - [Toast API](https://velvetui.co/docs/toast-api): The toast API is a small imperative dispatcher with a single declarative renderer, Toaster. ([Markdown](https://velvetui.co/docs/toast-api.md))
-- [Scroll coordination](https://velvetui.co/docs/scroll): A scrollable sheet hands a downward drag to the sheet only when its internal scroll container has reached the top. ([Markdown](https://velvetui.co/docs/scroll.md))
+- [Scroll coordination](https://velvetui.co/docs/scroll): A scrollable sheet hands a drag to the sheet only when its internal Scroll.View reaches the matching boundary. ([Markdown](https://velvetui.co/docs/scroll.md))
 - [Scroll API](https://velvetui.co/docs/scroll-api): Coordinate nested scrolling, virtual keyboards, focus, progress, and imperative spring scrolling. ([Markdown](https://velvetui.co/docs/scroll-api.md))
 - [Sheet stacks](https://velvetui.co/docs/sheet-stack): SheetStack coordinates layering, backdrop ownership, focus restoration, and depth transforms for any number of nested sheets. ([Markdown](https://velvetui.co/docs/sheet-stack.md))
 - [Utilities](https://velvetui.co/docs/utilities): Utilities cover scroll coordination, visually hidden labels, autofocus targets, fixed surfaces, islands, and external overlays. ([Markdown](https://velvetui.co/docs/utilities.md))

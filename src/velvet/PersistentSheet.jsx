@@ -1,4 +1,5 @@
 import { cloneElement, forwardRef, isValidElement } from "react";
+import { mapSlottedChildren } from "./core/Slot.jsx";
 import { Scroll } from "./Scroll.jsx";
 import { Sheet } from "./Sheet.jsx";
 
@@ -24,9 +25,13 @@ const Content = forwardRef(function PersistentSheetContent(
   {
     children,
     portalProps,
+    view: viewSlot,
     viewProps,
+    backdrop = false,
+    backdropProps,
     handle = true,
     handleProps,
+    bleedingBackground = true,
     bleedingBackgroundProps,
     scroll = true,
     scrollRootProps,
@@ -36,21 +41,78 @@ const Content = forwardRef(function PersistentSheetContent(
   },
   forwardedRef
 ) {
+  const backdropNode =
+    backdrop === false || backdrop == null
+      ? null
+      : backdrop === true
+        ? <Sheet.Backdrop {...backdropProps} data-velvet-persistent-sheet="backdrop" />
+        : isValidElement(backdrop) && backdrop.type === Sheet.Backdrop
+          ? cloneElement(backdrop, {
+              ...backdropProps,
+              ...backdrop.props,
+              "data-velvet-persistent-sheet": "backdrop",
+            })
+          : (
+              <Sheet.Backdrop
+                {...backdropProps}
+                asChild
+                data-velvet-persistent-sheet="backdrop"
+              >
+                {backdrop}
+              </Sheet.Backdrop>
+            );
   const handleNode =
-    handle === false
+    handle === false || handle == null
       ? null
       : isValidElement(handle)
-        ? cloneElement(handle, {
-            ...handle.props,
-            "data-velvet-persistent-sheet": "handle",
-          })
+        ? handle.type === Sheet.Handle
+          ? cloneElement(handle, {
+              ...handleProps,
+              ...handle.props,
+              "data-velvet-persistent-sheet": "handle",
+            })
+          : (
+              <Sheet.Handle
+                {...handleProps}
+                asChild
+                data-velvet-persistent-sheet="handle"
+              >
+                {handle}
+              </Sheet.Handle>
+            )
         : (
             <Sheet.Handle
               {...handleProps}
               data-velvet-persistent-sheet="handle"
             />
           );
-  const body = scroll ? (
+  const backgroundNode =
+    bleedingBackground === false || bleedingBackground == null
+      ? null
+      : bleedingBackground === true
+        ? (
+            <Sheet.BleedingBackground
+              {...bleedingBackgroundProps}
+              data-velvet-persistent-sheet="background"
+            />
+          )
+        : isValidElement(bleedingBackground) &&
+            bleedingBackground.type === Sheet.BleedingBackground
+          ? cloneElement(bleedingBackground, {
+              ...bleedingBackgroundProps,
+              ...bleedingBackground.props,
+              "data-velvet-persistent-sheet": "background",
+            })
+          : (
+              <Sheet.BleedingBackground
+                {...bleedingBackgroundProps}
+                asChild
+                data-velvet-persistent-sheet="background"
+              >
+                {bleedingBackground}
+              </Sheet.BleedingBackground>
+            );
+  const renderBody = (authoredChildren) => scroll ? (
     <Scroll.Root
       {...scrollRootProps}
       data-velvet-persistent-sheet="scroll-root"
@@ -63,11 +125,51 @@ const Content = forwardRef(function PersistentSheetContent(
           {...scrollContentProps}
           data-velvet-persistent-sheet="scroll-content"
         >
-          {children}
+          {authoredChildren}
         </Scroll.Content>
       </Scroll.View>
     </Scroll.Root>
-  ) : children;
+  ) : authoredChildren;
+  const renderedContentChildren = mapSlottedChildren(
+    contentProps.asChild,
+    children,
+    (authoredChildren) => (
+      <>
+        {backgroundNode}
+        {handleNode}
+        {renderBody(authoredChildren)}
+      </>
+    ),
+    "PersistentSheet.Content"
+  );
+  const contentNode = (
+    <Sheet.Content
+      ref={forwardedRef}
+      {...contentProps}
+      data-velvet-persistent-sheet="content"
+    >
+      {renderedContentChildren}
+    </Sheet.Content>
+  );
+  const renderedViewChildren = viewSlot
+    ? mapSlottedChildren(
+        true,
+        viewSlot,
+        (viewChildren) => (
+          <>
+            {viewChildren}
+            {backdropNode}
+            {contentNode}
+          </>
+        ),
+        "PersistentSheet.Content view slot"
+      )
+    : (
+        <>
+          {backdropNode}
+          {contentNode}
+        </>
+      );
 
   return (
     <Sheet.Portal {...portalProps}>
@@ -79,20 +181,10 @@ const Content = forwardRef(function PersistentSheetContent(
         modal={false}
         nativeEdgeSwipePrevention
         {...viewProps}
+        asChild={Boolean(viewSlot)}
         data-velvet-persistent-sheet="view"
       >
-        <Sheet.Content
-          ref={forwardedRef}
-          {...contentProps}
-          data-velvet-persistent-sheet="content"
-        >
-          <Sheet.BleedingBackground
-            {...bleedingBackgroundProps}
-            data-velvet-persistent-sheet="background"
-          />
-          {handleNode}
-          {body}
-        </Sheet.Content>
+        {renderedViewChildren}
       </Sheet.View>
     </Sheet.Portal>
   );

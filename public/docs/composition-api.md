@@ -12,14 +12,17 @@ Compositions are small wrappers around Sheet primitives. They set good interacti
 | --- | --- | --- | --- | --- | --- |
 | `portalProps` | yes | yes | yes | yes | yes |
 | `viewProps` | yes | yes | yes | yes | yes |
-| `backdrop` / `backdropProps` | yes | no backdrop | yes | yes | yes |
-| `handle` / `handleProps` | yes | yes | yes | no | no |
-| `bleedingBackgroundProps` | yes | yes | yes | no | no |
+| `view` element slot | yes | yes | yes | yes | yes |
+| `backdrop` / `backdropProps` | on | off | on | on | on |
+| `handle` / `handleProps` | on | on | on | — | — |
+| `bleedingBackground` / props | on | on | on | — | — |
 | `scroll` | yes | yes | always | yes | no |
 | `scrollRootProps` | yes | yes | yes | yes | no |
 | `scrollViewProps` | yes | yes | yes | yes | no |
 | `scrollContentProps` | yes | yes | yes | yes | no |
 | `from` | no | no | no | yes | no |
+
+`on` and `off` describe the composition default, not whether the slot is available. A supported visual slot accepts `true`, `false`/`null`, or your React element.
 
 ## BottomSheet
 

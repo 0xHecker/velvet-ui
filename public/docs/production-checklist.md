@@ -17,6 +17,7 @@ Run this checklist before shipping a sheet family. It catches the failures that 
 ## Gestures and scroll
 
 - Slow drag, fast flick, cancelled drag, and direction reversal.
+- Start the dismissing swipe directly over text, cards, links, inputs, and blank space.
 - Scroll content to the middle: the sheet must not steal the gesture.
 - Scroll to the dismissal boundary: the next outward drag must transfer naturally.
 - Test mouse wheel, trackpad rubber-band, touch, keyboard paging, and scrollbar dragging.
@@ -34,7 +35,8 @@ Run this checklist before shipping a sheet family. It catches the failures that 
 
 ## Accessibility
 
-- Unique title and optional useful description.
+- Unique title and optional useful description for every Root.
+- Inspect nested dialogs: parent and child must each reference their own title.
 - Enter, Space, Escape, Tab, Shift+Tab, arrow and detent controls.
 - Focus enters the front sheet and returns to the correct trigger.
 - Background is inert only for modal sheets.
@@ -46,8 +48,9 @@ Run this checklist before shipping a sheet family. It catches the failures that 
 - Open at least three ordinary sheets and ten Depth Sheets.
 - Only the front layer reacts to Escape and outside interaction.
 - Every underlying layer stays visually bounded.
+- A custom Portal container stays clipped to its intended host at desktop and mobile sizes.
 - Third-party menus, date pickers, and tooltips remain interactive through ExternalOverlay.
-- Closing several layers restores focus in reverse order without jumping to the page.
+- Closing several layers restores focus in reverse order without jumping to the page or changing its scroll position.
 
 ## Performance
 

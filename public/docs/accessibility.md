@@ -40,6 +40,20 @@ Velvet supplies dialog semantics and interaction infrastructure, but accessible 
 </Sheet.Content>
 ```
 
+## Nested Root ownership
+
+`Sheet.Title` and `Sheet.Description` register with the nearest `Sheet.Root`. Keep the parent modal's labels outside a nested child Root, then give the child its own labels inside that Root. In development, Velvet warns when a presented View has neither a registered Title nor an explicit accessible label.
+
+```tsx
+<Sheet.Root>
+  <Sheet.Title>Component library</Sheet.Title>
+
+  <Sheet.Root>
+    <Sheet.Title>Component details</Sheet.Title>
+  </Sheet.Root>
+</Sheet.Root>
+```
+
 ## Dialog versus alert dialog
 
 `sheetRole="dialog"` is the ordinary default. Use `alertdialog` only when immediate attention is required and a decision blocks the workflow. Alert dialogs reject swipe dismissal by default; provide explicit actions and do not turn dismissal back on casually.

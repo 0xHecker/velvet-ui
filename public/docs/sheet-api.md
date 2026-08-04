@@ -39,8 +39,9 @@ Panel is the convenient composition of Portal, View, Backdrop, Content, and an o
 | `snapPoints` | detent or array | none |
 | `modal`, `dismissible`, `draggable` | boolean | View defaults |
 | `portal` | boolean | `true` |
-| `container` | Element or DocumentFragment | `document.body` |
+| `container` | Element, DocumentFragment, or React RefObject | `document.body` |
 | `portalProps`, `viewProps` | part props | — |
+| `view` | ref-forwarding React element | default View div |
 | `backdrop` | boolean or element | `true` |
 | `backdropProps` | Backdrop props | — |
 | `handle` | boolean or element | `true` |
@@ -63,6 +64,22 @@ Panel is the convenient composition of Portal, View, Backdrop, Content, and an o
   </Sheet.Panel>
 </Sheet.Root>
 ```
+
+## Sheet.Portal
+
+Portal accepts a resolved DOM host or a React ref. Passing a ref is the preferred form for a host rendered by the same component because it does not require callback-ref state.
+
+```tsx
+const portalHostRef = useRef<HTMLDivElement>(null);
+
+<div ref={portalHostRef} className="portal-host" />
+
+<Sheet.Portal container={portalHostRef}>
+  <Sheet.View side="right">...</Sheet.View>
+</Sheet.Portal>
+```
+
+If the ref is assigned during the same commit as an already-open sheet, Velvet waits for the ref and mounts the portal after it resolves. A supplied ref never silently falls back to document.body while its current value is null.
 
 ## Sheet.View
 
@@ -107,7 +124,7 @@ Panel is the convenient composition of Portal, View, Backdrop, Content, and an o
 
 | Part | Important props |
 | --- | --- |
-| `Sheet.Portal` | `container` |
+| `Sheet.Portal` | `container: Element | DocumentFragment | RefObject` |
 | `Sheet.Backdrop` | `travelAnimation`, `asChild` |
 | `Sheet.Content` | `travelAnimation`, `stackingAnimation`, `asChild` |
 | `Sheet.BleedingBackground` | normal div props, `asChild` |
@@ -132,6 +149,6 @@ Panel is the convenient composition of Portal, View, Backdrop, Content, and an o
 
 ## asChild contract
 
-The child becomes the real DOM node. It must accept the forwarded ref, className, style, ARIA attributes, disabled state, and event handlers.
+The child becomes the real DOM node. Pass one non-Fragment element and forward its ref, children, className, style, ARIA/data attributes, disabled state, and event handlers to the final DOM node.
 
-If a design-system Button merges handlers, call both handlers unless the consumer event is already prevented. Dropping Velvet’s handler makes the control look enabled while doing nothing.
+Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. See [Bring your own components](/docs/custom-components) for complete examples.

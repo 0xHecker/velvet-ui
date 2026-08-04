@@ -9,14 +9,15 @@ import type {
   PrimitiveProps,
   SheetBackdropProps,
   SheetComponent,
+  SheetComposedViewProps,
   SheetContentProps,
   SheetHandleProps,
+  SheetPartSlot,
   SheetPortalProps,
   SheetRootProps,
   SheetStackOutletProps,
   SheetStepProps,
   SheetTriggerProps,
-  SheetViewProps,
 } from "./sheet.js";
 import type { TravelAnimation } from "./motion.js";
 import type {
@@ -55,11 +56,13 @@ export interface DepthSheetPageProps extends SheetStackOutletProps {}
 
 export interface DepthSheetContentProps extends SheetContentProps {
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  backdrop?: boolean | React.ReactElement;
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
   backdropProps?: SheetBackdropProps;
-  handle?: boolean | React.ReactElement;
+  handle?: SheetPartSlot;
   handleProps?: SheetHandleProps;
+  bleedingBackground?: SheetPartSlot;
   bleedingBackgroundProps?: PrimitiveProps<HTMLDivElement>;
   scrollRootProps?: ScrollRootProps;
   scrollViewProps?: ScrollViewProps;

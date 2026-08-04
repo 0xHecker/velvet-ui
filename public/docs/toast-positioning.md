@@ -17,4 +17,4 @@ Position belongs to the `Toaster`, not individual messages. Choose one predictab
 <Toaster position="bottom-right" />
 ```
 
-Swipe directions follow the chosen edge by default. On mobile, bottom-center is usually easiest to reach; avoid covering persistent navigation or form submit controls.
+Corner positions accept left and right swipes by default; centered positions accept up and down. Pass `swipeDirections` to `Toaster` for the global policy or to one toast for a local override. On mobile, bottom-center is usually easiest to reach; avoid covering persistent navigation or form submit controls.

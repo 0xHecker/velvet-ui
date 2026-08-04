@@ -5,7 +5,14 @@ import { solveSpring } from "./core/spring.js";
 
 const GLYPH = { success: "✓", error: "✕", info: "i", warning: "!" };
 const DEFAULT_HOTKEY = ["altKey", "KeyT"];
-const INTERACTIVE = "button, a, input, textarea, select, [role='button']";
+const SWIPE_IGNORE = "input, textarea, select, [contenteditable]:not([contenteditable='false']), [data-velvet-toast-swipe-ignore]";
+const GESTURE_SLOP = 5;
+const SWIPE_DISTANCE = 70;
+const SWIPE_VELOCITY = 0.45;
+const VELOCITY_WINDOW = 120;
+const VELOCITY_SAMPLE_DISTANCE = 4;
+const toasterCounts = new WeakMap();
+const warnedToasterDocuments = new WeakSet();
 
 const cx = (...values) => values.filter(Boolean).join(" ");
 const cssLength = (value) => typeof value === "number" ? `${value}px` : value;
@@ -51,6 +58,31 @@ const matchesHotkey = (event, hotkey) => {
     }
     return event.code === key || event.key.toLowerCase() === String(key).toLowerCase();
   });
+};
+
+const recordGestureSample = (state, point, now = performance.now()) => {
+  state.samples.push({ point, time: now });
+  while (state.samples.length > 1 && now - state.samples[0].time > VELOCITY_WINDOW) {
+    state.samples.shift();
+  }
+  if (state.samples.length > 16) state.samples.splice(0, state.samples.length - 16);
+};
+
+// Measure the most recent meaningful motion instead of the last browser event.
+// Pointer streams can end with repeated coordinates or one-pixel jitter; both
+// should preserve the user's actual flick while a deliberate reversal should not.
+const gestureVelocity = (samples) => {
+  const latest = samples[samples.length - 1];
+  if (!latest) return 0;
+  for (let index = samples.length - 2; index >= 0; index--) {
+    const sample = samples[index];
+    const elapsed = latest.time - sample.time;
+    const distance = latest.point - sample.point;
+    if (elapsed > 0 && Math.abs(distance) >= VELOCITY_SAMPLE_DISTANCE) {
+      return distance / elapsed;
+    }
+  }
+  return 0;
 };
 
 // rAF-drive a value using the exact fixed-timestep spring shared with Sheet.
@@ -100,6 +132,8 @@ function ToastItem({
   const gesture = useRef(null);
   const animation = useRef(null);
   const fallbackListeners = useRef(null);
+  const suppressClick = useRef(false);
+  const suppressClickTimer = useRef(null);
   const currentOffset = useRef(0);
   const remaining = useRef(0);
   const exitMode = useRef(null);
@@ -195,7 +229,10 @@ function ToastItem({
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
   }, []);
-  useEffect(() => () => clearGestureStyles(), []);
+  useEffect(() => () => {
+    clearTimeout(suppressClickTimer.current);
+    clearGestureStyles();
+  }, []);
 
   useEffect(() => {
     remaining.current = ttl;
@@ -228,11 +265,13 @@ function ToastItem({
   const onPointerDown = (event) => {
     if (
       event.button !== 0 ||
+      gesture.current ||
+      (event.pointerType !== "mouse" && event.isPrimary === false) ||
       !dismissible ||
       removing ||
       (!hasHorizontalDirection && !hasVerticalDirection)
     ) return;
-    if (event.target instanceof Element && event.target.closest(INTERACTIVE)) return;
+    if (event.target instanceof Element && event.target.closest(SWIPE_IGNORE)) return;
     const element = ref.current;
     if (!element) return;
     animation.current?.cancel();
@@ -252,54 +291,87 @@ function ToastItem({
         : unresist(currentOffset.current),
       point,
       offset: currentOffset.current,
-      velocity: 0,
-      lastPoint: point,
-      lastTime: now,
+      startedAt: now,
+      activated: false,
+      samples: point == null ? [] : [{ point, time: now }],
+      lastNativeEvent: null,
     };
     element.style.transition = "none";
-    setDragging(true);
-    try {
-      element.setPointerCapture(event.pointerId);
-    } catch { }
     // Always keep the window fallback active. Pointer capture can be reported
     // as acquired and still be lost when a portalled toast is re-grabbed
     // during its return spring; duplicate bubbled moves are idempotent.
     addFallbackListeners();
   };
 
-  function moveGesture(event) {
+  function updateGesture(event) {
     const state = gesture.current;
-    if (!state || event.pointerId !== state.pointerId) return;
-    if (event.buttons === 0 && event.type === "pointermove") {
-      cancelGesture(event);
-      return;
-    }
-    if (!state.axis) {
-      const deltaX = event.clientX - state.startX;
-      const deltaY = event.clientY - state.startY;
-      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 3) return;
-      state.axis = Math.abs(deltaX) >= Math.abs(deltaY) ? "x" : "y";
+    if (!state || event.pointerId !== state.pointerId) return false;
+    const nativeEvent = event.nativeEvent || event;
+    if (state.lastNativeEvent === nativeEvent) return false;
+    state.lastNativeEvent = nativeEvent;
+    const deltaX = event.clientX - state.startX;
+    const deltaY = event.clientY - state.startY;
+    const distanceX = Math.abs(deltaX);
+    const distanceY = Math.abs(deltaY);
+    if (!state.activated) {
+      if (Math.max(distanceX, distanceY) < GESTURE_SLOP) return false;
+      const intendedAxis = state.axis || (distanceX >= distanceY ? "x" : "y");
+      // Leave cross-axis movement to the browser. This is what keeps vertical
+      // page scrolling natural when a touch begins on a corner toast.
+      if (
+        (intendedAxis === "x" && distanceY > distanceX) ||
+        (intendedAxis === "y" && distanceX > distanceY)
+      ) return false;
+      state.axis = intendedAxis;
       state.point = state.axis === "x" ? state.startX : state.startY;
-      state.lastPoint = state.point;
+      state.samples = [{ point: state.point, time: state.startedAt }];
       currentAxis.current = state.axis;
+      state.activated = true;
+      setDragging(true);
+      try {
+        ref.current?.setPointerCapture(state.pointerId);
+      } catch { }
     }
     const point = state.axis === "x" ? event.clientX : event.clientY;
     const raw = state.rawOrigin + point - state.point;
     const offset = isAllowed(raw, state.axis) ? raw : resist(raw);
-    const now = performance.now();
-    if (now > state.lastTime) {
-      state.velocity = (point - state.lastPoint) / (now - state.lastTime);
-      state.lastPoint = point;
-      state.lastTime = now;
-    }
+    recordGestureSample(state, point);
     state.offset = offset;
     paint(offset, state.axis);
     if (event.cancelable) event.preventDefault();
+    return true;
+  }
+
+  function moveGesture(event) {
+    const state = gesture.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    // `buttons` is meaningful for a mouse, but browsers commonly report zero
+    // for active touch and pen streams. A mouse move with no held button is a
+    // missed pointerup, so settle it as a release instead of stranding it.
+    if (event.pointerType === "mouse" && event.buttons === 0 && event.type === "pointermove") {
+      releaseGesture(event);
+      return;
+    }
+    updateGesture(event);
   }
 
   function releaseGesture(event) {
     const state = gesture.current;
     if (!state || event.pointerId !== state.pointerId) return;
+    // Some devices coalesce the final move into pointerup. Include that final
+    // coordinate before deciding on distance or velocity.
+    updateGesture(event);
+    if (state.activated) {
+      suppressClick.current = true;
+      clearTimeout(suppressClickTimer.current);
+      // A compatibility click, when one is generated, follows pointerup before
+      // the next timer task. Clear immediately afterward so the next real tap
+      // is never swallowed.
+      suppressClickTimer.current = setTimeout(() => {
+        suppressClick.current = false;
+        suppressClickTimer.current = null;
+      }, 0);
+    }
     gesture.current = null;
     clearFallbackListeners();
     setDragging(false);
@@ -313,10 +385,13 @@ function ToastItem({
       return;
     }
     const offset = state.offset;
-    const velocity = performance.now() - state.lastTime <= 80 ? state.velocity : 0;
+    const velocity = gestureVelocity(state.samples);
     const shouldDismiss =
       isAllowed(offset, state.axis) &&
-      (Math.abs(offset) > 70 || (isAllowed(velocity, state.axis) && Math.abs(velocity) > 0.45));
+      (Math.abs(offset) > SWIPE_DISTANCE ||
+        (Math.sign(velocity) === Math.sign(offset) &&
+          isAllowed(velocity, state.axis) &&
+          Math.abs(velocity) > SWIPE_VELOCITY));
     if (shouldDismiss) {
       exitMode.current = "swipe";
       setSwipingOut(true);
@@ -364,6 +439,15 @@ function ToastItem({
         clearGestureStyles();
       },
     });
+  }
+
+  function retainGestureAfterCaptureLoss(event) {
+    const state = gesture.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    // The window listeners are the ownership fallback. Losing element capture
+    // must not be interpreted as cancellation; pointercancel remains the
+    // browser's explicit cancellation signal.
+    addFallbackListeners();
   }
 
   useEffect(() => {
@@ -424,8 +508,8 @@ function ToastItem({
           ? "pan-y"
           : hasVerticalDirection
             ? "pan-x"
-            : undefined
-      : undefined,
+            : "auto"
+      : "auto",
   };
 
   return (
@@ -456,7 +540,15 @@ function ToastItem({
       onPointerMove={moveGesture}
       onPointerUp={releaseGesture}
       onPointerCancel={cancelGesture}
-      onLostPointerCapture={cancelGesture}
+      onLostPointerCapture={retainGestureAfterCaptureLoss}
+      onClickCapture={(event) => {
+        if (!suppressClick.current) return;
+        suppressClick.current = false;
+        clearTimeout(suppressClickTimer.current);
+        suppressClickTimer.current = null;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
     >
       {entry.custom ? (
         typeof entry.message === "function" ? entry.message(entry.id) : entry.message
@@ -572,6 +664,23 @@ export const Toaster = ({
 
   useEffect(() => subscribeToasts(setToasts), []);
   useEffect(() => {
+    const ownerDocument = portalHost?.ownerDocument;
+    if (!ownerDocument) return undefined;
+    const nextCount = (toasterCounts.get(ownerDocument) || 0) + 1;
+    toasterCounts.set(ownerDocument, nextCount);
+    if (nextCount > 1 && !warnedToasterDocuments.has(ownerDocument)) {
+      warnedToasterDocuments.add(ownerDocument);
+      console.warn(
+        "Velvet UI: multiple <Toaster> instances share one global toast store and will render duplicate notifications. Mount one <Toaster> per document."
+      );
+    }
+    return () => {
+      const count = (toasterCounts.get(ownerDocument) || 1) - 1;
+      if (count > 0) toasterCounts.set(ownerDocument, count);
+      else toasterCounts.delete(ownerDocument);
+    };
+  }, [portalHost]);
+  useEffect(() => {
     setDirection(resolveDirection(dir));
     if (dir !== "auto" || typeof MutationObserver === "undefined") return undefined;
     const observer = new MutationObserver(() => setDirection(resolveDirection("auto")));
@@ -593,14 +702,20 @@ export const Toaster = ({
     : resolvedPosition.endsWith("right")
       ? "right"
       : null;
-  const verticalEdge = resolvedPosition.endsWith("center") ? (bottom ? "bottom" : "top") : null;
-  const requestedDirections = swipeDirections || [horizontalEdge || verticalEdge].filter(Boolean);
-  const directionList = requestedDirections.map((value) => resolveSwipeDirection(value, direction));
-  const directions = {
-    up: directionList.includes("top"),
-    down: directionList.includes("bottom"),
-    left: directionList.includes("left"),
-    right: directionList.includes("right"),
+  // The default reserves only the natural dismissal axis, so vertical page
+  // scrolling remains available over corner toasts. Both directions on that
+  // axis are accepted: users should not have to discover one invisible edge.
+  const requestedDirections = swipeDirections ?? (horizontalEdge
+    ? ["left", "right"]
+    : ["top", "bottom"]);
+  const directionFlagsFor = (values) => {
+    const directionList = values.map((value) => resolveSwipeDirection(value, direction));
+    return {
+      up: directionList.includes("top"),
+      down: directionList.includes("bottom"),
+      left: directionList.includes("left"),
+      right: directionList.includes("right"),
+    };
   };
 
   const activeToasts = toasts.filter((entry) => entry.status === "active");
@@ -754,7 +869,7 @@ export const Toaster = ({
               paused={paused}
               bottom={bottom}
               duration={toastOptions.duration ?? duration}
-              directions={directions}
+              directions={directionFlagsFor(item.swipeDirections ?? requestedDirections)}
               position={resolvedPosition}
               closeButton={toastOptions.closeButton ?? closeButton}
               icons={icons}

@@ -4,17 +4,19 @@ import type {
   PrimitiveProps,
   SheetBackdropProps,
   SheetComponent,
+  SheetComposedViewProps,
   SheetContentProps,
   SheetPortalProps,
+  SheetPartSlot,
   SheetRootProps,
   SheetTriggerProps,
-  SheetViewProps,
 } from "./sheet.js";
 
 export interface LightboxContentProps extends SheetContentProps {
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  backdrop?: boolean | React.ReactElement;
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
   backdropProps?: SheetBackdropProps;
 }
 

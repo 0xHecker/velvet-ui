@@ -52,9 +52,10 @@ const compositionContentProps = `| Prop | Bottom | Persistent | Depth | Card | L
 | --- | --- | --- | --- | --- | --- |
 | \`portalProps\` | yes | yes | yes | yes | yes |
 | \`viewProps\` | yes | yes | yes | yes | yes |
-| \`backdrop\` / \`backdropProps\` | yes | no backdrop | yes | yes | yes |
-| \`handle\` / \`handleProps\` | yes | yes | yes | no | no |
-| \`bleedingBackgroundProps\` | yes | yes | yes | no | no |
+| \`view\` element slot | yes | yes | yes | yes | yes |
+| \`backdrop\` / \`backdropProps\` | on | off | on | on | on |
+| \`handle\` / \`handleProps\` | on | on | on | — | — |
+| \`bleedingBackground\` / props | on | on | on | — | — |
 | \`scroll\` | yes | yes | always | yes | no |
 | \`scrollRootProps\` | yes | yes | yes | yes | no |
 | \`scrollViewProps\` | yes | yes | yes | yes | no |
@@ -71,7 +72,7 @@ const toasterProps = `| Prop | Type | Default |
 | \`visibleToasts\` | number | \`3\` |
 | \`closeButton\` | boolean | \`true\` |
 | \`richColors\` | boolean | \`false\` |
-| \`swipeDirections\` | direction array | nearest viewport edge |
+| \`swipeDirections\` | direction array | both directions on the placement axis |
 | \`hotkey\` | key descriptor array or null | \`["altKey", "KeyT"]\` |
 | \`pauseWhenPageIsHidden\` | boolean | \`true\` |
 | \`dir\` | \`ltr \\| rtl \\| auto\` | \`auto\` |
@@ -91,6 +92,7 @@ const toastOptions = `| Option | Type | Notes |
 | \`announcement\` | string | Explicit screen-reader text |
 | \`duration\` | number | Loading is persistent until updated or dismissed |
 | \`dismissible\` | boolean | Controls swipe, Escape, and close affordance |
+| \`swipeDirections\` | direction array | Per-toast override of the Toaster policy |
 | \`important\` | boolean | Uses the assertive live region |
 | \`action\`, \`cancel\` | \`{ label, onClick }\` | Return \`false\` from action to keep it open |
 | \`closeButton\` | boolean | Per-toast override |
@@ -274,6 +276,105 @@ export function ProfileRoute() {
     ),
   ),
 
+  "custom-components": guide(
+    "Use Velvet for state, gestures, focus, accessibility, and motion while your design system owns every visible element. Buttons, surfaces, headings, backdrops, handles, and the outer View can all remain your components.",
+    section(
+      "Use your own buttons",
+      code("tsx", `const ProductButton = forwardRef(function ProductButton(
+  { tone = "neutral", ...props },
+  ref,
+) {
+  return <button ref={ref} data-tone={tone} {...props} />;
+});
+
+<Sheet.Root>
+  <Sheet.Trigger asChild>
+    <ProductButton tone="accent">Open filters</ProductButton>
+  </Sheet.Trigger>
+
+  <Sheet.Panel>
+    <Sheet.Title>Filters</Sheet.Title>
+    <Sheet.Close asChild>
+      <ProductButton tone="quiet">Done</ProductButton>
+    </Sheet.Close>
+  </Sheet.Panel>
+</Sheet.Root>`),
+      "\`Trigger\`, \`Close\`, \`Step\`, and \`Handle\` render a button by default. With \`asChild\`, your element is the button; Velvet composes its ref, action, disabled state, and ARIA attributes onto that same node.",
+    ),
+    section(
+      "Replace the entire Panel and its visual parts",
+      code("tsx", `<Sheet.Root>
+  <Sheet.Trigger asChild>
+    <ProductButton>Open workspace</ProductButton>
+  </Sheet.Trigger>
+
+  <Sheet.Panel
+    asChild
+    view={<ProductView><ViewDecoration /></ProductView>}
+    backdrop={<ProductBackdrop />}
+    handle={<ProductGrip aria-label="Resize workspace" />}
+    backdropProps={{ className: "workspace-dim" }}
+  >
+    <ProductSurface>
+      <Sheet.Title asChild><ProductHeading /></Sheet.Title>
+      <Workspace />
+      <Sheet.Close asChild><ProductButton>Done</ProductButton></Sheet.Close>
+    </ProductSurface>
+  </Sheet.Panel>
+</Sheet.Root>`),
+      "\`Sheet.Panel asChild\` makes \`ProductSurface\` the real content node. The \`view\`, \`backdrop\`, and \`handle\` elements become the real behavioral nodes too. Children authored inside a custom View are preserved before Velvet's backdrop and surface layers.",
+    ),
+    section(
+      "Do the same with a styled composition",
+      code("tsx", `import { BottomSheet } from "@velvetui/react/bottom-sheet";
+import "@velvetui/react/sheet.css";
+import "@velvetui/react/bottom-sheet.css";
+
+<BottomSheet.Root>
+  <BottomSheet.Trigger asChild>
+    <ProductButton>Open cart</ProductButton>
+  </BottomSheet.Trigger>
+
+  <BottomSheet.Content
+    asChild
+    view={<ProductView />}
+    backdrop={<ProductBackdrop />}
+    handle={<ProductGrip aria-label="Resize cart" />}
+    bleedingBackground={<ProductBackground />}
+  >
+    <ProductSurface>
+      <BottomSheet.Title>Your cart</BottomSheet.Title>
+      <Cart />
+      <BottomSheet.Close asChild>
+        <ProductButton>Checkout</ProductButton>
+      </BottomSheet.Close>
+    </ProductSurface>
+  </BottomSheet.Content>
+</BottomSheet.Root>`),
+      "The composition keeps its placement, scroll handoff, travel animation, and data hooks. Your elements keep their content, class names, inline styles, handlers, and refs. Use \`false\` or \`null\` for \`backdrop\`, \`handle\`, or \`bleedingBackground\` to remove that part; use \`true\` for Velvet's default part.",
+    ),
+    section(
+      "The asChild contract",
+      "Pass exactly one non-Fragment React element. A custom React component must forward the received ref and all DOM props to its final DOM node; React 18 consumers should use \`forwardRef\`. Velvet composes refs, concatenates class names, and lets the child's inline style override the same Velvet style key.",
+      "The child's event handler runs first. Calling \`event.preventDefault()\` intentionally cancels Velvet's action, which is useful for validation or unsaved-change gates. Replacing or swallowing the received handler makes a control appear interactive without opening or closing the sheet, so prop spreading is part of the component contract.",
+      code("tsx", `const ProductSurface = forwardRef(function ProductSurface(
+  { children, ...domProps },
+  ref,
+) {
+  return <section ref={ref} {...domProps}>{children}</section>;
+});`),
+    ),
+    section(
+      "Bring your own layout and scroll",
+      "Set \`scroll={false}\` on BottomSheet, PersistentSheet, or CardExpansion when your surface owns its layout. If long content should hand a boundary swipe to the sheet, compose \`Scroll.Root\`, \`Scroll.View\`, and \`Scroll.Content\` yourself. DepthSheet keeps coordinated scrolling as part of its navigation contract; primitive Sheet gives complete control over the tree.",
+      "Use \`viewProps\`, \`backdropProps\`, \`handleProps\`, \`bleedingBackgroundProps\`, \`scrollRootProps\`, \`scrollViewProps\`, and \`scrollContentProps\` for behavior or props on a specific layer. Use the dedicated \`view={<YourView />}\` slot—not \`viewProps.asChild\`—to replace the outer View element.",
+    ),
+    section(
+      "Fast debugging checklist",
+      "- The \`asChild\` value is one element, not a Fragment or sibling list.\n- The custom component forwards \`ref\`, \`children\`, event handlers, ARIA/data attributes, className, and style.\n- A click handler is not calling \`preventDefault()\` unintentionally.\n- Action controls are buttons, or have equivalent keyboard semantics; avoid \`href=\"#\"\`.\n- Structural \`sheet.css\` is still imported even when every visible part is custom.\n- Use \`scroll={false}\` only when your replacement layout handles overflow intentionally.",
+    ),
+  ),
+
   "css-reference": guide(
     "The public CSS contract consists of package CSS entries, custom properties, and semantic data attributes. Internal wrapper order is not part of the contract.",
     section("CSS entry points", code("css", cssImports)),
@@ -374,8 +475,9 @@ export function ProfileRoute() {
 | \`snapPoints\` | detent or array | none |
 | \`modal\`, \`dismissible\`, \`draggable\` | boolean | View defaults |
 | \`portal\` | boolean | \`true\` |
-| \`container\` | Element or DocumentFragment | \`document.body\` |
+| \`container\` | Element, DocumentFragment, or React RefObject | \`document.body\` |
 | \`portalProps\`, \`viewProps\` | part props | — |
+| \`view\` | ref-forwarding React element | default View div |
 | \`backdrop\` | boolean or element | \`true\` |
 | \`backdropProps\` | Backdrop props | — |
 | \`handle\` | boolean or element | \`true\` |
@@ -395,6 +497,18 @@ export function ProfileRoute() {
     <Sheet.Close>Apply</Sheet.Close>
   </Sheet.Panel>
 </Sheet.Root>`),
+    ),
+    section(
+      "Sheet.Portal",
+      "Portal accepts a resolved DOM host or a React ref. Passing a ref is the preferred form for a host rendered by the same component because it does not require callback-ref state.",
+      code("tsx", `const portalHostRef = useRef<HTMLDivElement>(null);
+
+<div ref={portalHostRef} className="portal-host" />
+
+<Sheet.Portal container={portalHostRef}>
+  <Sheet.View side="right">...</Sheet.View>
+</Sheet.Portal>`),
+      "If the ref is assigned during the same commit as an already-open sheet, Velvet waits for the ref and mounts the portal after it resolves. A supplied ref never silently falls back to document.body while its current value is null.",
     ),
     section("Sheet.View", viewProps),
     section(
@@ -418,7 +532,7 @@ export function ProfileRoute() {
       "Visual and action parts",
       `| Part | Important props |
 | --- | --- |
-| \`Sheet.Portal\` | \`container\` |
+| \`Sheet.Portal\` | \`container: Element \| DocumentFragment \| RefObject\` |
 | \`Sheet.Backdrop\` | \`travelAnimation\`, \`asChild\` |
 | \`Sheet.Content\` | \`travelAnimation\`, \`stackingAnimation\`, \`asChild\` |
 | \`Sheet.BleedingBackground\` | normal div props, \`asChild\` |
@@ -440,8 +554,8 @@ export function ProfileRoute() {
     ),
     section(
       "asChild contract",
-      "The child becomes the real DOM node. It must accept the forwarded ref, className, style, ARIA attributes, disabled state, and event handlers.",
-      "If a design-system Button merges handlers, call both handlers unless the consumer event is already prevented. Dropping Velvet’s handler makes the control look enabled while doing nothing.",
+      "The child becomes the real DOM node. Pass one non-Fragment element and forward its ref, children, className, style, ARIA/data attributes, disabled state, and event handlers to the final DOM node.",
+      "Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. See [Bring your own components](/docs/custom-components) for complete examples.",
     ),
   ),
 
@@ -592,7 +706,7 @@ export function ProfileRoute() {
     ),
     section(
       "asChild requirements",
-      "The single child receives the ref, click handler, disabled state, ARIA attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler.",
+      "The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/custom-components).",
     ),
     section(
       "onPress and onClick",
@@ -842,6 +956,17 @@ Object.assign(node.style, styles);`),
 </Sheet.Content>`),
     ),
     section(
+      "Nested Root ownership",
+      "`Sheet.Title` and `Sheet.Description` register with the nearest `Sheet.Root`. Keep the parent modal's labels outside a nested child Root, then give the child its own labels inside that Root. In development, Velvet warns when a presented View has neither a registered Title nor an explicit accessible label.",
+      code("tsx", `<Sheet.Root>
+  <Sheet.Title>Component library</Sheet.Title>
+
+  <Sheet.Root>
+    <Sheet.Title>Component details</Sheet.Title>
+  </Sheet.Root>
+</Sheet.Root>`),
+    ),
+    section(
       "Dialog versus alert dialog",
       "`sheetRole=\"dialog\"` is the ordinary default. Use `alertdialog` only when immediate attention is required and a decision blocks the workflow. Alert dialogs reject swipe dismissal by default; provide explicit actions and do not turn dismissal back on casually.",
     ),
@@ -857,7 +982,11 @@ Object.assign(node.style, styles);`),
 
   "composition-api": guide(
     "Compositions are small wrappers around Sheet primitives. They set good interaction defaults, emit stable data hooks, and expose the underlying part props instead of hiding them.",
-    section("Shared Content escape hatches", compositionContentProps),
+    section(
+      "Shared Content escape hatches",
+      compositionContentProps,
+      "`on` and `off` describe the composition default, not whether the slot is available. A supported visual slot accepts `true`, `false`/`null`, or your React element.",
+    ),
     section(
       "BottomSheet",
       "Parts: Root, Trigger, Content, Close, Step, Title, Description, Handle.",
@@ -928,8 +1057,8 @@ import "@velvetui/react/bottom-sheet.css";
     ),
     section(
       "Compositions stay headless where it matters",
-      "Every Content forwards refs and DOM props. `viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive.",
-      "The supplied CSS establishes responsive geometry and safe-area behavior. Color and product layout remain overrideable through variables and classes.",
+      "Every Content forwards refs and DOM props and supports `asChild`. Supply your own `view`, `backdrop`, `handle`, and `bleedingBackground` elements where that part exists; Velvet composes primitive behavior onto those nodes.",
+      "`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/custom-components).",
     ),
     section(
       "Imports",
@@ -1086,7 +1215,20 @@ try {
     section(
       "Positions and swipe directions",
       "Positions support top/bottom plus left/center/right, and logical `start`/`end` variants. Swipe directions support top, right, bottom, left, start, and end.",
-      "When `swipeDirections` is omitted, Velvet chooses the nearest viewport edge. Logical directions resolve from `dir`.",
+      "When `swipeDirections` is omitted, corner toasts accept left and right while centered toasts accept top and bottom. This keeps the cross axis available for page panning. Pass it to `Toaster` for the global policy or to one toast for a local override; logical directions resolve from `dir`.",
+    ),
+    section(
+      "Controls and custom content",
+      "A tap on a button or link activates it normally. Once movement passes the gesture slop, the same pointer stream becomes a toast swipe and its compatibility click is suppressed, so an action cannot fire accidentally after dismissal.",
+      "Inputs, textareas, selects, and editable content do not begin a toast swipe. Put `data-velvet-toast-swipe-ignore` on any additional custom region that must retain pointer ownership.",
+      code("tsx", `toast.custom(
+  <div className="upload-toast">
+    <span>Upload ready</span>
+    <div data-velvet-toast-swipe-ignore>
+      <InlineEditor />
+    </div>
+  </div>
+);`),
     ),
     section(
       "Promise phases",
@@ -1403,7 +1545,7 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     ),
     section(
       "Gestures and scroll",
-      "- Slow drag, fast flick, cancelled drag, and direction reversal.\n- Scroll content to the middle: the sheet must not steal the gesture.\n- Scroll to the dismissal boundary: the next outward drag must transfer naturally.\n- Test mouse wheel, trackpad rubber-band, touch, keyboard paging, and scrollbar dragging.\n- Confirm the native runway never becomes the visible product scrollbar.",
+      "- Slow drag, fast flick, cancelled drag, and direction reversal.\n- Start the dismissing swipe directly over text, cards, links, inputs, and blank space.\n- Scroll content to the middle: the sheet must not steal the gesture.\n- Scroll to the dismissal boundary: the next outward drag must transfer naturally.\n- Test mouse wheel, trackpad rubber-band, touch, keyboard paging, and scrollbar dragging.\n- Confirm the native runway never becomes the visible product scrollbar.",
     ),
     section(
       "Mobile viewport and keyboard",
@@ -1411,11 +1553,11 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     ),
     section(
       "Accessibility",
-      "- Unique title and optional useful description.\n- Enter, Space, Escape, Tab, Shift+Tab, arrow and detent controls.\n- Focus enters the front sheet and returns to the correct trigger.\n- Background is inert only for modal sheets.\n- Alert dialogs cannot disappear through an accidental swipe.\n- Reduced motion settles immediately without missing content.",
+      "- Unique title and optional useful description for every Root.\n- Inspect nested dialogs: parent and child must each reference their own title.\n- Enter, Space, Escape, Tab, Shift+Tab, arrow and detent controls.\n- Focus enters the front sheet and returns to the correct trigger.\n- Background is inert only for modal sheets.\n- Alert dialogs cannot disappear through an accidental swipe.\n- Reduced motion settles immediately without missing content.",
     ),
     section(
       "Stacks and portals",
-      "- Open at least three ordinary sheets and ten Depth Sheets.\n- Only the front layer reacts to Escape and outside interaction.\n- Every underlying layer stays visually bounded.\n- Third-party menus, date pickers, and tooltips remain interactive through ExternalOverlay.\n- Closing several layers restores focus in reverse order without jumping to the page.",
+      "- Open at least three ordinary sheets and ten Depth Sheets.\n- Only the front layer reacts to Escape and outside interaction.\n- Every underlying layer stays visually bounded.\n- A custom Portal container stays clipped to its intended host at desktop and mobile sizes.\n- Third-party menus, date pickers, and tooltips remain interactive through ExternalOverlay.\n- Closing several layers restores focus in reverse order without jumping to the page or changing its scroll position.",
     ),
     section(
       "Performance",
@@ -1427,11 +1569,15 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     "Most failures come from missing structural CSS, swallowed refs, unclear state ownership, or the wrong overflow element. Check these before tuning springs.",
     section(
       "The trigger renders but nothing opens",
-      "Confirm `base.css` or `styles.css` is loaded. Verify the trigger is inside the same Root. If using `asChild`, confirm the child forwards its ref and click props.",
+      "Confirm `sheet.css`, `base.css`, or `styles.css` is loaded. Verify the trigger is inside the same Root. If using `asChild`, confirm the child forwards its ref and click props.",
     ),
     section(
       "The sheet looks unstyled",
       "The headless package intentionally supplies mechanics only. Import the matching composition CSS, use `styles.css`, or author a product class on Content or Panel.",
+    ),
+    section(
+      "Each toast appears twice",
+      "Mount exactly one `Toaster` per document. Every Toaster subscribes to the same global toast store, so two renderers intentionally produce two visual copies. Velvet logs a direct warning when it detects this setup.",
     ),
     section(
       "The controlled sheet snaps back",
@@ -1440,6 +1586,26 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     section(
       "Scroll and swipe fight each other",
       "Use one real overflow container through Scroll.View and set `tracks=\"auto\"` on the Sheet.View. Remove intermediate vertical scrollers.",
+    ),
+    section(
+      "Swipe works beside the content but not over it",
+      "Leave `scrollGestureTrap` at its default `false` when a right or left sheet contains a vertical scroller. If vertical chaining must stop, use `scrollGestureTrap={{ y: true }}`; never use `true`, which traps both axes. Remove application CSS such as `overscroll-behavior: contain`, then test the swipe by starting directly over a paragraph or card.",
+    ),
+    section(
+      "The nested sheet has no scrollbar",
+      "Give the modal body and nested View a bounded height, then use exactly one `Scroll.Root → Scroll.View → Scroll.Content` chain. Every flex ancestor above Scroll.View needs `min-height: 0`; Scroll.View is the element that receives `overflow-y: auto` and scrollbar styling.",
+    ),
+    section(
+      "Clicking Back or Close jumps the page",
+      "Use a real `<button type=\"button\">`. An anchor with `href=\"#\"` navigates to the document top, and a button without an explicit type submits its nearest form. Do not repair either behavior with preventDefault; give the control the correct semantics.",
+    ),
+    section(
+      "The child dialog has the parent's title",
+      "Titles register with the nearest Root. Render the parent Title and Description before the child `Sheet.Root`, then render a separate Title and Description inside the child Root.",
+    ),
+    section(
+      "The nested sheet escapes the parent modal",
+      "Create a clipped, positioned portal host inside the modal and pass its ref directly: `<Sheet.Portal container={nestedHostRef}>`. Position the nested View absolutely so it resolves against that host instead of the viewport.",
     ),
     section(
       "A bottom action is hidden on mobile",

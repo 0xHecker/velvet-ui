@@ -6,7 +6,8 @@ const guide = (...content) => content.filter(Boolean).join("\n\n");
 
 const install = `npm install @velvetui/react
 # pnpm add @velvetui/react
-# yarn add @velvetui/react`;
+# yarn add @velvetui/react
+# bun add @velvetui/react`;
 
 const rootSetup = `import "@velvetui/react/styles.css";
 import { Toaster } from "@velvetui/react/toast";
@@ -36,6 +37,186 @@ export function SettingsSheet() {
     </Sheet.Root>
   );
 }`;
+
+const nestedModalNavigation = `import { useRef, useState } from "react";
+import { Sheet } from "@velvetui/react/sheet";
+import { Scroll } from "@velvetui/react/utilities";
+import "@velvetui/react/sheet.css";
+
+export function StudioLibrary() {
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [articleOpen, setArticleOpen] = useState(false);
+  const nestedHostRef = useRef(null);
+
+  const closeAll = () => {
+    setArticleOpen(false);
+    setLibraryOpen(false);
+  };
+
+  return (
+    <Sheet.Root open={libraryOpen} onOpenChange={setLibraryOpen}>
+      <Sheet.Trigger type="button">Open library</Sheet.Trigger>
+
+      <Sheet.Portal>
+        <Sheet.View
+          side="center"
+          tracks="auto"
+          swipeOvershoot={false}
+          onClickOutside={{ dismiss: false }}
+        >
+          <Sheet.Backdrop />
+          <Sheet.Content className="library-modal">
+            {/* Parent labels must stay outside the nested Root. */}
+            <header className="library-header">
+              <div>
+                <Sheet.Title>Studio library</Sheet.Title>
+                <Sheet.Description>Notes from the studio.</Sheet.Description>
+              </div>
+              <Sheet.Close type="button" aria-label="Close library">×</Sheet.Close>
+            </header>
+
+            <Sheet.Root open={articleOpen} onOpenChange={setArticleOpen}>
+              <Scroll.Root className="library-scroll-root">
+                <Scroll.View className="library-scroll-view">
+                  <Scroll.Content>
+                    <button type="button" onClick={() => setArticleOpen(true)}>
+                      Read launch notes
+                    </button>
+                  </Scroll.Content>
+                </Scroll.View>
+              </Scroll.Root>
+
+              <div ref={nestedHostRef} className="nested-portal-host" />
+
+              <Sheet.Portal container={nestedHostRef}>
+                <Sheet.View
+                  className="nested-detail-view"
+                  side="right"
+                  nativeEdgeSwipePrevention
+                  swipeOvershoot={false}
+                  onClickOutside={{ dismiss: false }}
+                >
+                  <Sheet.Backdrop />
+                  <Sheet.Content className="nested-detail-panel">
+                    <header className="detail-header">
+                      <Sheet.Close type="button" aria-label="Back to library">←</Sheet.Close>
+                      <Sheet.Title>Launch notes</Sheet.Title>
+                      <button type="button" aria-label="Close library" onClick={closeAll}>×</button>
+                    </header>
+
+                    <Scroll.Root className="detail-scroll-root">
+                      <Scroll.View
+                        className="detail-scroll-view"
+                        scrollGestureTrap={{ y: true }}
+                      >
+                        <Scroll.Content><Article /></Scroll.Content>
+                      </Scroll.View>
+                    </Scroll.Root>
+                  </Sheet.Content>
+                </Sheet.View>
+              </Sheet.Portal>
+            </Sheet.Root>
+          </Sheet.Content>
+        </Sheet.View>
+      </Sheet.Portal>
+    </Sheet.Root>
+  );
+}`;
+
+const nestedModalCss = `.library-modal {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: min(64rem, calc(100vw - 2rem));
+  height: min(48rem, calc(var(--velvet-100lvh) - 2rem));
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border-radius: 1.75rem;
+  background: white;
+}
+
+.library-header,
+.detail-header { flex: none; }
+
+.library-scroll-root,
+.detail-scroll-root {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.library-scroll-view,
+.detail-scroll-view {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nested-portal-host {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.nested-detail-view { position: absolute !important; }
+
+.nested-detail-panel {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border-radius: inherit;
+  background: white;
+}
+
+@media (max-width: 700px) {
+  .library-modal {
+    width: 100vw;
+    height: var(--velvet-100lvh);
+    border-radius: 0;
+  }
+}`;
+
+const nestedModalTailwind = `// The component tree is identical; replace the structural classes only.
+<Sheet.Content className="relative isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
+  <header className="shrink-0">...</header>
+
+  <Sheet.Root open={articleOpen} onOpenChange={setArticleOpen}>
+    <Scroll.Root className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <Scroll.View className="h-full min-h-0 overflow-y-auto [scrollbar-gutter:stable]">
+        <Scroll.Content>...</Scroll.Content>
+      </Scroll.View>
+    </Scroll.Root>
+
+    <div ref={nestedHostRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]" />
+    <Sheet.Portal container={nestedHostRef}>
+      <Sheet.View className="!absolute" side="right" nativeEdgeSwipePrevention>
+        <Sheet.Content className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
+          <header className="shrink-0">...</header>
+          <Scroll.Root className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <Scroll.View
+              className="h-full min-h-0 overflow-y-auto [scrollbar-gutter:stable]"
+              scrollGestureTrap={{ y: true }}
+            >
+              <Scroll.Content><Article /></Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
+        </Sheet.Content>
+      </Sheet.View>
+    </Sheet.Portal>
+  </Sheet.Root>
+</Sheet.Content>`;
 
 const compositionImports = `import { BottomSheet } from "@velvetui/react/bottom-sheet";
 import { CardExpansion } from "@velvetui/react/card-expansion";
@@ -87,7 +268,7 @@ const EDITORIAL_GUIDES = {
     section(
       "Verify the setup",
       code("tsx", basicSheet),
-      "If the trigger renders but nothing opens, confirm that `base.css` is loaded and that no ancestor applies `display: none` or a global `pointer-events: none` rule to portal content.",
+      "If the trigger renders but nothing opens, confirm that `sheet.css`, `base.css`, or `styles.css` is loaded and that no ancestor applies `display: none` or a global `pointer-events: none` rule to portal content.",
     ),
   ),
 
@@ -112,6 +293,7 @@ const EDITORIAL_GUIDES = {
     ),
     section(
       "Tailwind CSS v4",
+      code("css", `@import "tailwindcss";`),
       code("tsx", `<Sheet.Panel
   side="bottom"
   className="mx-auto w-full max-w-2xl rounded-t-[28px] bg-white p-6 text-slate-950 shadow-2xl"
@@ -197,6 +379,39 @@ const EDITORIAL_GUIDES = {
     section(
       "What must remain intact",
       "Forward refs through custom children, keep the real scroll element identifiable, and render `Title` even when it is visually hidden. Those three details prevent most integration failures.",
+    ),
+  ),
+
+  "nested-modal-navigation": guide(
+    "A nested side sheet can stay physically inside a centered modal while retaining native scrolling, swipe-back, focus ownership, and independent Back and Close actions.",
+    section(
+      "Complete React structure",
+      code("tsx", nestedModalNavigation),
+      "`Sheet.Portal` accepts either a resolved element or a React ref. Passing the ref directly avoids callback-ref state and the extra guarded render that older recipes needed.",
+    ),
+    section(
+      "Required layout CSS",
+      code("css", nestedModalCss),
+      "The portal host establishes the clipping boundary. The nested View must be absolute because a normal Sheet.View is viewport-fixed. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.",
+    ),
+    section(
+      "Tailwind CSS v4",
+      code("css", `@import "tailwindcss";`),
+      code("tsx", nestedModalTailwind),
+      "Keep `import \"@velvetui/react/sheet.css\"` in the JavaScript entry. Tailwind owns the authored surface; Velvet's stylesheet owns gesture tracks, portal mechanics, modality, and Scroll coordination.",
+    ),
+    section(
+      "Live package examples",
+      "- [Open the plain CSS StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview)\n- [Open the Tailwind CSS v4 StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview)",
+      "Both projects install `@velvetui/react` from npm. They do not alias the package to repository source or copy Velvet's internals into the example.",
+    ),
+    section(
+      "Rules that prevent the common failures",
+      "- Put the parent `Sheet.Title` and `Sheet.Description` before the child `Sheet.Root`; labels always register with the nearest Root.\n- Use exactly one `Scroll.Root → Scroll.View → Scroll.Content` chain per scrolling layer.\n- Give every Back, Close, and row trigger `type=\"button\"`; `href=\"#\"` causes page jumps and an implicit submit button can trigger a form.\n- Never use `scrollGestureTrap={true}` for a full-page horizontal child. Leave it `false`, or use `{ y: true }` to contain only vertical chaining while horizontal swipe-back remains available over paragraphs, cards, and controls.\n- Style the scrollbar on `Scroll.View`; it is the real browser overflow element.\n- Control both roots only when a child action must close the complete flow. A child `Sheet.Close` should otherwise dismiss only the child.",
+    ),
+    section(
+      "Mobile check",
+      "Test after a cold reload on a phone. Scroll the article from the middle, swipe back beginning directly over text, use Back to preserve the parent modal, use Close to leave both layers, and confirm the page and parent scroll positions never change.",
     ),
   ),
 
@@ -672,7 +887,7 @@ toast.success("Uploaded", { id });`),
 <Toaster position="bottom-left" />
 <Toaster position="bottom-center" />
 <Toaster position="bottom-right" />`),
-      "Swipe directions follow the chosen edge by default. On mobile, bottom-center is usually easiest to reach; avoid covering persistent navigation or form submit controls.",
+      "Corner positions accept left and right swipes by default; centered positions accept up and down. Pass `swipeDirections` to `Toaster` for the global policy or to one toast for a local override. On mobile, bottom-center is usually easiest to reach; avoid covering persistent navigation or form submit controls.",
     ),
   ),
 
@@ -724,6 +939,20 @@ toast.success("Uploaded", { id });`),
       "Toaster values",
       "- `position` — six viewport positions.\n- `duration` — default timeout in milliseconds.\n- `visibleToasts` — maximum visible stack.\n- `gap` — space between expanded items.\n- `richColors`, `closeButton`, `stack`, `expand`, and `swipeDirections`.",
     ),
+    section(
+      "Swipe and controls",
+      "Buttons and links still respond to a tap or click. Dragging from the same control dismisses the toast and suppresses its click, so the action never fires by accident. Corner toasts use the horizontal axis by default; centered toasts use the vertical axis.",
+      "Inputs, textareas, selects, and editable content keep pointer ownership. Add `data-velvet-toast-swipe-ignore` to any other custom region that must not begin a swipe.",
+      code("tsx", `<Toaster swipeDirections={["right"]} />
+
+toast("Archived", { swipeDirections: ["left"] });
+
+toast.custom(
+  <div data-velvet-toast-swipe-ignore>
+    <InlineEditor />
+  </div>
+);`),
+    ),
   ),
 
   scroll: guide(
@@ -748,6 +977,11 @@ toast.success("Uploaded", { id });`),
   <Composer />
 </Scroll.View>`),
       "Also use `interactive-widget=resizes-content` in the viewport meta tag. Keep the composer inside the visual-viewport-aware surface so focused inputs remain reachable.",
+    ),
+    section(
+      "Horizontal swipe through vertical content",
+      "For a right or left sheet whose body scrolls vertically, leave `scrollGestureTrap` at its default `false` and keep `scrollGestureOvershoot` at its default `true`. Cross-axis containment on a page-sized Scroll.View blocks swipe-back when the gesture begins over text or cards.",
+      "When vertical chaining must be contained, use `scrollGestureTrap={{ y: true }}`. It contains the scrolling axis while leaving horizontal swipe-back open; never use `scrollGestureTrap={true}` on the full sheet body.",
     ),
   ),
 
@@ -796,13 +1030,13 @@ toast.success("Uploaded", { id });`),
   changelog: guide(
     "A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.",
     section(
-      "Unreleased",
+      "0.2.0 · 2026-08-04",
       "### Documentation",
-      "- Moved every guide to its own server-rendered route.\n- Added a Markdown response for every page at `/docs/<slug>.md`.\n- Added View as Markdown and Copy Markdown controls.\n- Added practical guides for CSS, Tailwind CSS v4, Styled Components, nesting, accessibility, and every homepage composition.\n- Documented framework-free motion, React motion hooks, interruption, failure behavior, focused CSS, and the complete Depth contract.",
+      "- Moved every guide to its own server-rendered route.\n- Added a Markdown response for every page at `/docs/<slug>.md`.\n- Added View as Markdown and Copy Markdown controls.\n- Added complete nested-modal navigation recipes for plain CSS and Tailwind CSS v4.\n- Added a bring-your-own-components guide covering custom actions, surfaces, Views, visual parts, layouts, refs, and event precedence.\n- Added Bun alongside npm, pnpm, and Yarn in installation examples.\n- Documented label ownership, native scrollbar placement, swipe-back through content, button semantics, and mobile verification.\n- Documented framework-free motion, React motion hooks, interruption, failure behavior, focused CSS, and the complete Depth contract.",
       "### Library",
-      "- Split the sheet runtime into state, motion, gesture, modal, and focus controllers.\n- Added document-scoped managers so multiple documents and embedded previews remain isolated.\n- Added framework-free `motion`, React-only `motion/react`, and focused `utilities` entry points.\n- Added interruptible WAAPI playback, safe spring sampling, travel interpolation, and lifecycle-owned motion hooks.\n- Renamed the Depth contract to `depthSheetVariables`, `depthSheetDefaultTokens`, and `depthSheetStackingAnimation`.\n- Added focused `sheet.css`, `toast.css`, and `toast-theme.css` entries alongside the convenience bundles.\n- Added tree-shakable entry points for the supplied compositions.",
+      "- `Sheet.Portal` and `Sheet.Panel` now accept a React ref directly as their container.\n- `Sheet.Panel` and every styled composition now accept a custom `view` element while retaining gesture, focus, and modal behavior.\n- Backdrop, handle, and bleeding-background slots accept custom elements; `false` or `null` removes an optional part.\n- `Sheet.Panel asChild` and composition `Content asChild` support fully custom, ref-forwarding surface components.\n- Persistent Sheet exposes an optional backdrop slot while remaining non-modal and backdrop-free by default.\n- Added a development diagnostic for a presented View without a registered Title.\n- Split the sheet runtime into state, motion, gesture, modal, and focus controllers.\n- Added document-scoped managers so multiple documents and embedded previews remain isolated.\n- Added framework-free `motion`, React-only `motion/react`, and focused `utilities` entry points.\n- Added interruptible WAAPI playback, safe spring sampling, travel interpolation, and lifecycle-owned motion hooks.\n- Renamed the Depth contract to `depthSheetVariables`, `depthSheetDefaultTokens`, and `depthSheetStackingAnimation`.\n- Added focused `sheet.css`, `toast.css`, and `toast-theme.css` entries alongside the convenience bundles.\n- Added tree-shakable entry points for the supplied compositions.\n- Added per-toast `swipeDirections` overrides and a duplicate-Toaster runtime diagnostic.\n- Minified published JavaScript with repeated standards-safe Terser passes and every CSS entry with Lightning CSS, without property-name mangling or unsafe transforms.",
       "### Fixed",
-      "- Restored the shared trigger-geometry helper after the controller split.\n- Removed the obsolete SPA entry that could override TanStack Start SSR during development.",
+      "- Removed stale pure annotations from published chunks so consumer Rollup builds remain warning-free.\n- Fixed `Sheet.View asChild` forwarding and custom Panel/composition surfaces with injected mechanics.\n- Preserved custom View children and composition backdrop travel when replacing visual parts.\n- Made opener capture and focus restoration deterministic for custom triggers, including motion-skipped exits.\n- Kept horizontal swipe-back available when a gesture starts over vertically scrollable sheet content.\n- Prevented non-text focus and sheet action clicks from resetting coordinated content to the top.\n- Hardened Toast swipes against duplicate fallback events, touch streams reporting `buttons: 0`, coalesced pointer-up coordinates, pointer-capture loss, direction reversal, and secondary-pointer takeover.\n- Made Toast dismissal bidirectional on its natural placement axis, allowed swipes to begin on action controls without firing them, and stopped non-dismissible toasts from blocking mobile page panning.\n- Added a clear development error for invalid `asChild` children.\n- Restored the shared trigger-geometry helper after the controller split.\n- Removed the obsolete SPA entry that could override TanStack Start SSR during development.",
     ),
     section(
       "0.1.0 · Initial preview",

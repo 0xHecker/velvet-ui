@@ -3,10 +3,21 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transform as transformCss } from "lightningcss";
 import react from "@vitejs/plugin-react";
+import { minify as minifyJs } from "terser";
 import { defineConfig } from "vite";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const emptyToastCssId = "\0velvet:empty-toast-css";
+// Favor repeated standards-safe compression. `unsafe_*`, getter assumptions,
+// and property mangling save negligible bytes here while risking consumer code.
+const terserOptions = {
+  compress: {
+    passes: 10,
+  },
+  format: {
+    comments: false,
+  },
+};
 
 function inlineCss(file, seen = new Set()) {
   const absolute = resolve(file);
@@ -78,6 +89,36 @@ function explicitCssEntries() {
   };
 }
 
+function finalizePublishedJavaScript() {
+  return {
+    name: "velvet-finalize-published-javascript",
+    async generateBundle(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== "chunk") continue;
+        // Rollup adds JSX purity annotations before Terser runs. After
+        // compression, some comments no longer sit immediately
+        // before the expression they describe. A consumer build then warns
+        // about every misplaced annotation before removing it. The library is
+        // already fully tree-shaken and minified at this point, so stripping
+        // these comments keeps the published syntax clean without changing
+        // runtime code.
+        const cleanCode = output.code.replace(
+          /\/\*\s*[@#]__PURE__\s*\*\//g,
+          ""
+        );
+        const result = await minifyJs(cleanCode, {
+          ...terserOptions,
+          module: output.fileName.endsWith(".js"),
+        });
+        if (!result.code) {
+          throw new Error(`Terser emitted no code for ${output.fileName}`);
+        }
+        output.code = result.code;
+      }
+    },
+  };
+}
+
 const externalReact = (id) =>
   id === "react" ||
   id.startsWith("react/") ||
@@ -85,27 +126,14 @@ const externalReact = (id) =>
   id.startsWith("react-dom/");
 
 export default defineConfig({
-  plugins: [explicitCssEntries(), react()],
+  plugins: [explicitCssEntries(), react(), finalizePublishedJavaScript()],
   build: {
     copyPublicDir: false,
     emptyOutDir: true,
     minify: "terser",
     sourcemap: false,
     target: "es2019",
-    terserOptions: {
-      compress: {
-        passes: 5,
-        pure_getters: true,
-        unsafe_arrows: true,
-        unsafe_methods: true,
-      },
-      mangle: {
-        toplevel: true,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    terserOptions,
     lib: {
       entry: {
         index: resolve(root, "src/velvet/entries/index.ts"),

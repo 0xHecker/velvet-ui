@@ -2,14 +2,16 @@ import * as React from "react";
 import { PersistentSheet as persistentSheetRuntime } from "../PersistentSheet.jsx";
 import type {
   PrimitiveProps,
+  SheetBackdropProps,
   SheetComponent,
+  SheetComposedViewProps,
   SheetContentProps,
   SheetHandleProps,
+  SheetPartSlot,
   SheetPortalProps,
   SheetRootProps,
   SheetStepProps,
   SheetTriggerProps,
-  SheetViewProps,
 } from "./sheet.js";
 import type {
   ScrollContentProps,
@@ -19,9 +21,13 @@ import type {
 
 export interface PersistentSheetContentProps extends SheetContentProps {
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  handle?: boolean | React.ReactElement;
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
+  backdropProps?: SheetBackdropProps;
+  handle?: SheetPartSlot;
   handleProps?: SheetHandleProps;
+  bleedingBackground?: SheetPartSlot;
   bleedingBackgroundProps?: PrimitiveProps<HTMLDivElement>;
   scroll?: boolean;
   scrollRootProps?: ScrollRootProps;

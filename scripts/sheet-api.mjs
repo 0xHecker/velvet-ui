@@ -189,7 +189,109 @@ try {
   );
 
   await page.evaluate(async () => {
+    const host = document.createElement("div");
+    host.id = "portal-ref-fixture";
+    document.body.appendChild(host);
+    const { ReactModule, createRoot } = await window.__sheetApiLoadReact();
+    const { Sheet } = await import("/src/velvet/index.js");
+    const h = ReactModule.createElement;
+    const portalHostRef = ReactModule.createRef();
+    const root = createRoot(host);
+    window.__portalRefRoot = root;
+    root.render(
+      h(
+        "div",
+        null,
+        h("div", { id: "portal-ref-host", ref: portalHostRef }),
+        h(
+          Sheet.Root,
+          { defaultOpen: true },
+          h(
+            Sheet.Portal,
+            { container: portalHostRef },
+            h(
+              Sheet.View,
+              { enteringAnimationSettings: { skip: true } },
+              h(
+                Sheet.Content,
+                { id: "portal-ref-content" },
+                h(Sheet.Title, null, "Ref-hosted sheet")
+              )
+            )
+          )
+        )
+      )
+    );
+  });
+  await page.waitForSelector("#portal-ref-content");
+  const portalRefResult = await page.evaluate(() => ({
+    insideHost: Boolean(
+      document.querySelector("#portal-ref-host > [data-velvet=\"view\"]")
+    ),
+    labelledBy: document
+      .querySelector("#portal-ref-content")
+      ?.closest('[data-velvet="view"]')
+      ?.getAttribute("aria-labelledby"),
+  }));
+  check(
+    "Portal accepts a React ref without stateful element plumbing",
+    portalRefResult.insideHost && Boolean(portalRefResult.labelledBy),
+    JSON.stringify(portalRefResult)
+  );
+
+  await page.evaluate(async () => {
+    window.__portalRefRoot?.unmount();
+    window.__portalRefRoot = null;
+    document.getElementById("portal-ref-fixture")?.remove();
+    const host = document.createElement("div");
+    host.id = "missing-title-fixture";
+    document.body.appendChild(host);
+    window.__missingTitleWarnings = [];
+    window.__missingTitleOriginalWarn = console.warn;
+    console.warn = (...parts) => {
+      window.__missingTitleWarnings.push(parts.join(" "));
+      window.__missingTitleOriginalWarn(...parts);
+    };
+    const { ReactModule, createRoot } = await window.__sheetApiLoadReact();
+    const { Sheet } = await import("/src/velvet/index.js");
+    const h = ReactModule.createElement;
+    const root = createRoot(host);
+    window.__missingTitleRoot = root;
+    root.render(
+      h(
+        Sheet.Root,
+        { defaultOpen: true },
+        h(
+          Sheet.Portal,
+          null,
+          h(
+            Sheet.View,
+            { enteringAnimationSettings: { skip: true } },
+            h(Sheet.Content, null, "Missing title")
+          )
+        )
+      )
+    );
+  });
+  await page.waitForFunction(() => window.__missingTitleWarnings.length > 0);
+  const titleDiagnostic = await page.evaluate(() => {
+    const warning = window.__missingTitleWarnings.find((message) =>
+      message.includes("parent title outside the child")
+    );
+    console.warn = window.__missingTitleOriginalWarn;
+    return warning;
+  });
+  check(
+    "a missing Sheet.Title produces a nested-root ownership diagnostic",
+    Boolean(titleDiagnostic),
+    titleDiagnostic || "warning missing"
+  );
+
+  await page.evaluate(async () => {
     document.getElementById("root")?.remove();
+    window.__missingTitleRoot?.unmount();
+    window.__missingTitleRoot = null;
+    document.getElementById("missing-title-fixture")?.remove();
     const host = document.createElement("div");
     host.id = "sheet-api-root";
     document.body.appendChild(host);
@@ -938,7 +1040,13 @@ try {
     );
   });
   await page.waitForSelector("#trapped-side-page");
-  await page.waitForFunction(() => window.__gestureTrapWarnings.length > 0).catch(() => {});
+  await page
+    .waitForFunction(() =>
+      window.__gestureTrapWarnings.some((message) =>
+        message.includes("preserve swipe-back")
+      )
+    )
+    .catch(() => {});
   const trapDiagnostic = await page.evaluate(() => ({
     handoff: document
       .querySelector("#trapped-side-page")

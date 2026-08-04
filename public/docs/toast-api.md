@@ -43,6 +43,7 @@ try {
 | `announcement` | string | Explicit screen-reader text |
 | `duration` | number | Loading is persistent until updated or dismissed |
 | `dismissible` | boolean | Controls swipe, Escape, and close affordance |
+| `swipeDirections` | direction array | Per-toast override of the Toaster policy |
 | `important` | boolean | Uses the assertive live region |
 | `action`, `cancel` | `{ label, onClick }` | Return `false` from action to keep it open |
 | `closeButton` | boolean | Per-toast override |
@@ -65,7 +66,7 @@ try {
 | `visibleToasts` | number | `3` |
 | `closeButton` | boolean | `true` |
 | `richColors` | boolean | `false` |
-| `swipeDirections` | direction array | nearest viewport edge |
+| `swipeDirections` | direction array | both directions on the placement axis |
 | `hotkey` | key descriptor array or null | `["altKey", "KeyT"]` |
 | `pauseWhenPageIsHidden` | boolean | `true` |
 | `dir` | `ltr \| rtl \| auto` | `auto` |
@@ -80,7 +81,24 @@ try {
 
 Positions support top/bottom plus left/center/right, and logical `start`/`end` variants. Swipe directions support top, right, bottom, left, start, and end.
 
-When `swipeDirections` is omitted, Velvet chooses the nearest viewport edge. Logical directions resolve from `dir`.
+When `swipeDirections` is omitted, corner toasts accept left and right while centered toasts accept top and bottom. This keeps the cross axis available for page panning. Pass it to `Toaster` for the global policy or to one toast for a local override; logical directions resolve from `dir`.
+
+## Controls and custom content
+
+A tap on a button or link activates it normally. Once movement passes the gesture slop, the same pointer stream becomes a toast swipe and its compatibility click is suppressed, so an action cannot fire accidentally after dismissal.
+
+Inputs, textareas, selects, and editable content do not begin a toast swipe. Put `data-velvet-toast-swipe-ignore` on any additional custom region that must retain pointer ownership.
+
+```tsx
+toast.custom(
+  <div className="upload-toast">
+    <span>Upload ready</span>
+    <div data-velvet-toast-swipe-ignore>
+      <InlineEditor />
+    </div>
+  </div>
+);
+```
 
 ## Promise phases
 

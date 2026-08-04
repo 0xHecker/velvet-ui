@@ -32,7 +32,7 @@ Only the public `disabled` prop disables an action. A new open, close, toggle, o
 
 ## asChild requirements
 
-The single child receives the ref, click handler, disabled state, ARIA attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler.
+The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/custom-components).
 
 ## onPress and onClick
 

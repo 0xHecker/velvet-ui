@@ -57,12 +57,12 @@
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
 }
 
-.LicenseCenter-close {
+.LicenseCenter-close,
+.LicenseCenter-dismiss {
   appearance: none;
   position: absolute;
   z-index: 8;
   top: calc(var(--license-depth-inset) + 14px);
-  left: clamp(16px, 3vw, 30px);
   display: grid;
   width: 44px;
   height: 44px;
@@ -76,15 +76,25 @@
   transition: background 160ms ease, transform 180ms var(--ease);
 }
 
+.LicenseCenter-close {
+  left: clamp(16px, 3vw, 30px);
+}
+
+.LicenseCenter-dismiss {
+  right: clamp(16px, 3vw, 30px);
+}
+
 .LicenseCenter-close svg {
   transform: rotate(180deg);
 }
 
-.LicenseCenter-close:hover {
+.LicenseCenter-close:hover,
+.LicenseCenter-dismiss:hover {
   background: #ffffff;
 }
 
-.LicenseCenter-close:active {
+.LicenseCenter-close:active,
+.LicenseCenter-dismiss:active {
   transform: scale(0.94);
 }
 
@@ -144,6 +154,7 @@
 
 .LicenseCenter-preview {
   position: relative;
+  width: 100vw;
   height: clamp(320px, 39vh, 382px);
   overflow: hidden;
   border-radius: var(--license-depth-radius) var(--license-depth-radius) 0 0;
@@ -1113,6 +1124,7 @@
 }
 
 .LicenseCenter-close:focus-visible,
+.LicenseCenter-dismiss:focus-visible,
 .LicenseCenter-backButton:focus-visible,
 .LicenseCenter-planAction:focus-visible,
 .LicenseCenter-codebase:focus-visible,
@@ -1180,11 +1192,19 @@
     border-radius: 0;
   }
 
-  .LicenseCenter-close {
+  .LicenseCenter-close,
+  .LicenseCenter-dismiss {
     top: calc(var(--license-depth-inset) + 12px);
-    left: 12px;
     width: 42px;
     height: 42px;
+  }
+
+  .LicenseCenter-close {
+    left: 12px;
+  }
+
+  .LicenseCenter-dismiss {
+    right: 12px;
   }
 
   .LicenseCenter-preview {
@@ -1388,6 +1408,7 @@
 @media (prefers-reduced-motion: reduce) {
   .LicenseCenter-device,
   .LicenseCenter-close,
+  .LicenseCenter-dismiss,
   .LicenseCenter-planAction,
   .LicenseCenter-buyButton {
     animation: none;

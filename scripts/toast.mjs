@@ -402,6 +402,7 @@ try {
         icon: "L",
         important: true,
         className: "loading-only",
+        swipeDirections: ["top"],
       },
       success: { message: "Clean result", duration: Infinity },
     });
@@ -456,6 +457,7 @@ try {
       resetIcon: resetEntry?.icon ?? null,
       resetImportant: resetEntry?.important ?? null,
       resetClassName: resetEntry?.className ?? null,
+      resetSwipeDirections: resetEntry?.swipeDirections ?? null,
       formatterOwnerType: formatterOwnerEntry?.type,
       formatterOwnerMessage: formatterOwnerEntry?.message,
       customReuse: customReuseEntry?.custom,
@@ -489,9 +491,10 @@ try {
   );
   check(
     "promise phases clear loading-only presentation and preserve formatter-owned updates",
-    promiseInvariants.resetIcon == null &&
+      promiseInvariants.resetIcon == null &&
       promiseInvariants.resetImportant == null &&
       promiseInvariants.resetClassName == null &&
+      promiseInvariants.resetSwipeDirections == null &&
       promiseInvariants.formatterOwnerType === "info" &&
       promiseInvariants.formatterOwnerMessage === "Manual formatter update",
     JSON.stringify(promiseInvariants)

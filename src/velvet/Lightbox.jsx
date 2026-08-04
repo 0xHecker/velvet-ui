@@ -1,4 +1,5 @@
 import { cloneElement, forwardRef, isValidElement } from "react";
+import { mapSlottedChildren } from "./core/Slot.jsx";
 import { Sheet } from "./Sheet.jsx";
 import { ThemeBackdrop } from "./ThemeBackdrop.jsx";
 
@@ -25,6 +26,7 @@ const Content = forwardRef(function LightboxContent(
   {
     children,
     portalProps,
+    view: viewSlot,
     viewProps,
     backdrop = true,
     backdropProps,
@@ -33,13 +35,27 @@ const Content = forwardRef(function LightboxContent(
   forwardedRef
 ) {
   const backdropNode =
-    backdrop === false
+    backdrop === false || backdrop == null
       ? null
       : isValidElement(backdrop)
-        ? cloneElement(backdrop, {
-            ...backdrop.props,
-            "data-velvet-lightbox": "backdrop",
-          })
+        ? backdrop.type === Sheet.Backdrop || backdrop.type === ThemeBackdrop
+          ? cloneElement(backdrop, {
+              travelAnimation: LIGHTBOX_BACKDROP,
+              ...backdropProps,
+              ...backdrop.props,
+              "data-velvet-lightbox": "backdrop",
+            })
+          : (
+              <ThemeBackdrop
+                themeColor="#000"
+                travelAnimation={LIGHTBOX_BACKDROP}
+                {...backdropProps}
+                asChild
+                data-velvet-lightbox="backdrop"
+              >
+                {backdrop}
+              </ThemeBackdrop>
+            )
         : (
             <ThemeBackdrop
               themeColor="#000"
@@ -48,6 +64,35 @@ const Content = forwardRef(function LightboxContent(
               data-velvet-lightbox="backdrop"
             />
           );
+  const contentNode = (
+    <Sheet.Content
+      ref={forwardedRef}
+      travelAnimation={LIGHTBOX_CONTENT}
+      {...contentProps}
+      data-velvet-lightbox="content"
+    >
+      {children}
+    </Sheet.Content>
+  );
+  const authoredViewChildren = (
+    <>
+      {backdropNode}
+      {contentNode}
+    </>
+  );
+  const renderedViewChildren = viewSlot
+    ? mapSlottedChildren(
+        true,
+        viewSlot,
+        (viewChildren) => (
+          <>
+            {viewChildren}
+            {authoredViewChildren}
+          </>
+        ),
+        "Lightbox.Content view slot"
+      )
+    : authoredViewChildren;
 
   return (
     <Sheet.Portal {...portalProps}>
@@ -57,17 +102,10 @@ const Content = forwardRef(function LightboxContent(
         swipeOvershoot={false}
         nativeEdgeSwipePrevention
         {...viewProps}
+        asChild={Boolean(viewSlot)}
         data-velvet-lightbox="view"
       >
-        {backdropNode}
-        <Sheet.Content
-          ref={forwardedRef}
-          travelAnimation={LIGHTBOX_CONTENT}
-          {...contentProps}
-          data-velvet-lightbox="content"
-        >
-          {children}
-        </Sheet.Content>
+        {renderedViewChildren}
       </Sheet.View>
     </Sheet.Portal>
   );

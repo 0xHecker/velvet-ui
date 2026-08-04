@@ -160,6 +160,7 @@ const RESET_PHASE_OPTIONS = {
   description: undefined,
   icon: undefined,
   dismissible: undefined,
+  swipeDirections: undefined,
   important: undefined,
   action: undefined,
   cancel: undefined,

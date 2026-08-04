@@ -1,4 +1,5 @@
 import { cloneElement, forwardRef, isValidElement } from "react";
+import { mapSlottedChildren } from "./core/Slot.jsx";
 import { Scroll } from "./Scroll.jsx";
 import { Sheet } from "./Sheet.jsx";
 import { ThemeBackdrop } from "./ThemeBackdrop.jsx";
@@ -21,11 +22,13 @@ const Content = forwardRef(function BottomSheetContent(
   {
     children,
     portalProps,
+    view: viewSlot,
     viewProps,
     backdrop = true,
     backdropProps,
     handle = true,
     handleProps,
+    bleedingBackground = true,
     bleedingBackgroundProps,
     scroll = true,
     scrollRootProps,
@@ -36,13 +39,27 @@ const Content = forwardRef(function BottomSheetContent(
   forwardedRef
 ) {
   const backdropNode =
-    backdrop === false
+    backdrop === false || backdrop == null
       ? null
       : isValidElement(backdrop)
-        ? cloneElement(backdrop, {
-            ...backdrop.props,
-            "data-velvet-bottom-sheet": "backdrop",
-          })
+        ? backdrop.type === Sheet.Backdrop || backdrop.type === ThemeBackdrop
+          ? cloneElement(backdrop, {
+              travelAnimation: BOTTOM_SHEET_BACKDROP,
+              ...backdropProps,
+              ...backdrop.props,
+              "data-velvet-bottom-sheet": "backdrop",
+            })
+          : (
+              <ThemeBackdrop
+                themeColor="auto"
+                travelAnimation={BOTTOM_SHEET_BACKDROP}
+                {...backdropProps}
+                asChild
+                data-velvet-bottom-sheet="backdrop"
+              >
+                {backdrop}
+              </ThemeBackdrop>
+            )
         : (
             <ThemeBackdrop
               themeColor="auto"
@@ -52,20 +69,57 @@ const Content = forwardRef(function BottomSheetContent(
             />
           );
   const handleNode =
-    handle === false
+    handle === false || handle == null
       ? null
       : isValidElement(handle)
-        ? cloneElement(handle, {
-            ...handle.props,
-            "data-velvet-bottom-sheet": "handle",
-          })
+        ? handle.type === Sheet.Handle
+          ? cloneElement(handle, {
+              ...handleProps,
+              ...handle.props,
+              "data-velvet-bottom-sheet": "handle",
+            })
+          : (
+              <Sheet.Handle
+                {...handleProps}
+                asChild
+                data-velvet-bottom-sheet="handle"
+              >
+                {handle}
+              </Sheet.Handle>
+            )
         : (
             <Sheet.Handle
               {...handleProps}
               data-velvet-bottom-sheet="handle"
             />
           );
-  const body = scroll ? (
+  const backgroundNode =
+    bleedingBackground === false || bleedingBackground == null
+      ? null
+      : bleedingBackground === true
+        ? (
+            <Sheet.BleedingBackground
+              {...bleedingBackgroundProps}
+              data-velvet-bottom-sheet="background"
+            />
+          )
+        : isValidElement(bleedingBackground) &&
+            bleedingBackground.type === Sheet.BleedingBackground
+          ? cloneElement(bleedingBackground, {
+              ...bleedingBackgroundProps,
+              ...bleedingBackground.props,
+              "data-velvet-bottom-sheet": "background",
+            })
+          : (
+              <Sheet.BleedingBackground
+                {...bleedingBackgroundProps}
+                asChild
+                data-velvet-bottom-sheet="background"
+              >
+                {bleedingBackground}
+              </Sheet.BleedingBackground>
+            );
+  const renderBody = (authoredChildren) => scroll ? (
     <Scroll.Root
       {...scrollRootProps}
       data-velvet-bottom-sheet="scroll-root"
@@ -78,11 +132,51 @@ const Content = forwardRef(function BottomSheetContent(
           {...scrollContentProps}
           data-velvet-bottom-sheet="scroll-content"
         >
-          {children}
+          {authoredChildren}
         </Scroll.Content>
       </Scroll.View>
     </Scroll.Root>
-  ) : children;
+  ) : authoredChildren;
+  const renderedContentChildren = mapSlottedChildren(
+    contentProps.asChild,
+    children,
+    (authoredChildren) => (
+      <>
+        {backgroundNode}
+        {handleNode}
+        {renderBody(authoredChildren)}
+      </>
+    ),
+    "BottomSheet.Content"
+  );
+  const contentNode = (
+    <Sheet.Content
+      ref={forwardedRef}
+      {...contentProps}
+      data-velvet-bottom-sheet="content"
+    >
+      {renderedContentChildren}
+    </Sheet.Content>
+  );
+  const authoredViewChildren = (
+    <>
+      {backdropNode}
+      {contentNode}
+    </>
+  );
+  const renderedViewChildren = viewSlot
+    ? mapSlottedChildren(
+        true,
+        viewSlot,
+        (viewChildren) => (
+          <>
+            {viewChildren}
+            {authoredViewChildren}
+          </>
+        ),
+        "BottomSheet.Content view slot"
+      )
+    : authoredViewChildren;
 
   return (
     <Sheet.Portal {...portalProps}>
@@ -91,21 +185,10 @@ const Content = forwardRef(function BottomSheetContent(
         tracks="auto"
         nativeEdgeSwipePrevention
         {...viewProps}
+        asChild={Boolean(viewSlot)}
         data-velvet-bottom-sheet="view"
       >
-        {backdropNode}
-        <Sheet.Content
-          ref={forwardedRef}
-          {...contentProps}
-          data-velvet-bottom-sheet="content"
-        >
-          <Sheet.BleedingBackground
-            {...bleedingBackgroundProps}
-            data-velvet-bottom-sheet="background"
-          />
-          {handleNode}
-          {body}
-        </Sheet.Content>
+        {renderedViewChildren}
       </Sheet.View>
     </Sheet.Portal>
   );

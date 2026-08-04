@@ -1,6 +1,6 @@
 # Installation
 
-> Install Velvet UI, then add the base stylesheet once at your application boundary.
+> Install Velvet UI, then import the structural stylesheet required by the primitive or composition you use.
 
 Web: https://velvetui.co/docs/installation
 
@@ -12,6 +12,7 @@ Install the package once, then choose either the complete stylesheet or granular
 npm install @velvetui/react
 # pnpm add @velvetui/react
 # yarn add @velvetui/react
+# bun add @velvetui/react
 ```
 
 ## Add CSS at the application boundary
@@ -62,4 +63,4 @@ export function SettingsSheet() {
 }
 ```
 
-If the trigger renders but nothing opens, confirm that `base.css` is loaded and that no ancestor applies `display: none` or a global `pointer-events: none` rule to portal content.
+If the trigger renders but nothing opens, confirm that `sheet.css`, `base.css`, or `styles.css` is loaded and that no ancestor applies `display: none` or a global `pointer-events: none` rule to portal content.

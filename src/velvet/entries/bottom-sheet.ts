@@ -4,13 +4,14 @@ import type {
   PrimitiveProps,
   SheetBackdropProps,
   SheetComponent,
+  SheetComposedViewProps,
   SheetContentProps,
   SheetHandleProps,
+  SheetPartSlot,
   SheetPortalProps,
   SheetRootProps,
   SheetStepProps,
   SheetTriggerProps,
-  SheetViewProps,
 } from "./sheet.js";
 import type {
   ScrollContentProps,
@@ -20,11 +21,13 @@ import type {
 
 export interface BottomSheetContentProps extends SheetContentProps {
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  backdrop?: boolean | React.ReactElement;
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
   backdropProps?: SheetBackdropProps;
-  handle?: boolean | React.ReactElement;
+  handle?: SheetPartSlot;
   handleProps?: SheetHandleProps;
+  bleedingBackground?: SheetPartSlot;
   bleedingBackgroundProps?: PrimitiveProps<HTMLDivElement>;
   scroll?: boolean;
   scrollRootProps?: ScrollRootProps;

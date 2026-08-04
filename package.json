@@ -1,6 +1,6 @@
 {
   "name": "@velvetui/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Velvet UI — native-like swipeable sheets for the web. Spring physics + WAAPI.",
   "license": "SEE LICENSE IN LICENSE.md",

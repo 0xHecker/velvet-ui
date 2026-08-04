@@ -1,6 +1,20 @@
 import { gzipSync } from "node:zlib";
+import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "vite";
+
+const publishedFiles = (await readdir("dist"))
+  .filter((file) => file.endsWith(".js") || file.endsWith(".cjs"));
+const annotatedFiles = [];
+for (const file of publishedFiles) {
+  const source = await readFile(resolve("dist", file), "utf8");
+  if (/\/\*\s*[@#]__PURE__\s*\*\//.test(source)) annotatedFiles.push(file);
+}
+console.log(
+  `${annotatedFiles.length ? "FAIL" : "PASS"}  published chunks contain no stale pure annotations${
+    annotatedFiles.length ? `  found ${annotatedFiles.join(", ")}` : ""
+  }`
+);
 
 const entries = [
   {
@@ -63,7 +77,7 @@ const bundle = async ({ name, source }) => {
     .join("\n");
 };
 
-const failures = [];
+const failures = annotatedFiles.length ? ["published-annotations"] : [];
 for (const entry of entries) {
   const code = await bundle(entry);
   const gzipBytes = gzipSync(code).byteLength;

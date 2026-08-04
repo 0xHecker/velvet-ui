@@ -12,6 +12,7 @@ Velvet gives React applications native-feeling sheets, stacked surfaces, lightbo
 npm install @velvetui/react
 # pnpm add @velvetui/react
 # yarn add @velvetui/react
+# bun add @velvetui/react
 ```
 
 ```tsx

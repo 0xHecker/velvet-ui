@@ -1,6 +1,8 @@
 import {
+  cloneElement,
   createContext,
   forwardRef,
+  isValidElement,
   useCallback,
   useContext,
   useEffect,
@@ -13,7 +15,7 @@ import {
 
 // Native scroll-snap gesture surface and the primitive parts that attach to it.
 import { createPortal } from "react-dom";
-import { Polymorph } from "../core/Slot.jsx";
+import { mapSlottedChildren, Polymorph } from "../core/Slot.jsx";
 import { composeEventHandlers } from "../core/events.js";
 import { useComposedRefs } from "../core/refs.js";
 import {
@@ -68,12 +70,43 @@ import {
 } from "./SheetState.jsx";
 
 const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+// Vite replaces this at build time, allowing Terser to remove the diagnostic
+// copy entirely from the published production chunks.
+const isDevelopment = import.meta.env?.DEV === true;
 
 // ---- Portal ---------------------------------------------------------------
+const isPortalContainerRef = (value) =>
+  value != null &&
+  typeof value === "object" &&
+  !("nodeType" in value) &&
+  "current" in value;
+
+const resolvePortalContainer = (value) =>
+  isPortalContainerRef(value) ? value.current : value;
+
 const Portal = ({ children, container }) => {
   const { mounted, preview } = useSheet();
+  const [, retryContainer] = useState(0);
+  const configuredContainer = container ?? preview?.container;
+  const target = resolvePortalContainer(configuredContainer);
+
+  // A DOM ref is assigned after render. If a sheet is already mounted on that
+  // first commit, render once more after refs have settled so consumers can
+  // pass `container={hostRef}` without storing the element in React state.
+  useIso(() => {
+    if (
+      !mounted ||
+      !isPortalContainerRef(configuredContainer) ||
+      target ||
+      !configuredContainer.current
+    ) {
+      return;
+    }
+    retryContainer((version) => version + 1);
+  }, [configuredContainer, mounted, target]);
+
   if (!mounted || typeof document === "undefined") return null;
-  const target = container || preview?.container;
+  if (isPortalContainerRef(configuredContainer) && !target) return null;
   if (preview && !target) return null;
   return createPortal(children, target || document.body);
 };
@@ -169,6 +202,17 @@ const View = forwardRef(function View(
   const stableAutomaticTracks = automaticTracks && !hasDetents;
   const [automaticTrack, setAutomaticTrack] = useState("bottom");
   const [restingInside, setRestingInside] = useState(false);
+
+  const restoreCapturedFocus = useCallback(() => {
+    const element = lastFocused.current;
+    lastFocused.current = null;
+    // Exit can complete synchronously when motion is skipped. Restore after
+    // the click/default-action task and modal-layer cleanup have finished, or
+    // removing the pressed close control can move focus back to <body>.
+    queueMicrotask(() => {
+      if (element?.isConnected) restoreFocus(element);
+    });
+  }, [lastFocused]);
   useEffect(() => {
     if (!presented) {
       setRestingInside(false);
@@ -265,6 +309,31 @@ const View = forwardRef(function View(
   const pendingStepRafRef = useRef([0, 0]);
   const liveDetentRef = useRef(activeDetent);
   liveDetentRef.current = activeDetent;
+  const titleCountRef = useRef(titleCount);
+  titleCountRef.current = titleCount;
+  const missingTitleWarnedRef = useRef(false);
+  const hasExplicitAccessibleName = Boolean(
+    rest["aria-label"] || rest["aria-labelledby"]
+  );
+
+  useEffect(() => {
+    if (!isDevelopment) return undefined;
+    if (!presented) {
+      missingTitleWarnedRef.current = false;
+      return undefined;
+    }
+    if (hasExplicitAccessibleName) return undefined;
+
+    const timer = setTimeout(() => {
+      if (titleCountRef.current > 0 || missingTitleWarnedRef.current) return;
+      missingTitleWarnedRef.current = true;
+      console.warn(
+        "[Velvet UI] A presented <Sheet.View> has no <Sheet.Title> registered with its <Sheet.Root>. " +
+          "In nested sheets, keep the parent title outside the child <Sheet.Root> so each dialog receives its own accessible name."
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [hasExplicitAccessibleName, presented, renderedViewId]);
 
   const stack = useSheetStack();
   const stackId = useId();
@@ -1448,14 +1517,19 @@ const View = forwardRef(function View(
       return undefined;
     }
     activeRef.current = presented;
-    if (presented && previous === 0 && !isPreview) {
+    if (
+      presented &&
+      previous === 0 &&
+      !isPreview &&
+      (!lastFocused.current || !lastFocused.current.isConnected)
+    ) {
       lastFocused.current = document.activeElement;
     }
     if (!presented && nativeDismissRef.current) {
       cancelMotion();
       nativeDismissRef.current = false;
       previousDetentRef.current = 0;
-      if (!isPreview) restoreFocus(lastFocused.current);
+      if (!isPreview) restoreCapturedFocus();
       finishExit();
       onTravelStatusChange?.("idleOutside");
       return undefined;
@@ -1466,7 +1540,7 @@ const View = forwardRef(function View(
       // merely because no programmatic exit distance remains.
       cancelMotion();
       disarmDismissObserver();
-      if (!isPreview) restoreFocus(lastFocused.current);
+      if (!isPreview) restoreCapturedFocus();
       finishExit();
       onTravelStatusChange?.("idleOutside");
       return undefined;
@@ -1547,7 +1621,7 @@ const View = forwardRef(function View(
         : undefined,
       onComplete: () => {
         if (target === 0) {
-          if (!isPreview) restoreFocus(lastFocused.current);
+          if (!isPreview) restoreCapturedFocus();
           finishExit();
           onTravelStatusChange?.("idleOutside");
           return;
@@ -1589,6 +1663,7 @@ const View = forwardRef(function View(
     primaryTrack,
     reportTravel,
     readVisualCoordinate,
+    restoreCapturedFocus,
     runProgrammaticTravel,
     setActiveDetent,
     setPresented,
@@ -1864,6 +1939,34 @@ const View = forwardRef(function View(
     "aria-labelledby": titleCount > 0 ? titleId : undefined,
     "aria-describedby": descriptionCount > 0 ? descriptionId : undefined,
   };
+  const renderedViewBody = mapSlottedChildren(
+    asChild,
+    children,
+    (authoredChildren) => (
+      <ViewInner
+        track={actualTrack}
+        placement={placement}
+        axis={axis}
+        scrollRef={scrollRef}
+        markerCount={detentList.length + 1}
+        dualTracks={validDualTracks}
+        nativeScrollEnabled={nativeScrollEnabled}
+        swipeOvershootDisabled={swipeOvershootDisabled}
+        swipeOutDisabledWithDetent={actualSwipeOutDisabledWithDetent}
+        swipeTrapAxes={swipeTrapAxes}
+        nativeEdgeSwipePrevention={nativeEdgeSwipePrevention}
+        onScroll={onScroll}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        onPointerDown={onScrollPointerDown}
+        onClick={onScrollClick}
+        onBackdropClick={onBackdropClick}
+      >
+        {authoredChildren}
+      </ViewInner>
+    ),
+    "Sheet.View"
+  );
 
   return (
     <SheetScrollHandoffContext.Provider
@@ -1885,27 +1988,7 @@ const View = forwardRef(function View(
         id={renderedViewId}
         {...ariaProps}
       >
-        <ViewInner
-          track={actualTrack}
-          placement={placement}
-          axis={axis}
-          scrollRef={scrollRef}
-          markerCount={detentList.length + 1}
-          dualTracks={validDualTracks}
-          nativeScrollEnabled={nativeScrollEnabled}
-          swipeOvershootDisabled={swipeOvershootDisabled}
-          swipeOutDisabledWithDetent={actualSwipeOutDisabledWithDetent}
-          swipeTrapAxes={swipeTrapAxes}
-          nativeEdgeSwipePrevention={nativeEdgeSwipePrevention}
-          onScroll={onScroll}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          onPointerDown={onScrollPointerDown}
-          onClick={onScrollClick}
-          onBackdropClick={onBackdropClick}
-        >
-          {children}
-        </ViewInner>
+        {renderedViewBody}
       </Polymorph>
     </SheetScrollHandoffContext.Provider>
   );
@@ -2088,7 +2171,17 @@ const BleedingBackground = forwardRef(function BleedingBackground(
 
 // ---- Handle ---------------------------------------------------------------
 const Handle = forwardRef(function Handle(
-  { className, style, asChild, action = "step", disabled, onClick, ...rest },
+  {
+    className,
+    style,
+    asChild,
+    action = "step",
+    disabled,
+    onClick,
+    children,
+    "aria-label": ariaLabel,
+    ...rest
+  },
   forwardedRef
 ) {
   const { requestAction } = useSheet();
@@ -2103,13 +2196,21 @@ const Handle = forwardRef(function Handle(
     const spec = action === "step" ? {} : action;
     requestAction({ type: "step", detent: spec.snapTo, direction: spec.direction });
   };
+  const slottedAriaLabel =
+    asChild && isValidElement(children)
+      ? children.props["aria-label"]
+      : undefined;
   return (
     <Polymorph
       as="button"
       asChild={asChild}
       ref={forwardedRef}
       type="button"
-      aria-label={action === "close" ? "Close" : "Step sheet"}
+      aria-label={
+        ariaLabel ??
+        slottedAriaLabel ??
+        (action === "close" ? "Close" : "Step sheet")
+      }
       data-velvet="handle"
       className={className}
       style={style}
@@ -2117,7 +2218,9 @@ const Handle = forwardRef(function Handle(
       aria-disabled={disabled || undefined}
       {...rest}
       disabled={disabled}
-    />
+    >
+      {children}
+    </Polymorph>
   );
 });
 
@@ -2142,6 +2245,7 @@ const Trigger = forwardRef(function Trigger(
     preview,
     presented,
     motionOriginRef,
+    lastFocused,
     sheetRole,
     viewId,
   } = useSheet();
@@ -2156,6 +2260,7 @@ const Trigger = forwardRef(function Trigger(
     const actionType = typeof action === "string" ? action : action?.type;
     const isStep = actionType === "step";
     if (actionType === "open") {
+      lastFocused.current = e.currentTarget;
       motionOriginRef.current = captureElementGeometry(e.currentTarget);
       requestAction({ type: "present" });
     } else if (actionType === "close") {
@@ -2168,7 +2273,10 @@ const Trigger = forwardRef(function Trigger(
         direction: spec.direction,
       });
     } else {
-      if (!presented) motionOriginRef.current = captureElementGeometry(e.currentTarget);
+      if (!presented) {
+        lastFocused.current = e.currentTarget;
+        motionOriginRef.current = captureElementGeometry(e.currentTarget);
+      }
       requestAction({ type: "toggle" });
     }
   };
@@ -2289,6 +2397,7 @@ const Panel = forwardRef(function Panel(
     portal = true,
     container,
     portalProps,
+    view: viewSlot,
     viewProps,
     backdrop = true,
     backdropProps,
@@ -2310,13 +2419,68 @@ const Panel = forwardRef(function Panel(
       ? null
       : backdrop === true
         ? <Backdrop {...backdropProps} />
-        : backdrop;
+        : isValidElement(backdrop) && backdrop.type === Backdrop
+          ? cloneElement(backdrop, { ...backdropProps, ...backdrop.props })
+          : (
+              <Backdrop {...backdropProps} asChild>
+                {backdrop}
+              </Backdrop>
+            );
   const handleNode =
     handle === false || handle == null
       ? null
       : handle === true
         ? <Handle {...handleProps} />
-        : handle;
+        : isValidElement(handle) && handle.type === Handle
+          ? cloneElement(handle, { ...handleProps, ...handle.props })
+          : (
+              <Handle {...handleProps} asChild>
+                {handle}
+              </Handle>
+            );
+  const resolvedContentProps = {
+    ...contentProps,
+    ...explicitContentProps,
+  };
+  const renderedContentChildren = mapSlottedChildren(
+    resolvedContentProps.asChild,
+    children,
+    (authoredChildren) => (
+      <>
+        {handleNode}
+        {authoredChildren}
+      </>
+    ),
+    "Sheet.Panel"
+  );
+  const contentNode = (
+    <Content
+      {...resolvedContentProps}
+      ref={forwardedRef}
+      data-velvet-panel=""
+    >
+      {renderedContentChildren}
+    </Content>
+  );
+  const authoredViewChildren = (
+    <>
+      {backdropNode}
+      {contentNode}
+    </>
+  );
+  const renderedViewChildren = viewSlot
+    ? mapSlottedChildren(
+        true,
+        viewSlot,
+        (viewChildren) => (
+          <>
+            {viewChildren}
+            {authoredViewChildren}
+          </>
+        ),
+        "Sheet.Panel view slot"
+      )
+    : authoredViewChildren;
   const view = (
     <View
       side={side}
@@ -2325,17 +2489,9 @@ const Panel = forwardRef(function Panel(
       dismissible={dismissible}
       draggable={draggable}
       {...viewProps}
+      asChild={Boolean(viewSlot)}
     >
-      {backdropNode}
-      <Content
-        {...contentProps}
-        {...explicitContentProps}
-        ref={forwardedRef}
-        data-velvet-panel=""
-      >
-        {handleNode}
-        {children}
-      </Content>
+      {renderedViewChildren}
     </View>
   );
 

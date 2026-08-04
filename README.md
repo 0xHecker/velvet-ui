@@ -21,12 +21,18 @@ Velvet uses browser scroll-snap momentum for direct manipulation and sampled spr
 
 ```bash
 npm install @velvetui/react
+# pnpm add @velvetui/react
+# yarn add @velvetui/react
+# bun add @velvetui/react
 ```
 
 React and React DOM are peer dependencies:
 
 ```bash
 npm install react react-dom
+# pnpm add react react-dom
+# yarn add react react-dom
+# bun add react react-dom
 ```
 
 ## Start in 60 seconds
@@ -134,6 +140,59 @@ Change or disable the composed parts when needed:
 
 Supported sides are `top`, `right`, `bottom`, `left`, and `center`.
 
+### Bring your own components
+
+Velvet can own the interaction without owning the visible elements. Use `asChild` for your buttons, headings, and sheet surface:
+
+```tsx
+<Sheet.Root>
+  <Sheet.Trigger asChild>
+    <ProductButton>Open workspace</ProductButton>
+  </Sheet.Trigger>
+
+  <Sheet.Panel
+    asChild
+    view={<ProductView />}
+    backdrop={<ProductBackdrop />}
+    handle={<ProductGrip aria-label="Resize workspace" />}
+  >
+    <ProductSurface>
+      <Sheet.Title asChild><ProductHeading /></Sheet.Title>
+      <Workspace />
+      <Sheet.Close asChild><ProductButton>Done</ProductButton></Sheet.Close>
+    </ProductSurface>
+  </Sheet.Panel>
+</Sheet.Root>
+```
+
+`ProductSurface` is the real panel node. The supplied `view`, `backdrop`, and `handle` are also the real behavioral nodes—Velvet composes refs, ARIA/data attributes, events, and gesture mechanics onto them.
+
+The styled compositions expose the same pattern:
+
+```tsx
+<BottomSheet.Content
+  asChild
+  view={<ProductView />}
+  backdrop={<ProductBackdrop />}
+  handle={<ProductGrip aria-label="Resize cart" />}
+  bleedingBackground={<ProductBackground />}
+>
+  <ProductSurface><Cart /></ProductSurface>
+</BottomSheet.Content>
+```
+
+For `backdrop`, `handle`, and `bleedingBackground`:
+
+| Value | Result |
+| --- | --- |
+| `true` | Render Velvet's default part |
+| `false` or `null` | Remove the part |
+| `<YourComponent />` | Use your component with Velvet behavior |
+
+Custom components must forward their ref, children, and received DOM props to one DOM element. The child event runs first; `event.preventDefault()` intentionally cancels the Velvet action. `asChild` accepts exactly one non-Fragment element.
+
+See [Bring your own components](https://velvetui.co/docs/custom-components) for full design-system, custom-scroll, and troubleshooting examples.
+
 ### Controlled state and snap points
 
 ```tsx
@@ -234,6 +293,43 @@ For stable Chromium keyboard behavior, include this viewport value:
   content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
 />
 ```
+
+### Nested sheet inside a modal
+
+Pass a React ref directly to `Sheet.Portal` when a child sheet must stay inside a parent modal:
+
+```tsx
+const nestedHostRef = useRef<HTMLDivElement>(null);
+
+<Sheet.Root>
+  <Sheet.Trigger type="button">Open library</Sheet.Trigger>
+  <Sheet.Panel side="center" className="library-modal">
+    <Sheet.Title>Component library</Sheet.Title>
+
+    <Sheet.Root>
+      <Sheet.Trigger type="button">Open component</Sheet.Trigger>
+      <div ref={nestedHostRef} className="nested-portal-host" />
+
+      <Sheet.Portal container={nestedHostRef}>
+        <Sheet.View className="nested-view" side="right">
+          <Sheet.Content>
+            <Sheet.Title>Component details</Sheet.Title>
+            <Scroll.Root>
+              <Scroll.View>
+                <Scroll.Content>{/* scrollable detail */}</Scroll.Content>
+              </Scroll.View>
+            </Scroll.Root>
+          </Sheet.Content>
+        </Sheet.View>
+      </Sheet.Portal>
+    </Sheet.Root>
+  </Sheet.Panel>
+</Sheet.Root>
+```
+
+Keep the parent title outside the child Root, use one `Scroll.Root → Scroll.View → Scroll.Content` chain per layer, and make the portal host positioned and clipped. Back, Close, and row triggers should be `<button type="button">`—never `href="#"`.
+
+See the complete responsive CSS and Tailwind CSS v4 recipes in [Nested modal navigation](https://velvetui.co/docs/nested-modal-navigation).
 
 ### Motion customization
 
@@ -352,12 +448,37 @@ Toast behavior includes:
 - Dynamic-height measurement during updates
 - Visible queue limits with automatic promotion
 - Timers paused by hover, keyboard focus, or a hidden tab
-- Distance-and-velocity swipe dismissal
-- Pointer-cancel recovery and mid-spring re-grab
+- Deterministic distance-and-velocity swipes across touch, pen, and mouse
+- Pointer-cancel recovery, capture-loss fallback, and mid-spring re-grab
 - Logical `start` and `end` positions in RTL
 - Separate polite and assertive live regions
 - <kbd>Alt</kbd>+<kbd>T</kbd> to focus the front toast
 - <kbd>Escape</kbd> to dismiss a focused toast
+
+### Swipe behavior
+
+Corner toasts swipe left or right by default. Centered toasts swipe up or down. Pass `swipeDirections` to `Toaster` for the global policy or to one toast for a local override:
+
+```tsx
+<Toaster swipeDirections={["right"]} />
+
+toast("Archived", {
+  swipeDirections: ["left"],
+});
+```
+
+Buttons and links keep normal tap and click behavior, but a deliberate drag beginning on them still dismisses the toast without firing the action. Inputs, textareas, selects, and editable content keep gesture ownership. Add `data-velvet-toast-swipe-ignore` to any custom region that should never begin a toast swipe.
+
+```tsx
+toast.custom(
+  <div>
+    <span>Invite sent</span>
+    <div data-velvet-toast-swipe-ignore>
+      <InlineEditor />
+    </div>
+  </div>
+);
+```
 
 ### Unstyled toasts
 
@@ -374,7 +495,7 @@ Toast behavior includes:
 />
 ```
 
-Stable hooks include `data-slot`, `data-state`, `data-type`, `data-position`, `data-dragging`, and `data-unstyled`.
+Stable hooks include `data-slot`, `data-state`, `data-type`, `data-position`, `data-dragging`, `data-unstyled`, and `data-velvet-toast-swipe-ignore`.
 
 Toast CSS variables begin with `--velvet-toast-` and cover width, offset, radius, surface, foreground, muted color, accent, and shadow.
 

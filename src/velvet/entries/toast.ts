@@ -58,6 +58,7 @@ export interface ToastOptions {
   announcement?: string;
   duration?: number;
   dismissible?: boolean;
+  swipeDirections?: readonly ToastSwipeDirection[];
   important?: boolean;
   action?: ToastAction;
   cancel?: Omit<ToastAction, "onClick"> & {

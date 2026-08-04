@@ -44,6 +44,27 @@ import { Toaster as ToasterSubpath, toast as toastSubpath } from "@velvetui/reac
 
 const scrollRef = React.createRef<import("@velvetui/react").ScrollApi>();
 
+const DesignButton = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<"button"> & { tone?: "quiet" | "solid" }
+>(function DesignButton({ tone: _tone, ...props }, ref) {
+  return <button {...props} ref={ref} />;
+});
+
+const DesignSurface = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div"> & { elevated?: boolean }
+>(function DesignSurface({ elevated: _elevated, ...props }, ref) {
+  return <div {...props} ref={ref} />;
+});
+
+const DesignHeading = React.forwardRef<
+  HTMLHeadingElement,
+  React.ComponentPropsWithoutRef<"h2">
+>(function DesignHeading(props, ref) {
+  return <h2 {...props} ref={ref} />;
+});
+
 export function ConsumerFixture() {
   const [open, setOpen] = React.useState(false);
   const [snap, setSnap] = React.useState(1);
@@ -82,6 +103,29 @@ export function ConsumerFixture() {
           </Sheet.Panel>
         </Sheet>
       </SheetStack.Root>
+
+      <Sheet.Root>
+        <Sheet.Trigger asChild>
+          <DesignButton tone="solid">Open custom surface</DesignButton>
+        </Sheet.Trigger>
+        <Sheet.Panel
+          asChild
+          view={<DesignSurface className="product-view" />}
+          backdrop={<DesignSurface className="product-backdrop" />}
+          backdropProps={{ className: "velvet-backdrop" }}
+          handle={<DesignButton aria-label="Resize custom surface" />}
+          handleProps={{ action: "step" }}
+        >
+          <DesignSurface elevated className="product-surface">
+            <Sheet.Title asChild>
+              <DesignHeading>Custom surface</DesignHeading>
+            </Sheet.Title>
+            <Sheet.Close asChild>
+              <DesignButton tone="quiet">Done</DesignButton>
+            </Sheet.Close>
+          </DesignSurface>
+        </Sheet.Panel>
+      </Sheet.Root>
 
       <Scroll.Root componentRef={scrollRef}>
         <Scroll.View onScrollProgress={({ progress }) => progress.toFixed(2)}>
@@ -151,8 +195,30 @@ export function ConsumerFixture() {
         </BottomSheet.Content>
       </BottomSheet.Root>
 
+      <BottomSheet.Root>
+        <BottomSheet.Trigger asChild>
+          <DesignButton>Open branded details</DesignButton>
+        </BottomSheet.Trigger>
+        <BottomSheet.Content
+          asChild
+          backdrop={<DesignSurface className="brand-backdrop" />}
+          handle={<DesignButton aria-label="Resize branded details" />}
+          bleedingBackground={<DesignSurface className="brand-background" />}
+        >
+          <DesignSurface className="brand-sheet">
+            <BottomSheet.Title>Branded details</BottomSheet.Title>
+            <BottomSheet.Close asChild>
+              <DesignButton>Close</DesignButton>
+            </BottomSheet.Close>
+          </DesignSurface>
+        </BottomSheet.Content>
+      </BottomSheet.Root>
+
       <PersistentSheet.Root defaultOpen defaultSnap={1}>
         <PersistentSheet.Content
+          view={<DesignSurface className="player-view" />}
+          backdrop={<DesignSurface className="player-backdrop" />}
+          backdropProps={{ "aria-hidden": true }}
           viewProps={{ snapPoints: ["96px", "70dvh"] }}
         >
           <PersistentSheet.Title>Now playing</PersistentSheet.Title>
@@ -194,6 +260,7 @@ export function ConsumerFixture() {
 
 const id = toast.success("Saved", {
   description: "Everything is up to date.",
+  swipeDirections: ["start"],
   action: { label: "Undo", onClick: () => false },
   onDismiss: (_item, detail) => detail.reason,
 });

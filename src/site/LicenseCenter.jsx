@@ -13,6 +13,7 @@ import {
   IconChevronL,
   IconChevronR,
   IconChevronUp,
+  IconClose,
   IconLock,
 } from "../playground/icons.jsx";
 import "./LicenseCenter.css";
@@ -528,7 +529,6 @@ export function LicenseCenter({ open, onOpenChange }) {
           className="LicenseCenter-view"
           side="center"
           tracks="auto"
-          dismissible={false}
           swipeOvershoot={false}
           nativeEdgeSwipePrevention
           onClickOutside={{ dismiss: false }}
@@ -548,6 +548,9 @@ export function LicenseCenter({ open, onOpenChange }) {
             <Sheet.Handle className="LicenseCenter-handle" />
             <Sheet.Close className="LicenseCenter-close" aria-label="Close licensing">
               <IconChevronUp size={20} />
+            </Sheet.Close>
+            <Sheet.Close className="LicenseCenter-dismiss" aria-label="Close licensing">
+              <IconClose size={19} />
             </Sheet.Close>
 
             <Sheet.Root open={panelOpen} onOpenChange={setPanelOpen}>

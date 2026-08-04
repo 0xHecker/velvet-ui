@@ -31,9 +31,22 @@ export interface PrimitiveProps<T extends HTMLElement = HTMLDivElement>
   asChild?: boolean;
 }
 
+export type SheetPortalContainer =
+  | Element
+  | DocumentFragment
+  | React.RefObject<Element | DocumentFragment | null>;
+
+/**
+ * A composition slot. `true` renders Velvet's default part, `false`/`null`
+ * removes it, and a React element becomes the visual node while Velvet keeps
+ * the part's behavior, accessibility props, events, and ref.
+ */
+export type SheetPartSlot = boolean | React.ReactElement | null;
+
 export interface SheetPortalProps {
   children?: React.ReactNode;
-  container?: Element | DocumentFragment | null;
+  /** A resolved portal host or a React ref whose current value is the host. */
+  container?: SheetPortalContainer | null;
 }
 
 export interface SheetTravelDetail {
@@ -89,6 +102,13 @@ export interface SheetViewProps extends Omit<
   nativeEdgeSwipePrevention?: boolean;
 }
 
+/** View props accepted by Panel and styled compositions. Replace the actual
+ * View element with the dedicated `view` slot instead of `viewProps.asChild`. */
+export type SheetComposedViewProps = Omit<
+  SheetViewProps,
+  "asChild" | "children"
+>;
+
 export interface SheetBackdropProps extends PrimitiveProps<HTMLDivElement> {
   travelAnimation?: TravelAnimation;
 }
@@ -137,12 +157,14 @@ export interface SheetPanelProps extends SheetContentProps {
   dismissible?: boolean;
   draggable?: boolean;
   portal?: boolean;
-  container?: Element | DocumentFragment | null;
+  container?: SheetPortalContainer | null;
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  backdrop?: boolean | React.ReactElement;
+  /** Optional ref-forwarding element used as the real Sheet.View node. */
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
   backdropProps?: SheetBackdropProps;
-  handle?: boolean | React.ReactElement;
+  handle?: SheetPartSlot;
   handleProps?: SheetHandleProps;
   contentProps?: SheetContentProps;
 }

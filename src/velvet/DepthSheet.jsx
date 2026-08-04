@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { mapSlottedChildren } from "./core/Slot.jsx";
 import { Scroll } from "./Scroll.jsx";
 import { Sheet } from "./Sheet.jsx";
 import { SheetStack, useSheetStack } from "./SheetStack.jsx";
@@ -173,11 +174,13 @@ const Content = forwardRef(function DepthSheetContent(
   {
     children,
     portalProps,
+    view: viewSlot,
     viewProps,
     backdrop = true,
     backdropProps,
     handle = true,
     handleProps,
+    bleedingBackground = true,
     bleedingBackgroundProps,
     scrollRootProps,
     scrollViewProps,
@@ -190,13 +193,27 @@ const Content = forwardRef(function DepthSheetContent(
   const portalHost = depthContext?.portalHost;
   const tokenStyle = depthSheetTokenStyle(depthContext?.tokens);
   const backdropNode =
-    backdrop === false
+    backdrop === false || backdrop == null
       ? null
       : isValidElement(backdrop)
-        ? cloneElement(backdrop, {
-            ...backdrop.props,
-            "data-velvet-depth": "backdrop",
-          })
+        ? backdrop.type === Sheet.Backdrop || backdrop.type === ThemeBackdrop
+          ? cloneElement(backdrop, {
+              travelAnimation: DEPTH_BACKDROP_TRAVEL,
+              ...backdropProps,
+              ...backdrop.props,
+              "data-velvet-depth": "backdrop",
+            })
+          : (
+              <ThemeBackdrop
+                themeColor="#020806"
+                travelAnimation={DEPTH_BACKDROP_TRAVEL}
+                {...backdropProps}
+                asChild
+                data-velvet-depth="backdrop"
+              >
+                {backdrop}
+              </ThemeBackdrop>
+            )
         : (
             <ThemeBackdrop
               themeColor="#020806"
@@ -206,14 +223,102 @@ const Content = forwardRef(function DepthSheetContent(
             />
           );
   const handleNode =
-    handle === false
+    handle === false || handle == null
       ? null
       : isValidElement(handle)
-        ? cloneElement(handle, {
-            ...handle.props,
-            "data-velvet-depth": "handle",
-          })
+        ? handle.type === Sheet.Handle
+          ? cloneElement(handle, {
+              ...handleProps,
+              ...handle.props,
+              "data-velvet-depth": "handle",
+            })
+          : (
+              <Sheet.Handle
+                {...handleProps}
+                asChild
+                data-velvet-depth="handle"
+              >
+                {handle}
+              </Sheet.Handle>
+            )
         : <Sheet.Handle {...handleProps} data-velvet-depth="handle" />;
+  const backgroundNode =
+    bleedingBackground === false || bleedingBackground == null
+      ? null
+      : bleedingBackground === true
+        ? (
+            <Sheet.BleedingBackground
+              {...bleedingBackgroundProps}
+              data-velvet-depth="background"
+            />
+          )
+        : isValidElement(bleedingBackground) &&
+            bleedingBackground.type === Sheet.BleedingBackground
+          ? cloneElement(bleedingBackground, {
+              ...bleedingBackgroundProps,
+              ...bleedingBackground.props,
+              "data-velvet-depth": "background",
+            })
+          : (
+              <Sheet.BleedingBackground
+                {...bleedingBackgroundProps}
+                asChild
+                data-velvet-depth="background"
+              >
+                {bleedingBackground}
+              </Sheet.BleedingBackground>
+            );
+  const renderedContentChildren = mapSlottedChildren(
+    contentProps.asChild,
+    children,
+    (authoredChildren) => (
+      <>
+        {backgroundNode}
+        {handleNode}
+        <Scroll.Root {...scrollRootProps} data-velvet-depth="scroll-root">
+          <Scroll.View {...scrollViewProps} data-velvet-depth="scroll">
+            <Scroll.Content
+              {...scrollContentProps}
+              data-velvet-depth="scroll-content"
+            >
+              {authoredChildren}
+            </Scroll.Content>
+          </Scroll.View>
+        </Scroll.Root>
+      </>
+    ),
+    "DepthSheet.Content"
+  );
+  const contentNode = (
+    <Sheet.Content
+      ref={forwardedRef}
+      stackingAnimation={depthSheetStackingAnimation}
+      {...contentProps}
+      style={{ ...tokenStyle, ...contentProps.style }}
+      data-velvet-depth="content"
+    >
+      {renderedContentChildren}
+    </Sheet.Content>
+  );
+  const authoredViewChildren = (
+    <>
+      {backdropNode}
+      {contentNode}
+    </>
+  );
+  const renderedViewChildren = viewSlot
+    ? mapSlottedChildren(
+        true,
+        viewSlot,
+        (viewChildren) => (
+          <>
+            {viewChildren}
+            {authoredViewChildren}
+          </>
+        ),
+        "DepthSheet.Content view slot"
+      )
+    : authoredViewChildren;
 
   if (
     !portalHost &&
@@ -235,29 +340,10 @@ const Content = forwardRef(function DepthSheetContent(
         nativeEdgeSwipePrevention
         enteringAnimationSettings={DEPTH_ENTERING_SPRING}
         {...viewProps}
+        asChild={Boolean(viewSlot)}
         data-velvet-depth="view"
       >
-        {backdropNode}
-        <Sheet.Content
-          ref={forwardedRef}
-          stackingAnimation={depthSheetStackingAnimation}
-          {...contentProps}
-          style={{ ...tokenStyle, ...contentProps.style }}
-          data-velvet-depth="content"
-        >
-          <Sheet.BleedingBackground
-            {...bleedingBackgroundProps}
-            data-velvet-depth="background"
-          />
-          {handleNode}
-          <Scroll.Root {...scrollRootProps} data-velvet-depth="scroll-root">
-            <Scroll.View {...scrollViewProps} data-velvet-depth="scroll">
-              <Scroll.Content {...scrollContentProps} data-velvet-depth="scroll-content">
-                {children}
-              </Scroll.Content>
-            </Scroll.View>
-          </Scroll.Root>
-        </Sheet.Content>
+        {renderedViewChildren}
       </Sheet.View>
     </Sheet.Portal>
   );

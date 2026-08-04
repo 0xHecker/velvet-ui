@@ -4,11 +4,12 @@ import type {
   PrimitiveProps,
   SheetBackdropProps,
   SheetComponent,
+  SheetComposedViewProps,
   SheetContentProps,
   SheetPortalProps,
+  SheetPartSlot,
   SheetRootProps,
   SheetTriggerProps,
-  SheetViewProps,
 } from "./sheet.js";
 import type {
   ScrollContentProps,
@@ -21,8 +22,9 @@ export interface CardExpansionTriggerProps extends SheetTriggerProps {}
 export interface CardExpansionContentProps extends SheetContentProps {
   from?: "trigger" | React.RefObject<Element | null> | Element | false | null;
   portalProps?: SheetPortalProps;
-  viewProps?: SheetViewProps;
-  backdrop?: boolean | React.ReactElement;
+  view?: React.ReactElement | null;
+  viewProps?: SheetComposedViewProps;
+  backdrop?: SheetPartSlot;
   backdropProps?: SheetBackdropProps;
   scroll?: boolean;
   scrollRootProps?: ScrollRootProps;
