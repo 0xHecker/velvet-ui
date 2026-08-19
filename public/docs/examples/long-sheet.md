@@ -1,8 +1,8 @@
 # Scrollable Sheet homepage demo source
 
-> This file is generated from the exact JSX and CSS used by the live homepage card. It is a complete implementation reference, not a zero-edit starter: replace playground icons and images with your own assets, then change the local Velvet import to the package subpath shown in the guide.
+> This source was captured with the Velvet UI 0.3.0 documentation. It is a complete implementation reference, not a zero-edit starter: replace playground icons and images with your own assets, then change the local Velvet import to the package subpath shown in the guide.
 
-Web guide: https://velvetui.co/docs/gallery-recipes
+Web guide: https://velvetui.co/docs/0.3.0/gallery-recipes
 
 ## JSX
 

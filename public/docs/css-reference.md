@@ -2,7 +2,9 @@
 
 > Use the stable CSS entries, variables, and semantic data hooks without depending on internal wrapper order.
 
-Web: https://velvetui.co/docs/css-reference
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/css-reference
 
 The public CSS contract consists of package CSS entries, custom properties, and semantic data attributes. Internal wrapper order is not part of the contract.
 

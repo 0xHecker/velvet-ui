@@ -2,7 +2,9 @@
 
 > Diagnose missing styles, swallowed refs, controlled-state loops, gesture handoff, mobile keyboards, nested sheets, and third-party portals.
 
-Web: https://velvetui.co/docs/troubleshooting
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/troubleshooting
 
 Most failures come from missing structural CSS, swallowed refs, unclear state ownership, or the wrong overflow element. Check these before tuning springs.
 
@@ -44,7 +46,7 @@ Titles register with the nearest Root. Render the parent Title and Description b
 
 ## The nested sheet escapes the parent modal
 
-Create a clipped, positioned portal host inside the modal and pass its ref directly: `<Sheet.Portal container={nestedHostRef}>`. Position the nested View absolutely so it resolves against that host instead of the viewport.
+Render `<Sheet.NestedPortalHost>` inside the modal and use `<Sheet.NestedPanel>` for the child. The host provides the portal container, clipping boundary, and positioning context; NestedPanel applies host-relative positioning inline so Tailwind v4 utilities cannot accidentally restore viewport-fixed geometry.
 
 ## A bottom action is hidden on mobile
 
@@ -56,7 +58,7 @@ Add `interactive-widget=resizes-content`, keep the composer in the coordinated S
 
 ## A third-party popup cannot be clicked
 
-Wrap its portal root with ExternalOverlay.Root so the modal manager treats it as part of the active sheet instead of inert background content.
+Inside the third-party Portal, wrap the real DOM-bearing popup or positioner with an official Radix, React Aria, or Base UI adapter. Use `ExternalOverlay.DismissLayer` for another library, or `ExternalOverlay.Root` only when passive scope enrollment is enough.
 
 ## Nested sheets dim or shrink too much
 

@@ -11,6 +11,7 @@ import {
   useThemeColorDimmingOverlay as useThemeColorDimmingOverlayRuntime,
 } from "../core/hooks.js";
 import type { MotionSettings } from "./motion.js";
+import type { ExternalOverlayAdapterProps } from "./adapters.js";
 
 export interface UtilityProps<T extends HTMLElement = HTMLDivElement>
   extends React.HTMLAttributes<T> {
@@ -107,7 +108,12 @@ export const Fixed = fixedRuntime as UtilityPart<HTMLElement>;
 export const Island = islandRuntime as UtilityPart<HTMLElement>;
 export const ExternalOverlay = externalOverlayRuntime as {
   Root: UtilityPart<HTMLElement>;
+  DismissLayer: React.ForwardRefExoticComponent<
+    React.PropsWithoutRef<ExternalOverlayAdapterProps> &
+      React.RefAttributes<HTMLElement>
+  >;
 };
+
 
 export const useClientMediaQuery =
   useClientMediaQueryRuntime as (query: string) => boolean;

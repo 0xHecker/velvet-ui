@@ -2,7 +2,9 @@
 
 > Render one Toaster near the application root and call toast from any client interaction.
 
-Web: https://velvetui.co/docs/toast-quick-start
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-quick-start
 
 Render one `Toaster` near the application root. Call `toast` from any client interaction; no provider or prop drilling is required.
 

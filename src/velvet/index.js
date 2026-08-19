@@ -21,6 +21,17 @@ export { Fixed } from "./Fixed.jsx";
 export { Island } from "./Island.jsx";
 export { ExternalOverlay } from "./ExternalOverlay.jsx";
 export {
+  VelvetAriaPopover,
+  VelvetAriaSelect,
+  VelvetAriaTooltip,
+  VelvetBaseUIMenu,
+  VelvetBaseUIPopover,
+  VelvetBaseUISelect,
+  VelvetRadixDropdownMenu,
+  VelvetRadixPopover,
+  createExternalOverlayAdapter,
+} from "./adapters.jsx";
+export {
   SPRING_PRESETS,
   decimateSpring,
   linearEasingFromSamples,

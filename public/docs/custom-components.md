@@ -2,7 +2,9 @@
 
 > Keep Velvet's gestures, focus, accessibility, and motion while your design system owns every visible element.
 
-Web: https://velvetui.co/docs/custom-components
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/custom-components
 
 Use Velvet for state, gestures, focus, accessibility, and motion while your design system owns every visible element. Buttons, surfaces, headings, backdrops, handles, and the outer View can all remain your components.
 

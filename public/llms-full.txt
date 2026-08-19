@@ -1,12 +1,74 @@
-# Velvet UI documentation
+# Velvet UI 0.3.0 documentation
 
-Generated from the same version-controlled source as the human-facing guides and per-page Markdown responses.
+Generated from the same immutable snapshot as the human-facing guides and per-page Markdown responses.
+
+# Velvet UI invariants
+
+This is the short integration contract for people, coding agents, and test suites. These rules describe behavior that applications may rely on.
+
+## Component families
+
+- Use `Lightbox` for lightboxes; do not imitate one by styling a `Sheet`.
+- `Trigger`, `Close`, `Title`, and `Description` must match their nearest Root family. A `Sheet.Close` does not control a `Lightbox.Root`, and vice versa.
+- A close control must target the frontmost dismissible layer. Close a child overlay before its parent.
+
+## State and lifecycle
+
+- A controlled, initially open draggable Sheet never requests `open=false` until a real gesture or explicit dismissal request occurs.
+- `onDismissRequest` is the request boundary. Returning or resolving `false` rejects the request; any other successful result permits the close.
+- `onOpenChange(false, detail)` is the controlled state request. It is distinct from exit motion and `onExitComplete`.
+- Dismissal detail always names the cause: `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, or `programmatic`.
+- Reduced motion follows the same state machine. It changes motion, not lifecycle meaning.
+
+## Focus and modality
+
+- Every modal layer needs a resolvable accessible title. Add a description when it contributes information beyond the title.
+- Route-open or triggerless surfaces need explicit `initialFocusRef` and `restoreFocusRef` targets.
+- Do not race Velvet focus restoration with arbitrary timeouts. Navigate or clear the old surface from `onExitComplete`.
+- Busy destructive work must own dismissal and keep destructive controls locked until the request resolves.
+
+## Composition and portals
+
+- `asChild` requires exactly one non-Fragment child that forwards its ref, data attributes, ARIA attributes, and event props to one stable DOM element.
+- Use one Velvet scroll chain per layer.
+- A nested View must be positioned relative to and clipped by its parent host. Prefer `Sheet.NestedPortalHost` with `Sheet.NestedPanel`.
+- A nested host must not introduce a lower stacking context than its parent surface.
+- Third-party portals must join the owning scope through `ExternalOverlay.Root` or an official adapter.
+- Scope enrollment does not grant dismissal ownership. Use `ExternalOverlay.DismissLayer` when the child should own Escape and the first outside press.
+- Wrap the third-party library's DOM-bearing popup or positioner—not its Portal or controller component.
+
+## Styling and diagnostics
+
+- Velvet structural CSS is required. Product styles may override tokens at a local application scope.
+- Package defaults use CSS variable fallbacks rather than assigning z-index tokens globally.
+- Nested positioning is applied structurally by `Sheet.NestedPanel`; do not rely on Tailwind utility cascade order to override a fixed View.
+- In development, inspect mounted layers with `window.__velvet.inspect()` and assert DOM conformance with `expectVelvetLayer` from `@velvetui/react/testing`.
+
+---
+
+# Runnable recipes
+
+- [Route-controlled sheet](https://velvetui.co/recipes/route-controlled-sheet): Open from URL state, cold-open without a trigger, and update navigation only after exit motion completes. ([Markdown](https://velvetui.co/recipes/route-controlled-sheet.md))
+- [Async editor close](https://velvetui.co/recipes/async-editor-close): Flush a dirty draft at the dismissal-request boundary before committing controlled state or starting exit motion. ([Markdown](https://velvetui.co/recipes/async-editor-close.md))
+- [Destructive confirmation](https://velvetui.co/recipes/destructive-confirmation): Give destructive work an alert-dialog role, a safe initial target, and dismissal ownership while the mutation is busy. ([Markdown](https://velvetui.co/recipes/destructive-confirmation.md))
+- [Nested modal navigation](https://velvetui.co/recipes/nested-modal-navigation): A centered library with a body-safe native scroller and a right-side detail surface that swipes back independently. ([Markdown](https://velvetui.co/recipes/nested-modal-navigation.md))
+- [Nested navigation with Tailwind v4](https://velvetui.co/recipes/nested-modal-navigation-tailwind-v4): The same nested modal architecture expressed with Tailwind v4 while preserving structural CSS and gesture handoff. ([Markdown](https://velvetui.co/recipes/nested-modal-navigation-tailwind-v4.md))
+- [Detail → confirmation → lightbox](https://velvetui.co/recipes/nested-detail-confirmation-lightbox): Compose host-relative navigation, an alert dialog, and a family-correct Lightbox without losing dismissal order. ([Markdown](https://velvetui.co/recipes/nested-detail-confirmation-lightbox.md))
+- [Radix popover in a Sheet](https://velvetui.co/recipes/radix-popover-in-sheet): Keep Radix positioning and focus behavior while enrolling its portaled Content in Velvet dismissal ownership. ([Markdown](https://velvetui.co/recipes/radix-popover-in-sheet.md))
+- [React Aria popover in a Sheet](https://velvetui.co/recipes/react-aria-popover-in-sheet): Let React Aria own accessible popover semantics while Velvet coordinates the parent modal and dismissal stack. ([Markdown](https://velvetui.co/recipes/react-aria-popover-in-sheet.md))
+- [Base UI popover in a Sheet](https://velvetui.co/recipes/base-ui-popover-in-sheet): Place Velvet's Base UI boundary inside Popover.Portal and slot the real Positioner, leaving Base UI in charge of layout. ([Markdown](https://velvetui.co/recipes/base-ui-popover-in-sheet.md))
+- [Reduced-motion initial-open sheet](https://velvetui.co/recipes/reduced-motion-initial-open): Prove that a controlled draggable sheet mounted open never turns setup-time runway normalization into a false close. ([Markdown](https://velvetui.co/recipes/reduced-motion-initial-open.md))
+- [Deleted-trigger focus fallback](https://velvetui.co/recipes/deleted-trigger-focus-fallback): Restore focus safely when the control that opened a sheet disappears during an optimistic update. ([Markdown](https://velvetui.co/recipes/deleted-trigger-focus-fallback.md))
+
+---
 
 # Overview
 
 > Velvet UI is a headless React sheet and toast toolkit built around composable primitives, resilient gestures, and WAAPI-driven motion.
 
-Web: https://velvetui.co/docs
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0
 
 Velvet gives React applications native-feeling sheets, stacked surfaces, lightboxes, card expansion, scroll coordination, and toasts. You choose a ready-made composition or assemble the primitives yourself.
 
@@ -62,7 +124,9 @@ If an implementation feels stuck, first ask: who owns `open`, which element scro
 
 > Install Velvet UI, then import the structural stylesheet required by the primitive or composition you use.
 
-Web: https://velvetui.co/docs/installation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/installation
 
 Install the package once, then choose either the complete stylesheet or granular CSS entries. Velvet supports React 18 and 19 and does not require a styling runtime.
 
@@ -132,7 +196,9 @@ If the trigger renders but nothing opens, confirm that `sheet.css`, `base.css`, 
 
 > Choose focused JavaScript and CSS entry points for smaller bundles, predictable style order, and server-rendered React applications.
 
-Web: https://velvetui.co/docs/package-exports
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/package-exports
 
 Velvet ships focused ESM and CommonJS entry points. Importing a composition does not pull every other composition into the application bundle.
 
@@ -144,6 +210,11 @@ Velvet ships focused ESM and CommonJS entry points. Importing a composition does
 | `@velvetui/react/motion` | Framework-free springs, WAAPI, and travel interpolation | none |
 | `@velvetui/react/motion/react` | Lifecycle-owned motion hooks | none |
 | `@velvetui/react/utilities` | Scroll, accessibility, fixed, island, and overlay helpers | `@velvetui/react/sheet.css` |
+| `@velvetui/react/adapters` | All headless third-party overlay adapters | none |
+| `@velvetui/react/radix` | Radix Popover and Dropdown Menu boundaries | none |
+| `@velvetui/react/react-aria` | React Aria Popover, Tooltip, and Select boundaries | none |
+| `@velvetui/react/base-ui` | Base UI Popover, Menu, and Select boundaries | none |
+| `@velvetui/react/testing` | DOM layer conformance assertion | none |
 | `@velvetui/react/sheet-morph` | Shared-origin geometry | `@velvetui/react/sheet.css` |
 | `@velvetui/react/theme-backdrop` | Backdrop plus browser theme tint | `@velvetui/react/sheet.css` |
 | `@velvetui/react/bottom-sheet` | Styled mobile/task sheet | `sheet.css` + `bottom-sheet.css` |
@@ -191,7 +262,9 @@ Call `toast()` from client code or an event handler. The `Toaster` itself can ap
 
 > Keep routes server rendered while placing the smallest possible client boundary around interactive sheets, portals, and toast calls.
 
-Web: https://velvetui.co/docs/server-rendering
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/server-rendering
 
 Velvet is safe to render in an SSR tree. Triggers, labels, and authored page content produce ordinary server HTML; portal hosts, focus management, inertness, and gesture measurement activate after hydration.
 
@@ -301,7 +374,9 @@ export function ProductRoute() {
 
 > Velvet exposes semantic classes and CSS custom properties so the component can inherit your design system without a styling runtime.
 
-Web: https://velvetui.co/docs/styling
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/styling
 
 Velvet owns geometry, focus, and gestures. Product CSS owns color, spacing, typography, and layout. Use classes for a component instance and variables for theme-level decisions.
 
@@ -377,7 +452,9 @@ Use `sheet.css` for Sheet and Scroll mechanics, `toast.css` for unstyled toast m
 
 > Keep Velvet's gestures, focus, accessibility, and motion while your design system owns every visible element.
 
-Web: https://velvetui.co/docs/custom-components
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/custom-components
 
 Use Velvet for state, gestures, focus, accessibility, and motion while your design system owns every visible element. Buttons, surfaces, headings, backdrops, handles, and the outer View can all remain your components.
 
@@ -502,7 +579,9 @@ Use `viewProps`, `backdropProps`, `handleProps`, `bleedingBackgroundProps`, `scr
 
 > Use the stable CSS entries, variables, and semantic data hooks without depending on internal wrapper order.
 
-Web: https://velvetui.co/docs/css-reference
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/css-reference
 
 The public CSS contract consists of package CSS entries, custom properties, and semantic data attributes. Internal wrapper order is not part of the contract.
 
@@ -615,7 +694,9 @@ Style semantic hooks, not generated ids or internal spacer nodes. Scroll track a
 
 > A Sheet groups a trigger, portal, motion surface, accessible title, description, and close action under one controlled or uncontrolled state.
 
-Web: https://velvetui.co/docs/sheet-quick-start
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-quick-start
 
 Start with `Sheet.Panel`. It supplies the portal, backdrop, gesture view, content surface, and handle while leaving your content and classes untouched.
 
@@ -664,7 +745,9 @@ Reach for `Sheet.View`, `Sheet.Backdrop`, and `Sheet.Content` when the backdrop 
 
 > The primitive tree separates state, trigger, portal, view, backdrop, content, and accessible labels.
 
-Web: https://velvetui.co/docs/anatomy
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/anatomy
 
 The parts are separate so styling and composition can change without rewriting gesture, focus, and modality behavior.
 
@@ -705,14 +788,16 @@ Forward refs through custom children, keep the real scroll element identifiable,
 
 > Keep a side sheet inside a centered modal with an independent native scrollbar, swipe-back through content, and separate Back and Close actions.
 
-Web: https://velvetui.co/docs/nested-modal-navigation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/nested-modal-navigation
 
 A nested side sheet can stay physically inside a centered modal while retaining native scrolling, swipe-back, focus ownership, and independent Back and Close actions.
 
 ## Complete React structure
 
 ```tsx
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Sheet } from "@velvetui/react/sheet";
 import { Scroll } from "@velvetui/react/utilities";
 import "@velvetui/react/sheet.css";
@@ -720,7 +805,6 @@ import "@velvetui/react/sheet.css";
 export function StudioLibrary() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [articleOpen, setArticleOpen] = useState(false);
-  const nestedHostRef = useRef(null);
 
   const closeAll = () => {
     setArticleOpen(false);
@@ -739,7 +823,8 @@ export function StudioLibrary() {
           onClickOutside={{ dismiss: false }}
         >
           <Sheet.Backdrop />
-          <Sheet.Content className="library-modal">
+          <Sheet.NestedPortalHost asChild>
+            <Sheet.Content className="library-modal">
             {/* Parent labels must stay outside the nested Root. */}
             <header className="library-header">
               <div>
@@ -760,18 +845,13 @@ export function StudioLibrary() {
                 </Scroll.View>
               </Scroll.Root>
 
-              <div ref={nestedHostRef} className="nested-portal-host" />
-
-              <Sheet.Portal container={nestedHostRef}>
-                <Sheet.View
-                  className="nested-detail-view"
-                  side="right"
-                  nativeEdgeSwipePrevention
-                  swipeOvershoot={false}
-                  onClickOutside={{ dismiss: false }}
-                >
-                  <Sheet.Backdrop />
-                  <Sheet.Content className="nested-detail-panel">
+              <Sheet.NestedPanel
+                side="right"
+                nativeEdgeSwipePrevention
+                swipeOvershoot={false}
+                onClickOutside={{ dismiss: false }}
+                className="nested-detail-panel"
+              >
                     <header className="detail-header">
                       <Sheet.Close type="button" aria-label="Back to library">←</Sheet.Close>
                       <Sheet.Title>Launch notes</Sheet.Title>
@@ -786,11 +866,10 @@ export function StudioLibrary() {
                         <Scroll.Content><Article /></Scroll.Content>
                       </Scroll.View>
                     </Scroll.Root>
-                  </Sheet.Content>
-                </Sheet.View>
-              </Sheet.Portal>
+              </Sheet.NestedPanel>
             </Sheet.Root>
-          </Sheet.Content>
+            </Sheet.Content>
+          </Sheet.NestedPortalHost>
         </Sheet.View>
       </Sheet.Portal>
     </Sheet.Root>
@@ -798,7 +877,7 @@ export function StudioLibrary() {
 }
 ```
 
-`Sheet.Portal` accepts either a resolved element or a React ref. Passing the ref directly avoids callback-ref state and the extra guarded render that older recipes needed.
+`Sheet.NestedPortalHost` supplies the child portal boundary and deliberate relative clipping. `Sheet.NestedPanel` discovers that host, portals into it, and applies host-relative View positioning without ref state or hand-authored portal plumbing.
 
 ## Required layout CSS
 
@@ -838,17 +917,6 @@ export function StudioLibrary() {
   -webkit-overflow-scrolling: touch;
 }
 
-.nested-portal-host {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.nested-detail-view { position: absolute !important; }
-
 .nested-detail-panel {
   display: flex;
   width: 100%;
@@ -869,7 +937,7 @@ export function StudioLibrary() {
 }
 ```
 
-The portal host establishes the clipping boundary. The nested View must be absolute because a normal Sheet.View is viewport-fixed. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.
+The host establishes the clipping boundary and NestedPanel supplies absolute positioning internally. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.
 
 ## Tailwind CSS v4
 
@@ -878,8 +946,9 @@ The portal host establishes the clipping boundary. The nested View must be absol
 ```
 
 ```tsx
-// The component tree is identical; replace the structural classes only.
-<Sheet.Content className="relative isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
+// NestedPortalHost owns relative clipping; utilities own the authored surface.
+<Sheet.NestedPortalHost asChild>
+<Sheet.Content className="isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
   <header className="shrink-0">...</header>
 
   <Sheet.Root open={articleOpen} onOpenChange={setArticleOpen}>
@@ -889,10 +958,7 @@ The portal host establishes the clipping boundary. The nested View must be absol
       </Scroll.View>
     </Scroll.Root>
 
-    <div ref={nestedHostRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]" />
-    <Sheet.Portal container={nestedHostRef}>
-      <Sheet.View className="!absolute" side="right" nativeEdgeSwipePrevention>
-        <Sheet.Content className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
+    <Sheet.NestedPanel side="right" nativeEdgeSwipePrevention className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
           <header className="shrink-0">...</header>
           <Scroll.Root className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Scroll.View
@@ -902,19 +968,18 @@ The portal host establishes the clipping boundary. The nested View must be absol
               <Scroll.Content><Article /></Scroll.Content>
             </Scroll.View>
           </Scroll.Root>
-        </Sheet.Content>
-      </Sheet.View>
-    </Sheet.Portal>
+    </Sheet.NestedPanel>
   </Sheet.Root>
 </Sheet.Content>
+</Sheet.NestedPortalHost>
 ```
 
-Keep `import "@velvetui/react/sheet.css"` in the JavaScript entry. Tailwind owns the authored surface; Velvet's stylesheet owns gesture tracks, portal mechanics, modality, and Scroll coordination.
+Keep `import "@velvetui/react/sheet.css"` in the JavaScript entry. Tailwind owns the authored surface; Velvet owns gesture tracks, portal mechanics, modality, Scroll coordination, and the nested View's structural inline position. That last detail avoids Tailwind v4's layered `absolute` utility losing to an unlayered fixed rule.
 
 ## Live package examples
 
-- [Open the plain CSS StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview)
-- [Open the Tailwind CSS v4 StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview)
+- [Run the embedded plain CSS recipe](/recipes/nested-modal-navigation) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview).
+- [Run the embedded Tailwind CSS v4 recipe](/recipes/nested-modal-navigation-tailwind-v4) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview).
 
 Both projects install `@velvetui/react` from npm. They do not alias the package to repository source or copy Velvet's internals into the example.
 
@@ -938,28 +1003,30 @@ Test after a cold reload on a phone. Scroll the article from the middle, swipe b
 
 > The gallery demonstrates production-shaped layouts such as bottom sheets, drawers, modals, detents, lightboxes, and persistent surfaces.
 
-Web: https://velvetui.co/docs/gallery-recipes
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/gallery-recipes
 
 Every homepage card is built from the public package. The concise recipes explain the reusable structure; the source links below are generated from the exact live JSX and CSS, so the documentation cannot silently drift away from the gallery.
 
 ## Exact live source
 
-1. [Bottom Sheet exact JSX and CSS](/docs/examples/bottom-sheet.md)
-2. [Modal Dialog exact JSX and CSS](/docs/examples/modal.md)
-3. [Navigation Drawer exact JSX and CSS](/docs/examples/sidebar.md)
-4. [Detent Sheet exact JSX and CSS](/docs/examples/detent.md)
-5. [Top Sheet exact JSX and CSS](/docs/examples/top-sheet.md)
-6. [Scrollable Sheet exact JSX and CSS](/docs/examples/long-sheet.md)
-7. [Stacked Sheets exact JSX and CSS](/docs/examples/stacked.md)
-8. [Detached Sheet exact JSX and CSS](/docs/examples/detached.md)
-9. [Full-Screen Sheet exact JSX and CSS](/docs/examples/page-from-bottom.md)
-10. [Depth Sheet exact JSX and CSS](/docs/examples/depth.md)
-11. [Lightbox exact JSX and CSS](/docs/examples/lightbox.md)
-12. [Parallax Sheet exact JSX and CSS](/docs/examples/parallax.md)
-13. [Side Sheet exact JSX and CSS](/docs/examples/page.md)
-14. [Keyboard-Aware Sheet exact JSX and CSS](/docs/examples/keyboard.md)
-15. [Card Expansion exact JSX and CSS](/docs/examples/card.md)
-16. [Persistent Sheet exact JSX and CSS](/docs/examples/persistent.md)
+1. [Bottom Sheet exact JSX and CSS](/docs/0.3.0/examples/bottom-sheet.md)
+2. [Modal Dialog exact JSX and CSS](/docs/0.3.0/examples/modal.md)
+3. [Navigation Drawer exact JSX and CSS](/docs/0.3.0/examples/sidebar.md)
+4. [Detent Sheet exact JSX and CSS](/docs/0.3.0/examples/detent.md)
+5. [Top Sheet exact JSX and CSS](/docs/0.3.0/examples/top-sheet.md)
+6. [Scrollable Sheet exact JSX and CSS](/docs/0.3.0/examples/long-sheet.md)
+7. [Stacked Sheets exact JSX and CSS](/docs/0.3.0/examples/stacked.md)
+8. [Detached Sheet exact JSX and CSS](/docs/0.3.0/examples/detached.md)
+9. [Full-Screen Sheet exact JSX and CSS](/docs/0.3.0/examples/page-from-bottom.md)
+10. [Depth Sheet exact JSX and CSS](/docs/0.3.0/examples/depth.md)
+11. [Lightbox exact JSX and CSS](/docs/0.3.0/examples/lightbox.md)
+12. [Parallax Sheet exact JSX and CSS](/docs/0.3.0/examples/parallax.md)
+13. [Side Sheet exact JSX and CSS](/docs/0.3.0/examples/page.md)
+14. [Keyboard-Aware Sheet exact JSX and CSS](/docs/0.3.0/examples/keyboard.md)
+15. [Card Expansion exact JSX and CSS](/docs/0.3.0/examples/card.md)
+16. [Persistent Sheet exact JSX and CSS](/docs/0.3.0/examples/persistent.md)
 
 The raw files include playground icons, image helpers, and local import paths because they are the real implementation. Replace those helpers with product assets and use the package imports from the concise recipe.
 
@@ -1228,7 +1295,9 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";
 
 > Sheets support uncontrolled defaults and controlled state for coordination with your router, form flow, or application state.
 
-Web: https://velvetui.co/docs/open-state
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/open-state
 
 Use uncontrolled state for self-contained UI. Use controlled state when the sheet participates in routing, validation, or a multi-step workflow.
 
@@ -1247,19 +1316,21 @@ Use uncontrolled state for self-contained UI. Use controlled state when the shee
 
 ```tsx
 const [open, setOpen] = useState(searchParams.has("settings"));
+const initialFocusRef = useRef(null);
+const restoreFocusRef = useRef(null);
 
 <Sheet.Root
   open={open}
-  onOpenChange={(nextOpen) => {
-    setOpen(nextOpen);
-    updateUrl(nextOpen);
-  }}
+  initialFocusRef={initialFocusRef}
+  restoreFocusRef={restoreFocusRef}
+  onOpenChange={setOpen}
+  onExitComplete={() => updateUrl(false)}
 >
   ...
 </Sheet.Root>
 ```
 
-Do not ignore `onOpenChange` while passing `open`; the sheet will request a state change but your UI will remain frozen.
+Do not ignore `onOpenChange` while passing `open`; the sheet will request a state change but your UI will remain frozen. Route-open surfaces should remove their URL state after `onExitComplete`, and cold-open paths should point `restoreFocusRef` at a stable page landmark. [Run the route-controlled recipe](/recipes/route-controlled-sheet).
 
 
 ---
@@ -1268,7 +1339,9 @@ Do not ignore `onOpenChange` while passing `open`; the sheet will request a stat
 
 > The panel side determines both the origin and the dismiss direction: bottom, top, left, right, or center.
 
-Web: https://velvetui.co/docs/placement
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/placement
 
 Placement controls authored geometry. Tracks control direct-manipulation directions. Keeping those ideas separate makes detached dialogs, side drawers, and bidirectional media surfaces possible without a different primitive.
 
@@ -1326,7 +1399,9 @@ Set `nativeEdgeSwipePrevention` when a left or right sheet uses the same screen 
 
 > Snap points create intermediate resting positions without a separate gesture implementation.
 
-Web: https://velvetui.co/docs/detents
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/detents
 
 Detents are ordered CSS lengths measured along the sheet axis. Velvet adds the fully open content length after the supplied stops, so you declare intermediate resting positions rather than duplicating the final height.
 
@@ -1382,9 +1457,11 @@ With `dismissible={false}`, travel cannot settle at index 0. A downward swipe re
 
 > Dismissal is configurable per view: gestures, outside press, and Escape can each be allowed, prevented, or decided at runtime.
 
-Web: https://velvetui.co/docs/dismissal
+Documentation version: 0.3.0
 
-Dismissal has three independent inputs: travel, outside interaction, and Escape. Treat them as product policy rather than assuming every overlay should close from every input.
+Web: https://velvetui.co/docs/0.3.0/dismissal
+
+Dismissal has three independent inputs—travel, outside interaction, and Escape—and four observable phases: request, controlled commit, exit start, and exit completion. Treat each as product policy rather than assuming every overlay should close from every input.
 
 ## Policy matrix
 
@@ -1413,6 +1490,29 @@ Dismissal has three independent inputs: travel, outside interaction, and Escape.
 
 `changeDefault` changes Velvet's default for that interaction. It does not cancel unrelated application handlers.
 
+## Async request gate
+
+```tsx
+<Sheet.Root
+  open={open}
+  onDismissRequest={async ({ reason }) => {
+    if (!draft.dirty) return true;
+    const saved = await saveDraft();
+    if (!saved) announce("Draft could not be saved");
+    return saved;
+  }}
+  onOpenChange={(next, detail) => {
+    setOpen(next);
+    logDismissal(detail.reason);
+  }}
+  onExitComplete={clearEditorSession}
+>
+  ...
+</Sheet.Root>
+```
+
+While a promise is pending, repeated requests coalesce and the View exposes `data-velvet-dismiss-pending="true"`. Rejection restores an attempted native swipe to its prior detent.
+
 ## Alert dialogs
 
 Use `sheetRole="alertdialog"` only for an urgent decision. Swipe dismissal is disabled by default and the workflow should present explicit safe and destructive actions.
@@ -1428,7 +1528,9 @@ Only the frontmost modal responds to Escape or outside interaction. Closing it r
 
 > Travel animation maps a shared open progress value onto any visual property, keeping panel, backdrop, and surrounding UI synchronized.
 
-Web: https://velvetui.co/docs/travel-animation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/travel-animation
 
 Travel animation maps the same physical progress used by the sheet onto CSS properties. This keeps the surface, backdrop, page, and decorative layers synchronized.
 
@@ -1459,7 +1561,9 @@ A value may be a `[from, to]` pair, a function of `{ progress, tween }`, or a li
 
 > SheetMorph starts content at the trigger or a supplied element’s measured geometry, then settles it into its authored layout.
 
-Web: https://velvetui.co/docs/shared-origin-motion
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/shared-origin-motion
 
 Shared-origin motion visually connects a trigger to its expanded surface. It is opt-in so ordinary sheets do not pay for geometry measurement.
 
@@ -1493,7 +1597,9 @@ Skip morphing when the source and destination have unrelated content, when the s
 
 > Presets make interaction tuning consistent across a product while retaining an escape hatch for custom physical values.
 
-Web: https://velvetui.co/docs/springs
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/springs
 
 Named spring presets make motion consistent. Custom values are an escape hatch for a deliberate material change, not a requirement for each component.
 
@@ -1535,7 +1641,9 @@ Always test a custom spring after an interrupted drag. A value that looks good f
 
 > Use Velvet's interruptible springs, WAAPI orchestration, travel interpolation, reduced-motion handling, and React lifecycle hooks anywhere.
 
-Web: https://velvetui.co/docs/motion-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/motion-api
 
 Velvet's motion engine is a framework-free public module. Use the same sampled springs, interruption policy, reduced-motion settlement, and progress interpolation outside Sheet without importing React or any component runtime.
 
@@ -1728,7 +1836,9 @@ Skipped motion still applies the final keyframe and resolves its playback as `sk
 
 > Trigger, Close, and Step communicate intent directly and can render through your own button using asChild.
 
-Web: https://velvetui.co/docs/triggers
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/triggers
 
 Trigger parts are real buttons by default and expose stateful intent without forcing a product button style.
 
@@ -1758,7 +1868,7 @@ Only the public `disabled` prop disables an action. A new open, close, toggle, o
 
 ## asChild requirements
 
-The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/custom-components).
+The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/0.3.0/custom-components).
 
 ## onPress and onClick
 
@@ -1771,7 +1881,9 @@ The single non-Fragment child receives the ref, children, click handler, disable
 
 > Modal sheets apply dialog semantics, focus management, Escape handling, inert background treatment, and focus restoration.
 
-Web: https://velvetui.co/docs/accessibility
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/accessibility
 
 Velvet supplies dialog semantics and interaction infrastructure, but accessible product copy and workflow remain application responsibilities.
 
@@ -1842,7 +1954,9 @@ Open with Enter and Space, tab through every control, reverse with Shift+Tab, op
 
 > The sheet API is assembled from state, view, content, and action primitives so consumers can adopt only the layers they need.
 
-Web: https://velvetui.co/docs/sheet-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-api
 
 The headless Sheet contract is a compound React API. Every primitive forwards its ref and normal DOM props unless the table says otherwise.
 
@@ -1862,12 +1976,59 @@ import "@velvetui/react/sheet.css";
 | --- | --- | --- | --- |
 | `open` | `boolean` | uncontrolled | Controlled presented state |
 | `defaultOpen` | `boolean` | `false` | Initial uncontrolled state |
-| `onOpenChange` | `(open) => void` | — | Receives requested state changes |
+| `onOpenChange` | `(open, detail) => void` | — | Receives requested state changes and their reason |
+| `onDismissRequest` | `(detail) => boolean \| Promise<boolean>` | — | Accepts or rejects dismissal before state commits |
+| `onEnterComplete` | `() => void` | — | Fires once after the layer settles inside |
+| `onExitComplete` | `() => void` | — | Fires once after exit and modality release |
+| `initialFocusRef` | `RefObject<HTMLElement>` | — | Preferred focus target after entry |
+| `restoreFocusRef` | `RefObject<HTMLElement>` | trigger or captured focus | Stable focus target after exit |
 | `snap` | `number` | uncontrolled | Controlled detent index |
 | `defaultSnap` | `number` | `defaultOpen ? 1 : 0` | Initial detent |
 | `onSnapChange` | `(snap) => void` | — | Receives detent changes |
 | `sheetRole` | `"dialog" \| "alertdialog"` | `"dialog"` | Modal semantics and dismissal policy |
 
+
+## Request, commit, and completion
+
+A dismissal request is not an exit. `onDismissRequest` runs first and may resolve asynchronously. Once accepted, `onOpenChange(false, detail)` asks a controlled owner to commit the new state. Motion then exits, modality is released, focus is restored, and `onExitComplete` fires.
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<Sheet.Root
+  open={open}
+  onDismissRequest={async (detail) => {
+    if (!editor.dirty) return true;
+    return editor.flush({ reason: detail.reason });
+  }}
+  onOpenChange={(nextOpen, detail) => {
+    analytics.track("sheet state requested", detail.reason);
+    setOpen(nextOpen);
+  }}
+  onExitComplete={() => navigate("/projects")}
+>
+  ...
+</Sheet.Root>
+```
+
+Dismissal reasons are `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, and `programmatic`. A rejected request leaves controlled state, travel, focus, and modality unchanged.
+
+## Triggerless focus
+
+Route-open sheets may have no physical trigger. Supply refs when the safe entry or return target is dynamic or outside the Sheet subtree.
+
+```tsx
+<Sheet.Root
+  open={routeMatch}
+  initialFocusRef={headingRef}
+  restoreFocusRef={pageLandmarkRef}
+  onExitComplete={removeSheetRoute}
+>
+  <Sheet.Panel side="right">...</Sheet.Panel>
+</Sheet.Root>
+```
+
+When a real trigger exists, point `restoreFocusRef` at it. When it was deleted or the route cold-opened, use a connected page landmark. Do not race restoration with a timeout.
 
 ## Sheet.Panel
 
@@ -1921,6 +2082,26 @@ const portalHostRef = useRef<HTMLDivElement>(null);
 
 If the ref is assigned during the same commit as an already-open sheet, Velvet waits for the ref and mounts the portal after it resolves. A supplied ref never silently falls back to document.body while its current value is null.
 
+## NestedPortalHost and NestedPanel
+
+Use the nested pair when a child sheet must remain physically clipped by a parent surface. The host applies relative clipping without creating a new low stacking context; NestedPanel portals to that host and applies host-relative absolute View positioning inline.
+
+```tsx
+<Sheet.NestedPortalHost asChild>
+  <Sheet.Content className="library-modal">
+    <Library />
+    <Sheet.Root open={detailOpen} onOpenChange={setDetailOpen}>
+      <Sheet.NestedPanel side="right" className="detail-panel">
+        <Sheet.Title>Launch notes</Sheet.Title>
+        <Sheet.Close>Back</Sheet.Close>
+      </Sheet.NestedPanel>
+    </Sheet.Root>
+  </Sheet.Content>
+</Sheet.NestedPortalHost>
+```
+
+The structural inline position also avoids Tailwind v4's layered-utility cascade trap: a visible `absolute` class no longer needs to beat Velvet's unlayered fixed rule.
+
 ## Sheet.View
 
 | Prop | Type | Default | Purpose |
@@ -1965,6 +2146,8 @@ If the ref is assigned during the same commit as an already-open sheet, Velvet w
 | Part | Important props |
 | --- | --- |
 | `Sheet.Portal` | `container: Element | DocumentFragment | RefObject` |
+| `Sheet.NestedPortalHost` | host div props, `asChild` |
+| `Sheet.NestedPanel` | Panel props; portal host is discovered automatically |
 | `Sheet.Backdrop` | `travelAnimation`, `asChild` |
 | `Sheet.Content` | `travelAnimation`, `stackingAnimation`, `asChild` |
 | `Sheet.BleedingBackground` | normal div props, `asChild` |
@@ -1991,7 +2174,7 @@ If the ref is assigned during the same commit as an already-open sheet, Velvet w
 
 The child becomes the real DOM node. Pass one non-Fragment element and forward its ref, children, className, style, ARIA/data attributes, disabled state, and event handlers to the final DOM node.
 
-Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. See [Bring your own components](/docs/custom-components) for complete examples.
+Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. Development diagnostics report a dropped ref, missing data/ARIA props, a non-DOM external overlay target, or unstable element identity with a stable `VELVET_*` code and focused error URL. See [Bring your own components](/docs/0.3.0/custom-components) for complete examples.
 
 
 ---
@@ -2000,7 +2183,9 @@ Child handlers run first and `event.preventDefault()` cancels Velvet's behavior.
 
 > DepthSheet gives a full-width surface the visual hierarchy of iOS stacked sheets by scaling and rounding the page behind it.
 
-Web: https://velvetui.co/docs/depth-sheet
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/depth-sheet
 
 Depth Sheet creates an iOS-like hierarchy: the current page recedes, rounds, and dims while the new full-width surface rises. It uses the actual page as the backing layer.
 
@@ -2100,7 +2285,9 @@ CSS-authored values still use browser validation. The supplied stacking animatio
 
 > CardExpansion opens a card into a focused modal surface while retaining the scale and edge response expected from a lightbox.
 
-Web: https://velvetui.co/docs/card-expansion
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/card-expansion
 
 Card Expansion keeps the resting card simple. On open, it becomes a centered modal surface with shared-origin motion and the scale response of a lightbox.
 
@@ -2137,7 +2324,9 @@ Use `from={null}` when the source should not morph. The modal still scales with 
 
 > Styled compositions package the visual grammar for common interactions while preserving the underlying primitive API.
 
-Web: https://velvetui.co/docs/styled-compositions
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/styled-compositions
 
 Start with a composition when its behavior matches the task. Drop to Sheet primitives only when the DOM, placement, tracks, or visual layers need a different contract.
 
@@ -2156,7 +2345,7 @@ Start with a composition when its behavior matches the task. Drop to Sheet primi
 
 Every Content forwards refs and DOM props and supports `asChild`. Supply your own `view`, `backdrop`, `handle`, and `bleedingBackground` elements where that part exists; Velvet composes primitive behavior onto those nodes.
 
-`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/custom-components).
+`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/0.3.0/custom-components).
 
 ## Imports
 
@@ -2175,7 +2364,9 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";
 
 > Compare every supplied composition, its parts, defaults, escape hatches, and CSS contract.
 
-Web: https://velvetui.co/docs/composition-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/composition-api
 
 Compositions are small wrappers around Sheet primitives. They set good interaction defaults, emit stable data hooks, and expose the underlying part props instead of hiding them.
 
@@ -2267,7 +2458,9 @@ Nested roots reuse the nearest portal host and stack coordinator. There is no su
 
 > Render one Toaster near the application root and call toast from any client interaction.
 
-Web: https://velvetui.co/docs/toast-quick-start
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-quick-start
 
 Render one `Toaster` near the application root. Call `toast` from any client interaction; no provider or prop drilling is required.
 
@@ -2298,7 +2491,9 @@ The toaster is fixed to the viewport, so it should not be placed inside a transf
 
 > Toast variants cover neutral, success, error, warning, info, loading, action, promise, and custom JSX states.
 
-Web: https://velvetui.co/docs/toast-variants
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-variants
 
 Variants communicate meaning, not decoration. Use the neutral default for ordinary feedback and reserve warning or error color for states that need attention.
 
@@ -2324,7 +2519,9 @@ Reusing an id updates a toast in place. This is better than stacking loading and
 
 > The Toaster supports the six viewport corners and centers with a fixed viewport layer that does not inherit local layout offsets.
 
-Web: https://velvetui.co/docs/toast-positioning
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-positioning
 
 Position belongs to the `Toaster`, not individual messages. Choose one predictable location for an application region.
 
@@ -2348,7 +2545,9 @@ Corner positions accept left and right swipes by default; centered positions acc
 
 > Toast options control duration, description, action, close affordance, visual treatment, and stacked expansion.
 
-Web: https://velvetui.co/docs/toast-options
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-options
 
 A toast title should say what happened. The description should explain impact or recovery. Actions should be short and safe to repeat.
 
@@ -2378,7 +2577,9 @@ Common options include `id`, `description`, `duration`, `icon`, `action`, `close
 
 > toast.promise binds an async result to one continuous feedback item with loading, success, and error states.
 
-Web: https://velvetui.co/docs/toast-promise
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-promise
 
 `toast.promise` turns one asynchronous operation into one continuous feedback item. It prevents duplicate loading, success, and failure notifications.
 
@@ -2407,7 +2608,9 @@ Return user-facing messages from the settled value. Log technical detail elsewhe
 
 > The toast API is a small imperative dispatcher with a single declarative renderer, Toaster.
 
-Web: https://velvetui.co/docs/toast-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-api
 
 The toast package exposes one imperative dispatcher and one portal renderer. The full contract is typed and works with styled or unstyled surfaces.
 
@@ -2586,7 +2789,9 @@ Actions are real buttons. After keyboard dismissal, focus moves to the next toas
 
 > A scrollable sheet hands a drag to the sheet only when its internal Scroll.View reaches the matching boundary.
 
-Web: https://velvetui.co/docs/scroll
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/scroll
 
 Use Scroll whenever content can move independently of its sheet. The component prevents a drag from scrolling content and dismissing the sheet at the same time.
 
@@ -2627,7 +2832,9 @@ The Scroll API guide covers imperative scrolling, progress callbacks, horizontal
 
 > Coordinate nested scrolling, virtual keyboards, focus, progress, and imperative spring scrolling.
 
-Web: https://velvetui.co/docs/scroll-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/scroll-api
 
 Scroll coordinates long content, virtual keyboards, programmatic travel, and the gesture handoff between a nested scroller and its parent sheet.
 
@@ -2742,7 +2949,9 @@ Scroll restoration is scoped to text-entry focus that recorded an origin. Blurri
 
 > SheetStack coordinates layering, backdrop ownership, focus restoration, and depth transforms for any number of nested sheets.
 
-Web: https://velvetui.co/docs/sheet-stack
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-stack
 
 SheetStack is a document-local coordinator for nested layers. It does not impose a two-sheet ceiling: each registered sheet publishes its progress, every layer receives the accumulated progress above it, and only the frontmost modal owns dismissal and focus.
 
@@ -2826,7 +3035,9 @@ DepthSheet joins the nearest stack automatically and reuses its portal host. Its
 
 > Utilities cover scroll coordination, visually hidden labels, autofocus targets, fixed surfaces, islands, and external overlays.
 
-Web: https://velvetui.co/docs/utilities
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/utilities
 
 Utilities solve focus, portal, fixed-layer, responsive, theme-color, and scroll integration problems without adding them to every Sheet or motion import.
 
@@ -2855,6 +3066,7 @@ The utilities entry does not pull Toast or any styled composition. Import motion
 | `Fixed` | Viewport-fixed content that ignores sheet travel |
 | `Island` | Interactive region belonging to the frontmost sheet |
 | `ExternalOverlay.Root` | Third-party portal joined to sheet modality |
+| `ExternalOverlay.DismissLayer` | Scope enrollment plus frontmost Escape/outside ownership and exit lifecycle |
 | `ThemeBackdrop` | Backdrop plus browser theme-color dimming |
 | `SheetMorph.Content` | Shared-origin geometry |
 | `SheetStack.Root/Outlet` | Nested layer coordination |
@@ -2871,12 +3083,48 @@ The utilities entry does not pull Toast or any styled composition. Import motion
 ## Portalled third-party UI
 
 ```tsx
-<ExternalOverlay.Root asChild>
-  <ThirdPartyDatePickerPortal />
-</ExternalOverlay.Root>
+<ThirdParty.Portal>
+  <ExternalOverlay.DismissLayer
+    asChild
+    open={open}
+    onDismiss={() => setOpen(false)}
+    restoreFocusRef={triggerRef}
+    onExitComplete={releaseOverlaySession}
+  >
+    <ThirdParty.Positioner />
+  </ExternalOverlay.DismissLayer>
+</ThirdParty.Portal>
 ```
 
-Without this wrapper, a modal sheet can treat the third-party portal as outside content and make it inert.
+Wrap the DOM-bearing popup or positioner inside the third-party Portal, never the Portal or controller itself. `ExternalOverlay.Root` is still available when scope enrollment alone is desired; scope enrollment does not imply dismissal ownership.
+
+## Official adapter entries
+
+```tsx
+import { VelvetRadixPopover } from "@velvetui/react/radix";
+import { VelvetAriaSelect } from "@velvetui/react/react-aria";
+import { VelvetBaseUIPopover } from "@velvetui/react/base-ui";
+```
+
+The adapters do not import or style their third-party library. Render one inside that library's portal and slot the real DOM-bearing surface through `asChild`; the library keeps positioning and accessibility while Velvet coordinates scope, frontmost dismissal, and focus return.
+
+[Run the Radix, React Aria, and Base UI recipes](/recipes) to compare the exact portal boundary for each library.
+
+## Inspect and assert
+
+```tsx
+import { expectVelvetLayer } from "@velvetui/react/testing";
+
+const layers = window.__velvet.inspect();
+
+expectVelvetLayer(document, {
+  role: "dialog",
+  frontmost: true,
+  restoresFocusTo: trigger,
+});
+```
+
+`window.__velvet.inspect()` reports scope, parent scope, layer kind, frontmost state, portal container, open/travel status, last dismissal reason, pending dismissal, captured focus, and planned focus targets. The DOM helper also checks the accessible label, one frontmost layer, one Sheet runway, nested positioning, and external scope enrollment.
 
 ## Hooks and helpers
 
@@ -2897,7 +3145,9 @@ Without this wrapper, a modal sheet can treat the third-party portal as outside 
 
 > Diagnose missing styles, swallowed refs, controlled-state loops, gesture handoff, mobile keyboards, nested sheets, and third-party portals.
 
-Web: https://velvetui.co/docs/troubleshooting
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/troubleshooting
 
 Most failures come from missing structural CSS, swallowed refs, unclear state ownership, or the wrong overflow element. Check these before tuning springs.
 
@@ -2939,7 +3189,7 @@ Titles register with the nearest Root. Render the parent Title and Description b
 
 ## The nested sheet escapes the parent modal
 
-Create a clipped, positioned portal host inside the modal and pass its ref directly: `<Sheet.Portal container={nestedHostRef}>`. Position the nested View absolutely so it resolves against that host instead of the viewport.
+Render `<Sheet.NestedPortalHost>` inside the modal and use `<Sheet.NestedPanel>` for the child. The host provides the portal container, clipping boundary, and positioning context; NestedPanel applies host-relative positioning inline so Tailwind v4 utilities cannot accidentally restore viewport-fixed geometry.
 
 ## A bottom action is hidden on mobile
 
@@ -2951,7 +3201,7 @@ Add `interactive-widget=resizes-content`, keep the composer in the coordinated S
 
 ## A third-party popup cannot be clicked
 
-Wrap its portal root with ExternalOverlay.Root so the modal manager treats it as part of the active sheet instead of inert background content.
+Inside the third-party Portal, wrap the real DOM-bearing popup or positioner with an official Radix, React Aria, or Base UI adapter. Use `ExternalOverlay.DismissLayer` for another library, or `ExternalOverlay.Root` only when passive scope enrollment is enough.
 
 ## Nested sheets dim or shrink too much
 
@@ -2968,7 +3218,9 @@ Keep portal-only reads out of render. Prefer CSS media queries; use `useClientMe
 
 > A manual release checklist for state, gestures, scroll, mobile keyboards, accessibility, arbitrary-depth stacks, portals, and bundle cost.
 
-Web: https://velvetui.co/docs/production-checklist
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/production-checklist
 
 Run this checklist before shipping a sheet family. It catches the failures that unit snapshots miss: ownership, scroll handoff, mobile viewport changes, focus, stacking, and visual end states.
 
@@ -3029,13 +3281,71 @@ Run this checklist before shipping a sheet family. It catches the failures that 
 
 ---
 
+# Documentation versions
+
+> Use an explicit documentation version when implementing or maintaining an application on a known Velvet UI release.
+
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/versions
+
+Documentation is captured per release so a guide keeps describing the package version named in its URL. Choose a version from the documentation sidebar before copying an API or implementation pattern.
+
+## Stable release URLs
+
+Every guide, Markdown download, example source file, and machine-readable documentation index lives beneath a semantic version. Share these URLs in issues, migration plans, and long-lived application documentation.
+
+```text
+/docs/0.3.0
+/docs/0.3.0/installation
+/docs/0.3.0/installation.md
+/docs/0.3.0/llms-full.txt
+```
+
+## Current-version aliases
+
+`/docs` and legacy paths such as `/docs/installation` redirect to the current documentation version. They are convenient for discovery, but use the explicit versioned URL when another person must see the same contract later.
+
+## Switch versions without losing your place
+
+The version selector preserves the current guide whenever that guide exists in the target version. If a page was introduced later or removed, the selector falls back to that version's overview instead of showing a broken page.
+
+## Match package and documentation versions
+
+Use documentation that matches the installed package version. Check your lockfile or installed package metadata when the application is not using the latest release.
+
+```sh
+npm list @velvetui/react
+# or
+pnpm why @velvetui/react
+```
+
+
+---
+
 # Changelog
 
 > Release notes for changes that affect installation, APIs, styling, behavior, performance, or upgrades.
 
-Web: https://velvetui.co/docs/changelog
+Documentation version: 0.3.0
 
-A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.
+Web: https://velvetui.co/docs/0.3.0/changelog
+
+## Unreleased · 2026-08-15
+
+### Added
+
+- Added reasoned `onOpenChange`, async `onDismissRequest`, direct enter/exit completion callbacks, and triggerless focus refs.
+- Added `Sheet.NestedPortalHost` and `Sheet.NestedPanel` with automatic host-relative positioning.
+- Added `ExternalOverlay.DismissLayer` and focused Radix, React Aria, and Base UI adapter entries.
+- Added stable `asChild` diagnostics, Sheet/Lightbox family mismatch errors, development layer inspection, and `@velvetui/react/testing`.
+- Added `INVARIANTS.md`, direct local recipe previews, optional StackBlitz playground links, and immutable versioned documentation beginning with 0.3.0.
+
+### Fixed
+
+- Prevented an initially open draggable Sheet from emitting a false close during native runway or visual-viewport setup, including reduced motion.
+- Removed global z-index token assignments in favor of local CSS variable fallbacks.
+- Prevented nested in-scope external overlays from narrowing parent inertness and blocking sibling focus targets.
 
 ## 0.2.2 · 2026-08-05
 

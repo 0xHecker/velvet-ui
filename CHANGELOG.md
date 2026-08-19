@@ -2,9 +2,25 @@
 
 > Release notes for changes that affect installation, APIs, styling, behavior, performance, or upgrades.
 
-Web: https://velvetui.co/docs/changelog
+Documentation version: 0.3.0
 
-A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.
+Web: https://velvetui.co/docs/0.3.0/changelog
+
+## Unreleased · 2026-08-15
+
+### Added
+
+- Added reasoned `onOpenChange`, async `onDismissRequest`, direct enter/exit completion callbacks, and triggerless focus refs.
+- Added `Sheet.NestedPortalHost` and `Sheet.NestedPanel` with automatic host-relative positioning.
+- Added `ExternalOverlay.DismissLayer` and focused Radix, React Aria, and Base UI adapter entries.
+- Added stable `asChild` diagnostics, Sheet/Lightbox family mismatch errors, development layer inspection, and `@velvetui/react/testing`.
+- Added `INVARIANTS.md`, direct local recipe previews, optional StackBlitz playground links, and immutable versioned documentation beginning with 0.3.0.
+
+### Fixed
+
+- Prevented an initially open draggable Sheet from emitting a false close during native runway or visual-viewport setup, including reduced motion.
+- Removed global z-index token assignments in favor of local CSS variable fallbacks.
+- Prevented nested in-scope external overlays from narrowing parent inertness and blocking sibling focus targets.
 
 ## 0.2.2 · 2026-08-05
 

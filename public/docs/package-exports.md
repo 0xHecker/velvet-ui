@@ -2,7 +2,9 @@
 
 > Choose focused JavaScript and CSS entry points for smaller bundles, predictable style order, and server-rendered React applications.
 
-Web: https://velvetui.co/docs/package-exports
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/package-exports
 
 Velvet ships focused ESM and CommonJS entry points. Importing a composition does not pull every other composition into the application bundle.
 
@@ -14,6 +16,11 @@ Velvet ships focused ESM and CommonJS entry points. Importing a composition does
 | `@velvetui/react/motion` | Framework-free springs, WAAPI, and travel interpolation | none |
 | `@velvetui/react/motion/react` | Lifecycle-owned motion hooks | none |
 | `@velvetui/react/utilities` | Scroll, accessibility, fixed, island, and overlay helpers | `@velvetui/react/sheet.css` |
+| `@velvetui/react/adapters` | All headless third-party overlay adapters | none |
+| `@velvetui/react/radix` | Radix Popover and Dropdown Menu boundaries | none |
+| `@velvetui/react/react-aria` | React Aria Popover, Tooltip, and Select boundaries | none |
+| `@velvetui/react/base-ui` | Base UI Popover, Menu, and Select boundaries | none |
+| `@velvetui/react/testing` | DOM layer conformance assertion | none |
 | `@velvetui/react/sheet-morph` | Shared-origin geometry | `@velvetui/react/sheet.css` |
 | `@velvetui/react/theme-backdrop` | Backdrop plus browser theme tint | `@velvetui/react/sheet.css` |
 | `@velvetui/react/bottom-sheet` | Styled mobile/task sheet | `sheet.css` + `bottom-sheet.css` |

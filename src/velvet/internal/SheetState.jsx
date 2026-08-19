@@ -14,6 +14,7 @@ import { SheetScopeContext } from "../core/sheetScope.js";
 
 const useIso =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const isDevelopment = import.meta.env?.DEV === true;
 const SheetContext = createContext(null);
 const SheetPreviewContext = createContext(null);
 
@@ -22,6 +23,28 @@ export const useSheet = () => {
   if (!context) {
     throw new Error(
       "Velvet Sheet sub-components must be used within <Sheet.Root>"
+    );
+  }
+  return context;
+};
+
+const familyLabel = (family) => (family === "lightbox" ? "Lightbox" : "Sheet");
+
+// Public compound parts use this stricter hook so a visually plausible but
+// contextually invalid composition fails at the authoring site in development.
+export const useSheetPart = (part, expectedFamily = "sheet") => {
+  const context = useContext(SheetContext);
+  const expectedLabel = familyLabel(expectedFamily);
+  if (!context) {
+    throw new Error(
+      `[Velvet UI] ${expectedLabel}.${part} must be rendered under ${expectedLabel}.Root.`
+    );
+  }
+  if (isDevelopment && context.componentFamily !== expectedFamily) {
+    const actualLabel = familyLabel(context.componentFamily);
+    throw new Error(
+      `[Velvet UI] ${expectedLabel}.${part} must be rendered under ${expectedLabel}.Root. ` +
+        `This element is currently inside ${actualLabel}.Root; use ${actualLabel}.${part} instead.`
     );
   }
   return context;
@@ -102,10 +125,10 @@ const useControllable = (controlled, defaultValue, onChange) => {
   const isControlled = controlled !== undefined;
   const value = isControlled ? controlled : uncontrolled;
   const setValue = useCallback(
-    (next) => {
+    (next, detail) => {
       const resolved = typeof next === "function" ? next(value) : next;
       if (!isControlled) setUncontrolled(resolved);
-      onChange?.(resolved);
+      onChange?.(resolved, detail);
     },
     [isControlled, onChange, value]
   );
@@ -117,10 +140,16 @@ export const SheetRoot = ({
   open,
   defaultOpen = false,
   onOpenChange,
+  onDismissRequest,
+  onEnterComplete,
+  onExitComplete,
+  initialFocusRef,
+  restoreFocusRef,
   snap,
   defaultSnap,
   onSnapChange,
   sheetRole = "dialog",
+  componentFamily = "sheet",
 }) => {
   const parentSheet = useContext(SheetContext);
   const preview = useContext(SheetPreviewContext);
@@ -129,7 +158,7 @@ export const SheetRoot = ({
     ? Boolean(preview.layers?.[depth])
     : open;
   const controlledPresentedChange = preview
-    ? (next) => preview.onLayerPresentedChange?.(depth, next)
+    ? (next, detail) => preview.onLayerPresentedChange?.(depth, next, detail)
     : onOpenChange;
   const [presented, setPresented] = useControllable(
     controlledPresented,
@@ -144,8 +173,22 @@ export const SheetRoot = ({
   const [mounted, setMounted] = useState(presented);
   const presentedRef = useRef(presented);
   presentedRef.current = presented;
+  const onDismissRequestRef = useRef(onDismissRequest);
+  const onEnterCompleteRef = useRef(onEnterComplete);
+  const onExitCompleteRef = useRef(onExitComplete);
+  onDismissRequestRef.current = onDismissRequest;
+  onEnterCompleteRef.current = onEnterComplete;
+  onExitCompleteRef.current = onExitComplete;
+  const enterCompletedRef = useRef(false);
+  const exitCompletedRef = useRef(!presented);
+  const dismissRequestRef = useRef(null);
+  const [dismissPending, setDismissPending] = useState(false);
+  const [lastDismissReason, setLastDismissReason] = useState(null);
   useEffect(() => {
-    if (presented) setMounted(true);
+    if (presented) {
+      setMounted(true);
+      exitCompletedRef.current = false;
+    }
   }, [presented]);
 
   const travelListeners = useRef(new Set());
@@ -223,22 +266,41 @@ export const SheetRoot = ({
   const actionStateRef = useRef({ presented, activeDetent });
   actionStateRef.current = { presented, activeDetent };
 
+  const finishEnter = useCallback(() => {
+    if (!presentedRef.current || enterCompletedRef.current) return;
+    enterCompletedRef.current = true;
+    onEnterCompleteRef.current?.();
+  }, []);
+
+  const finishExit = useCallback(() => {
+    if (presentedRef.current || exitCompletedRef.current) return;
+    exitCompletedRef.current = true;
+    enterCompletedRef.current = false;
+    setMounted(false);
+    setActiveDetent(defaultSnap ?? (defaultOpen ? 1 : 0));
+    onExitCompleteRef.current?.();
+  }, [defaultOpen, defaultSnap, setActiveDetent]);
+
   const performAction = useCallback(
     (action, stateOverride) => {
       const state = { ...actionStateRef.current, ...stateOverride };
       if (action.type === "present") {
-        setPresented(true);
-        return;
+        setPresented(true, action.detail ?? { reason: "programmatic" });
+        return true;
       }
       if (action.type === "dismiss") {
-        setPresented(false);
-        return;
+        const detail = action.detail ?? { reason: "programmatic" };
+        setLastDismissReason(detail.reason);
+        setPresented(false, detail);
+        return true;
       }
       if (action.type === "toggle") {
-        setPresented((value) => !value);
-        return;
+        const detail = action.detail ?? { reason: "programmatic" };
+        if (state.presented) setLastDismissReason(detail.reason);
+        setPresented((value) => !value, detail);
+        return true;
       }
-      if (action.type !== "step") return;
+      if (action.type !== "step") return false;
       const count = detentCount.current;
       const current = state.activeDetent || 1;
       let next;
@@ -249,21 +311,81 @@ export const SheetRoot = ({
         next = current >= count ? 1 : current + 1;
       }
       if (next <= 0) {
-        setPresented(false);
-        return;
+        const detail = action.detail ?? { reason: "programmatic" };
+        setLastDismissReason(detail.reason);
+        setPresented(false, detail);
+        return true;
       }
-      if (!state.presented) setPresented(true);
+      if (!state.presented) {
+        setPresented(true, action.detail ?? { reason: "programmatic" });
+      }
       setActiveDetent(next);
+      return true;
     },
     [setActiveDetent, setPresented]
   );
-  const requestAction = useCallback(
+
+  const dispatchAction = useCallback(
     (action) => {
       const dispatch = actionDispatcherRef.current;
-      if (dispatch) dispatch(action);
-      else performAction(action);
+      const result = dispatch ? dispatch(action) : performAction(action);
+      return result !== false;
     },
     [performAction]
+  );
+
+  const requestAction = useCallback(
+    (action) => {
+      if (action.type !== "dismiss") return dispatchAction(action);
+
+      const detail = action.detail ?? { reason: "programmatic" };
+      const dismissal = { ...action, detail };
+      const commit = () =>
+        action.deferCommit ? true : dispatchAction(dismissal);
+      setLastDismissReason(detail.reason);
+      if (dismissRequestRef.current) return dismissRequestRef.current;
+
+      const request = onDismissRequestRef.current;
+      if (!request) return commit();
+
+      let result;
+      try {
+        result = request(detail);
+      } catch (error) {
+        if (isDevelopment) {
+          console.error("[Velvet UI] onDismissRequest threw; dismissal was rejected.", error);
+        }
+        return false;
+      }
+
+      if (!result || typeof result.then !== "function") {
+        return result === false ? false : commit();
+      }
+
+      setDismissPending(true);
+      const pending = Promise.resolve(result)
+        .then(
+          (allowed) => (allowed === false ? false : commit()),
+          (error) => {
+            if (isDevelopment) {
+              console.error(
+                "[Velvet UI] onDismissRequest rejected; dismissal was rejected.",
+                error
+              );
+            }
+            return false;
+          }
+        )
+        .finally(() => {
+          if (dismissRequestRef.current === pending) {
+            dismissRequestRef.current = null;
+            setDismissPending(false);
+          }
+        });
+      dismissRequestRef.current = pending;
+      return pending;
+    },
+    [dispatchAction]
   );
 
   const context = useMemo(
@@ -273,15 +395,10 @@ export const SheetRoot = ({
       activeDetent,
       setActiveDetent,
       mounted,
-      finishExit: () => {
-        if (!presentedRef.current) {
-          setMounted(false);
-          setActiveDetent(
-            defaultSnap ?? (defaultOpen ? 1 : 0)
-          );
-        }
-      },
+      finishEnter,
+      finishExit,
       sheetRole,
+      componentFamily,
       subscribeTravel,
       registerTravelAnimation,
       getTravelAnimations,
@@ -300,12 +417,17 @@ export const SheetRoot = ({
       setViewId,
       generatedViewId,
       scopeId,
+      parentScopeId: parentSheet?.scopeId ?? null,
       titleCount,
       descriptionCount,
       registerTitle,
       registerDescription,
       detentCount,
       lastFocused,
+      initialFocusRef,
+      restoreFocusRef,
+      dismissPending,
+      lastDismissReason,
       actionDispatcherRef,
       motionOriginRef,
       performAction,
@@ -319,7 +441,10 @@ export const SheetRoot = ({
       activeDetent,
       setActiveDetent,
       mounted,
+      finishEnter,
+      finishExit,
       sheetRole,
+      componentFamily,
       subscribeTravel,
       registerTravelAnimation,
       getTravelAnimations,
@@ -333,12 +458,15 @@ export const SheetRoot = ({
       viewId,
       generatedViewId,
       scopeId,
+      parentSheet?.scopeId,
       titleCount,
       descriptionCount,
       registerTitle,
       registerDescription,
-      defaultSnap,
-      defaultOpen,
+      initialFocusRef,
+      restoreFocusRef,
+      dismissPending,
+      lastDismissReason,
       performAction,
       requestAction,
       preview,

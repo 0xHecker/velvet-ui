@@ -2,14 +2,16 @@
 
 > Keep a side sheet inside a centered modal with an independent native scrollbar, swipe-back through content, and separate Back and Close actions.
 
-Web: https://velvetui.co/docs/nested-modal-navigation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/nested-modal-navigation
 
 A nested side sheet can stay physically inside a centered modal while retaining native scrolling, swipe-back, focus ownership, and independent Back and Close actions.
 
 ## Complete React structure
 
 ```tsx
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Sheet } from "@velvetui/react/sheet";
 import { Scroll } from "@velvetui/react/utilities";
 import "@velvetui/react/sheet.css";
@@ -17,7 +19,6 @@ import "@velvetui/react/sheet.css";
 export function StudioLibrary() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [articleOpen, setArticleOpen] = useState(false);
-  const nestedHostRef = useRef(null);
 
   const closeAll = () => {
     setArticleOpen(false);
@@ -36,7 +37,8 @@ export function StudioLibrary() {
           onClickOutside={{ dismiss: false }}
         >
           <Sheet.Backdrop />
-          <Sheet.Content className="library-modal">
+          <Sheet.NestedPortalHost asChild>
+            <Sheet.Content className="library-modal">
             {/* Parent labels must stay outside the nested Root. */}
             <header className="library-header">
               <div>
@@ -57,18 +59,13 @@ export function StudioLibrary() {
                 </Scroll.View>
               </Scroll.Root>
 
-              <div ref={nestedHostRef} className="nested-portal-host" />
-
-              <Sheet.Portal container={nestedHostRef}>
-                <Sheet.View
-                  className="nested-detail-view"
-                  side="right"
-                  nativeEdgeSwipePrevention
-                  swipeOvershoot={false}
-                  onClickOutside={{ dismiss: false }}
-                >
-                  <Sheet.Backdrop />
-                  <Sheet.Content className="nested-detail-panel">
+              <Sheet.NestedPanel
+                side="right"
+                nativeEdgeSwipePrevention
+                swipeOvershoot={false}
+                onClickOutside={{ dismiss: false }}
+                className="nested-detail-panel"
+              >
                     <header className="detail-header">
                       <Sheet.Close type="button" aria-label="Back to library">←</Sheet.Close>
                       <Sheet.Title>Launch notes</Sheet.Title>
@@ -83,11 +80,10 @@ export function StudioLibrary() {
                         <Scroll.Content><Article /></Scroll.Content>
                       </Scroll.View>
                     </Scroll.Root>
-                  </Sheet.Content>
-                </Sheet.View>
-              </Sheet.Portal>
+              </Sheet.NestedPanel>
             </Sheet.Root>
-          </Sheet.Content>
+            </Sheet.Content>
+          </Sheet.NestedPortalHost>
         </Sheet.View>
       </Sheet.Portal>
     </Sheet.Root>
@@ -95,7 +91,7 @@ export function StudioLibrary() {
 }
 ```
 
-`Sheet.Portal` accepts either a resolved element or a React ref. Passing the ref directly avoids callback-ref state and the extra guarded render that older recipes needed.
+`Sheet.NestedPortalHost` supplies the child portal boundary and deliberate relative clipping. `Sheet.NestedPanel` discovers that host, portals into it, and applies host-relative View positioning without ref state or hand-authored portal plumbing.
 
 ## Required layout CSS
 
@@ -135,17 +131,6 @@ export function StudioLibrary() {
   -webkit-overflow-scrolling: touch;
 }
 
-.nested-portal-host {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.nested-detail-view { position: absolute !important; }
-
 .nested-detail-panel {
   display: flex;
   width: 100%;
@@ -166,7 +151,7 @@ export function StudioLibrary() {
 }
 ```
 
-The portal host establishes the clipping boundary. The nested View must be absolute because a normal Sheet.View is viewport-fixed. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.
+The host establishes the clipping boundary and NestedPanel supplies absolute positioning internally. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.
 
 ## Tailwind CSS v4
 
@@ -175,8 +160,9 @@ The portal host establishes the clipping boundary. The nested View must be absol
 ```
 
 ```tsx
-// The component tree is identical; replace the structural classes only.
-<Sheet.Content className="relative isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
+// NestedPortalHost owns relative clipping; utilities own the authored surface.
+<Sheet.NestedPortalHost asChild>
+<Sheet.Content className="isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
   <header className="shrink-0">...</header>
 
   <Sheet.Root open={articleOpen} onOpenChange={setArticleOpen}>
@@ -186,10 +172,7 @@ The portal host establishes the clipping boundary. The nested View must be absol
       </Scroll.View>
     </Scroll.Root>
 
-    <div ref={nestedHostRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]" />
-    <Sheet.Portal container={nestedHostRef}>
-      <Sheet.View className="!absolute" side="right" nativeEdgeSwipePrevention>
-        <Sheet.Content className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
+    <Sheet.NestedPanel side="right" nativeEdgeSwipePrevention className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
           <header className="shrink-0">...</header>
           <Scroll.Root className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Scroll.View
@@ -199,19 +182,18 @@ The portal host establishes the clipping boundary. The nested View must be absol
               <Scroll.Content><Article /></Scroll.Content>
             </Scroll.View>
           </Scroll.Root>
-        </Sheet.Content>
-      </Sheet.View>
-    </Sheet.Portal>
+    </Sheet.NestedPanel>
   </Sheet.Root>
 </Sheet.Content>
+</Sheet.NestedPortalHost>
 ```
 
-Keep `import "@velvetui/react/sheet.css"` in the JavaScript entry. Tailwind owns the authored surface; Velvet's stylesheet owns gesture tracks, portal mechanics, modality, and Scroll coordination.
+Keep `import "@velvetui/react/sheet.css"` in the JavaScript entry. Tailwind owns the authored surface; Velvet owns gesture tracks, portal mechanics, modality, Scroll coordination, and the nested View's structural inline position. That last detail avoids Tailwind v4's layered `absolute` utility losing to an unlayered fixed rule.
 
 ## Live package examples
 
-- [Open the plain CSS StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview)
-- [Open the Tailwind CSS v4 StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview)
+- [Run the embedded plain CSS recipe](/recipes/nested-modal-navigation) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview).
+- [Run the embedded Tailwind CSS v4 recipe](/recipes/nested-modal-navigation-tailwind-v4) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview).
 
 Both projects install `@velvetui/react` from npm. They do not alias the package to repository source or copy Velvet's internals into the example.
 

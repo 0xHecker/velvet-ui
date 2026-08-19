@@ -1,6 +1,8 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import { Polymorph } from "./core/Slot.jsx";
+import { useComposedRefs } from "./core/refs.js";
 import { useSheetScope } from "./core/sheetScope.js";
+import { registerModalScopeElement } from "./internal/ModalManager.js";
 
 // A region that stays interactive and is treated as part of the frontmost sheet.
 export const Island = forwardRef(function Island(
@@ -8,10 +10,19 @@ export const Island = forwardRef(function Island(
   ref
 ) {
   const scopeId = useSheetScope();
+  const islandRef = useRef(null);
+  const composedRef = useComposedRefs(ref, islandRef);
+
+  useEffect(() => {
+    const island = islandRef.current;
+    if (!island) return undefined;
+    return registerModalScopeElement(island);
+  }, [scopeId]);
+
   return (
     <Polymorph
       asChild={asChild}
-      ref={ref}
+      ref={composedRef}
       data-velvet="island"
       data-velvet-scope={scopeId || undefined}
       className={className}

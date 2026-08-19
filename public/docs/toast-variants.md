@@ -2,7 +2,9 @@
 
 > Toast variants cover neutral, success, error, warning, info, loading, action, promise, and custom JSX states.
 
-Web: https://velvetui.co/docs/toast-variants
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-variants
 
 Variants communicate meaning, not decoration. Use the neutral default for ordinary feedback and reserve warning or error color for states that need attention.
 

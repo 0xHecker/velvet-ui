@@ -2,7 +2,9 @@
 
 > The toast API is a small imperative dispatcher with a single declarative renderer, Toaster.
 
-Web: https://velvetui.co/docs/toast-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-api
 
 The toast package exposes one imperative dispatcher and one portal renderer. The full contract is typed and works with styled or unstyled surfaces.
 

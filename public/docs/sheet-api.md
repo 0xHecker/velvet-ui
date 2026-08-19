@@ -2,7 +2,9 @@
 
 > The sheet API is assembled from state, view, content, and action primitives so consumers can adopt only the layers they need.
 
-Web: https://velvetui.co/docs/sheet-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-api
 
 The headless Sheet contract is a compound React API. Every primitive forwards its ref and normal DOM props unless the table says otherwise.
 
@@ -22,12 +24,59 @@ import "@velvetui/react/sheet.css";
 | --- | --- | --- | --- |
 | `open` | `boolean` | uncontrolled | Controlled presented state |
 | `defaultOpen` | `boolean` | `false` | Initial uncontrolled state |
-| `onOpenChange` | `(open) => void` | — | Receives requested state changes |
+| `onOpenChange` | `(open, detail) => void` | — | Receives requested state changes and their reason |
+| `onDismissRequest` | `(detail) => boolean \| Promise<boolean>` | — | Accepts or rejects dismissal before state commits |
+| `onEnterComplete` | `() => void` | — | Fires once after the layer settles inside |
+| `onExitComplete` | `() => void` | — | Fires once after exit and modality release |
+| `initialFocusRef` | `RefObject<HTMLElement>` | — | Preferred focus target after entry |
+| `restoreFocusRef` | `RefObject<HTMLElement>` | trigger or captured focus | Stable focus target after exit |
 | `snap` | `number` | uncontrolled | Controlled detent index |
 | `defaultSnap` | `number` | `defaultOpen ? 1 : 0` | Initial detent |
 | `onSnapChange` | `(snap) => void` | — | Receives detent changes |
 | `sheetRole` | `"dialog" \| "alertdialog"` | `"dialog"` | Modal semantics and dismissal policy |
 
+
+## Request, commit, and completion
+
+A dismissal request is not an exit. `onDismissRequest` runs first and may resolve asynchronously. Once accepted, `onOpenChange(false, detail)` asks a controlled owner to commit the new state. Motion then exits, modality is released, focus is restored, and `onExitComplete` fires.
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<Sheet.Root
+  open={open}
+  onDismissRequest={async (detail) => {
+    if (!editor.dirty) return true;
+    return editor.flush({ reason: detail.reason });
+  }}
+  onOpenChange={(nextOpen, detail) => {
+    analytics.track("sheet state requested", detail.reason);
+    setOpen(nextOpen);
+  }}
+  onExitComplete={() => navigate("/projects")}
+>
+  ...
+</Sheet.Root>
+```
+
+Dismissal reasons are `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, and `programmatic`. A rejected request leaves controlled state, travel, focus, and modality unchanged.
+
+## Triggerless focus
+
+Route-open sheets may have no physical trigger. Supply refs when the safe entry or return target is dynamic or outside the Sheet subtree.
+
+```tsx
+<Sheet.Root
+  open={routeMatch}
+  initialFocusRef={headingRef}
+  restoreFocusRef={pageLandmarkRef}
+  onExitComplete={removeSheetRoute}
+>
+  <Sheet.Panel side="right">...</Sheet.Panel>
+</Sheet.Root>
+```
+
+When a real trigger exists, point `restoreFocusRef` at it. When it was deleted or the route cold-opened, use a connected page landmark. Do not race restoration with a timeout.
 
 ## Sheet.Panel
 
@@ -81,6 +130,26 @@ const portalHostRef = useRef<HTMLDivElement>(null);
 
 If the ref is assigned during the same commit as an already-open sheet, Velvet waits for the ref and mounts the portal after it resolves. A supplied ref never silently falls back to document.body while its current value is null.
 
+## NestedPortalHost and NestedPanel
+
+Use the nested pair when a child sheet must remain physically clipped by a parent surface. The host applies relative clipping without creating a new low stacking context; NestedPanel portals to that host and applies host-relative absolute View positioning inline.
+
+```tsx
+<Sheet.NestedPortalHost asChild>
+  <Sheet.Content className="library-modal">
+    <Library />
+    <Sheet.Root open={detailOpen} onOpenChange={setDetailOpen}>
+      <Sheet.NestedPanel side="right" className="detail-panel">
+        <Sheet.Title>Launch notes</Sheet.Title>
+        <Sheet.Close>Back</Sheet.Close>
+      </Sheet.NestedPanel>
+    </Sheet.Root>
+  </Sheet.Content>
+</Sheet.NestedPortalHost>
+```
+
+The structural inline position also avoids Tailwind v4's layered-utility cascade trap: a visible `absolute` class no longer needs to beat Velvet's unlayered fixed rule.
+
 ## Sheet.View
 
 | Prop | Type | Default | Purpose |
@@ -125,6 +194,8 @@ If the ref is assigned during the same commit as an already-open sheet, Velvet w
 | Part | Important props |
 | --- | --- |
 | `Sheet.Portal` | `container: Element | DocumentFragment | RefObject` |
+| `Sheet.NestedPortalHost` | host div props, `asChild` |
+| `Sheet.NestedPanel` | Panel props; portal host is discovered automatically |
 | `Sheet.Backdrop` | `travelAnimation`, `asChild` |
 | `Sheet.Content` | `travelAnimation`, `stackingAnimation`, `asChild` |
 | `Sheet.BleedingBackground` | normal div props, `asChild` |
@@ -151,4 +222,4 @@ If the ref is assigned during the same commit as an already-open sheet, Velvet w
 
 The child becomes the real DOM node. Pass one non-Fragment element and forward its ref, children, className, style, ARIA/data attributes, disabled state, and event handlers to the final DOM node.
 
-Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. See [Bring your own components](/docs/custom-components) for complete examples.
+Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. Development diagnostics report a dropped ref, missing data/ARIA props, a non-DOM external overlay target, or unstable element identity with a stable `VELVET_*` code and focused error URL. See [Bring your own components](/docs/0.3.0/custom-components) for complete examples.

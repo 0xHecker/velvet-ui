@@ -79,6 +79,11 @@ function explicitCssEntries() {
         "bottom-sheet",
         "persistent-sheet",
         "lightbox",
+        "adapters",
+        "radix",
+        "react-aria",
+        "base-ui",
+        "testing",
       ]) {
         copyFileSync(
           resolve(root, `.velvet-types/entries/${entry}.d.ts`),
@@ -149,6 +154,11 @@ export default defineConfig({
         "bottom-sheet": resolve(root, "src/velvet/entries/bottom-sheet.ts"),
         "persistent-sheet": resolve(root, "src/velvet/entries/persistent-sheet.ts"),
         lightbox: resolve(root, "src/velvet/entries/lightbox.ts"),
+        adapters: resolve(root, "src/velvet/entries/adapters.ts"),
+        radix: resolve(root, "src/velvet/entries/radix.ts"),
+        "react-aria": resolve(root, "src/velvet/entries/react-aria.ts"),
+        "base-ui": resolve(root, "src/velvet/entries/base-ui.ts"),
+        testing: resolve(root, "src/velvet/entries/testing.ts"),
       },
       fileName: (format, entryName) =>
         `${entryName}.${format === "es" ? "js" : "cjs"}`,

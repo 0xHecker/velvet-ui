@@ -2,7 +2,9 @@
 
 > CardExpansion opens a card into a focused modal surface while retaining the scale and edge response expected from a lightbox.
 
-Web: https://velvetui.co/docs/card-expansion
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/card-expansion
 
 Card Expansion keeps the resting card simple. On open, it becomes a centered modal surface with shared-origin motion and the scale response of a lightbox.
 

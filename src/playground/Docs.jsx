@@ -1,36 +1,43 @@
 import { Link } from "@tanstack/react-router";
-import { Children, useCallback, useState } from "react";
+import { Children, useCallback, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { DOCS, DOC_BY_SLUG, docToMarkdown, getDocPath } from "../docs/catalog.js";
+import {
+  CURRENT_DOCS_VERSION,
+  DOC_VERSIONS,
+  docsBySlug,
+  docToMarkdown,
+  getDocMarkdownPath,
+  getDocPath,
+  loadDocs,
+  resolveVersionedDocSlug,
+  versionDocsHref,
+} from "../docs/versioning.js";
+import { RECIPE_BY_SLUG } from "../recipes/catalog.js";
+import { RecipeWorkbench } from "../recipes/RecipeWorkbench.jsx";
+import "../recipes/Recipes.css";
 import "./Docs.css";
 
-const SECTIONS = DOCS.map((doc) => ({
-  id: doc.slug,
-  label: doc.title,
-  group: doc.group,
-}));
+const NESTED_RECIPES = [
+  RECIPE_BY_SLUG["nested-modal-navigation"],
+  RECIPE_BY_SLUG["nested-modal-navigation-tailwind-v4"],
+];
 
-const GROUPS = SECTIONS.reduce((groups, section) => {
-  (groups[section.group] ||= []).push(section);
-  return groups;
-}, {});
+const docsNavScrollKey = (version) => `velvet-ui:docs-nav-scroll:${version}`;
 
-const DOCS_NAV_SCROLL_KEY = "velvet-ui:docs-nav-scroll";
-
-const readDocsNavScroll = () => {
+const readDocsNavScroll = (version) => {
   if (typeof window === "undefined") return 0;
 
   try {
-    return Number(window.sessionStorage.getItem(DOCS_NAV_SCROLL_KEY)) || 0;
+    return Number(window.sessionStorage.getItem(docsNavScrollKey(version))) || 0;
   } catch {
     return 0;
   }
 };
 
-const writeDocsNavScroll = (scrollTop) => {
+const writeDocsNavScroll = (version, scrollTop) => {
   try {
-    window.sessionStorage.setItem(DOCS_NAV_SCROLL_KEY, String(scrollTop));
+    window.sessionStorage.setItem(docsNavScrollKey(version), String(scrollTop));
   } catch {
     // Storage can be unavailable in privacy-restricted browsing contexts.
   }
@@ -118,7 +125,7 @@ const CodeBlock = ({ lang = "tsx", children }) => {
   );
 };
 
-const MarkdownGuide = ({ markdown }) => (
+const MarkdownGuide = ({ markdown, version }) => (
   <div className="Docs-markdown">
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -133,7 +140,7 @@ const MarkdownGuide = ({ markdown }) => (
         ul: ({ children }) => <ul className="Docs-list">{children}</ul>,
         ol: ({ children }) => <ol className="Docs-list Docs-list--ordered">{children}</ol>,
         blockquote: ({ children }) => <aside className="Docs-note">{children}</aside>,
-        a: ({ href, children }) => <a href={href}>{children}</a>,
+        a: ({ href, children }) => <a href={versionDocsHref(href, version)}>{children}</a>,
         table: ({ children }) => (
           <div className="Docs-tableWrap">
             <table className="Docs-table">{children}</table>
@@ -155,9 +162,9 @@ const MarkdownGuide = ({ markdown }) => (
   </div>
 );
 
-const DocsPage = ({ doc }) => {
+const DocsPage = ({ doc, version }) => {
   const [copied, setCopied] = useState(false);
-  const markdown = docToMarkdown(doc);
+  const markdown = docToMarkdown(doc, version);
 
   const copyMarkdown = () => {
     navigator.clipboard?.writeText(markdown).then(() => {
@@ -175,7 +182,7 @@ const DocsPage = ({ doc }) => {
         <div className="Docs-pageActions" aria-label="Markdown actions">
           <a
             className="Docs-pageAction"
-            href={`/docs/${doc.slug}.md`}
+            href={getDocMarkdownPath(doc.slug, version)}
             target="_blank"
             rel="noreferrer"
           >
@@ -186,20 +193,29 @@ const DocsPage = ({ doc }) => {
           </button>
         </div>
       </header>
-      <MarkdownGuide markdown={doc.guide} />
+      <MarkdownGuide markdown={doc.guide} version={version} />
+      {version === CURRENT_DOCS_VERSION && doc.slug === "nested-modal-navigation" && (
+        <section className="Docs-liveExamples" aria-labelledby="interactive-examples">
+          <h2 id="interactive-examples" className="Docs-h2">Interactive examples</h2>
+          <p className="Docs-p">These previews run Velvet directly in the documentation. Use the StackBlitz link only when you want a disposable project to edit.</p>
+          {NESTED_RECIPES.map((recipe) => (
+            <RecipeWorkbench key={recipe.slug} recipe={recipe} />
+          ))}
+        </section>
+      )}
     </article>
   );
 };
 
-const NavigationGroups = ({ active, mobile = false }) => (
+const NavigationGroups = ({ active, groups, mobile = false, version }) => (
   <div className={mobile ? "Docs-mobileMenu" : "Docs-desktopNav"}>
-    {Object.entries(GROUPS).map(([group, items]) => (
+    {Object.entries(groups).map(([group, items]) => (
       <div className="Docs-group" key={group}>
         <div className="Docs-groupLabel">{group}</div>
         {items.map((item) => (
           <Link
             key={item.id}
-            to={getDocPath(item.id)}
+            to={getDocPath(item.id, version)}
             className="Docs-navLink"
             aria-current={active === item.id ? "page" : undefined}
           >
@@ -211,16 +227,64 @@ const NavigationGroups = ({ active, mobile = false }) => (
   </div>
 );
 
-export const Docs = ({ section = "overview" }) => {
-  const active = DOC_BY_SLUG[section] ? section : "overview";
-  const doc = DOC_BY_SLUG[active];
+const VersionSelector = ({ active, version }) => {
+  const [selectedVersion, setSelectedVersion] = useState(version);
+  const [switching, setSwitching] = useState(false);
+
+  const changeVersion = async (event) => {
+    const nextVersion = event.target.value;
+    setSelectedVersion(nextVersion);
+    if (nextVersion === version) return;
+
+    setSwitching(true);
+    const nextDocs = await loadDocs(nextVersion);
+    const nextSlug = resolveVersionedDocSlug(nextDocs, active);
+    window.location.assign(getDocPath(nextSlug, nextVersion));
+  };
+
+  return (
+    <label className="Docs-versionControl">
+      <span>Documentation version</span>
+      <span className="Docs-versionSelectWrap">
+        <select
+          aria-label="Documentation version"
+          value={selectedVersion}
+          disabled={switching}
+          onChange={changeVersion}
+        >
+          {DOC_VERSIONS.map((entry) => (
+            <option key={entry.version} value={entry.version}>
+              {entry.label}{entry.status === "current" ? " (current)" : ""}
+            </option>
+          ))}
+        </select>
+      </span>
+    </label>
+  );
+};
+
+export const Docs = ({ docs, section = "overview", version = CURRENT_DOCS_VERSION }) => {
+  const docMap = useMemo(() => docsBySlug(docs), [docs]);
+  const groups = useMemo(() => {
+    const sections = docs.map((doc) => ({
+      id: doc.slug,
+      label: doc.title,
+      group: doc.group,
+    }));
+    return sections.reduce((result, item) => {
+      (result[item.group] ||= []).push(item);
+      return result;
+    }, {});
+  }, [docs]);
+  const active = docMap[section] ? section : "overview";
+  const doc = docMap[active];
   const pageHeadings = headingsOf(doc.guide);
-  const docIndex = DOCS.findIndex((item) => item.slug === active);
-  const previousDoc = DOCS[docIndex - 1];
-  const nextDoc = DOCS[docIndex + 1];
+  const docIndex = docs.findIndex((item) => item.slug === active);
+  const previousDoc = docs[docIndex - 1];
+  const nextDoc = docs[docIndex + 1];
   const restoreNavScroll = useCallback((node) => {
-    if (node) node.scrollTop = readDocsNavScroll();
-  }, []);
+    if (node) node.scrollTop = readDocsNavScroll(version);
+  }, [version]);
 
   return (
     <div className="Docs">
@@ -228,29 +292,30 @@ export const Docs = ({ section = "overview" }) => {
         ref={restoreNavScroll}
         className="Docs-side"
         aria-label="Documentation"
-        onScroll={(event) => writeDocsNavScroll(event.currentTarget.scrollTop)}
+        onScroll={(event) => writeDocsNavScroll(version, event.currentTarget.scrollTop)}
       >
+        <VersionSelector active={active} version={version} />
         <details className="Docs-mobileNav">
           <summary>
             <span>Browse documentation</span>
             <strong>{doc.title}</strong>
           </summary>
-          <NavigationGroups active={active} mobile />
+          <NavigationGroups active={active} groups={groups} mobile version={version} />
         </details>
-        <NavigationGroups active={active} />
+        <NavigationGroups active={active} groups={groups} version={version} />
       </aside>
 
       <main className="Docs-main">
-        <DocsPage doc={doc} />
+        <DocsPage doc={doc} version={version} />
         <nav className="Docs-pagination" aria-label="Documentation pages">
           {previousDoc ? (
-            <Link to={getDocPath(previousDoc.slug)}>
+            <Link to={getDocPath(previousDoc.slug, version)}>
               <span>Previous</span>
               <strong>{previousDoc.title}</strong>
             </Link>
           ) : <span />}
           {nextDoc ? (
-            <Link to={getDocPath(nextDoc.slug)}>
+            <Link to={getDocPath(nextDoc.slug, version)}>
               <span>Next</span>
               <strong>{nextDoc.title}</strong>
             </Link>

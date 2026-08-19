@@ -2,10 +2,23 @@ import { createDocumentStore } from "./DocumentStore.js";
 
 const modalStore = createDocumentStore(() => ({
   modalLayers: [],
+  dismissLayers: [],
   managedInert: new Map(),
   scrollLocks: 0,
   scrollRestore: null,
 }));
+
+const syncDismissLayerData = (state) => {
+  const connected = state.dismissLayers.filter((element) => element?.isConnected);
+  const frontmost = connected[connected.length - 1] ?? null;
+  state.dismissLayers.forEach((element) => {
+    if (!element?.isConnected) return;
+    element.setAttribute(
+      "data-velvet-frontmost",
+      element === frontmost ? "true" : "false"
+    );
+  });
+};
 
 const restoreManagedInert = (state) => {
   state.managedInert.forEach((wasInert, element) => {
@@ -29,7 +42,14 @@ const syncModalInertness = (ownerDocument, state) => {
         '[data-velvet="island"][data-velvet-scope], [data-velvet="external-overlay"][data-velvet-scope]'
       )
       .forEach((element) => {
-        if (element.getAttribute("data-velvet-scope") === scopeId) {
+        const closedDismissLayer =
+          element.hasAttribute("data-velvet-dismiss-layer") &&
+          element.getAttribute("data-velvet-open") !== "true";
+        if (
+          element.getAttribute("data-velvet-scope") === scopeId &&
+          !activeLayer.contains(element) &&
+          !closedDismissLayer
+        ) {
           protectedTargets.push(element);
         }
       });
@@ -79,6 +99,50 @@ export const isFrontmostModal = (element) => {
   const state = modalStore.peek(element);
   return (
     [...(state?.modalLayers || [])]
+      .reverse()
+      .find((candidate) => candidate?.isConnected) === element
+  );
+};
+
+// Scope members can mount after their owning modal (for example, a third-party
+// portal). Re-run the inertness calculation when that happens so the new DOM
+// branch becomes interactive immediately without pretending it is a modal or
+// dismissible layer of its own.
+export const registerModalScopeElement = (element) => {
+  const ownerDocument = modalStore.documentOf(element);
+  const state = modalStore.get(ownerDocument);
+  if (!ownerDocument || !state) return () => {};
+  syncModalInertness(ownerDocument, state);
+  return () => {
+    // React effect cleanup runs before the host node is detached. Recalculate
+    // after that commit so a removed portal branch cannot stay protected.
+    queueMicrotask(() => syncModalInertness(ownerDocument, state));
+  };
+};
+
+// Sheets and enrolled third-party popups share one dismissal stack. Modality
+// and focus containment remain separate concerns, so a non-modal menu can own
+// Escape/outside press without making a second document branch inert.
+export const registerDismissLayer = (element) => {
+  const ownerDocument = modalStore.documentOf(element);
+  const state = modalStore.get(ownerDocument);
+  if (!ownerDocument || !state) return () => {};
+  state.dismissLayers.push(element);
+  syncDismissLayerData(state);
+  syncModalInertness(ownerDocument, state);
+  return () => {
+    const index = state.dismissLayers.lastIndexOf(element);
+    if (index >= 0) state.dismissLayers.splice(index, 1);
+    element?.removeAttribute?.("data-velvet-frontmost");
+    syncDismissLayerData(state);
+    syncModalInertness(ownerDocument, state);
+  };
+};
+
+export const isFrontmostDismissLayer = (element) => {
+  const state = modalStore.peek(element);
+  return (
+    [...(state?.dismissLayers || [])]
       .reverse()
       .find((candidate) => candidate?.isConnected) === element
   );

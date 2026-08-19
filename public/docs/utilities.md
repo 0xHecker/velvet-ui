@@ -2,7 +2,9 @@
 
 > Utilities cover scroll coordination, visually hidden labels, autofocus targets, fixed surfaces, islands, and external overlays.
 
-Web: https://velvetui.co/docs/utilities
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/utilities
 
 Utilities solve focus, portal, fixed-layer, responsive, theme-color, and scroll integration problems without adding them to every Sheet or motion import.
 
@@ -31,6 +33,7 @@ The utilities entry does not pull Toast or any styled composition. Import motion
 | `Fixed` | Viewport-fixed content that ignores sheet travel |
 | `Island` | Interactive region belonging to the frontmost sheet |
 | `ExternalOverlay.Root` | Third-party portal joined to sheet modality |
+| `ExternalOverlay.DismissLayer` | Scope enrollment plus frontmost Escape/outside ownership and exit lifecycle |
 | `ThemeBackdrop` | Backdrop plus browser theme-color dimming |
 | `SheetMorph.Content` | Shared-origin geometry |
 | `SheetStack.Root/Outlet` | Nested layer coordination |
@@ -47,12 +50,48 @@ The utilities entry does not pull Toast or any styled composition. Import motion
 ## Portalled third-party UI
 
 ```tsx
-<ExternalOverlay.Root asChild>
-  <ThirdPartyDatePickerPortal />
-</ExternalOverlay.Root>
+<ThirdParty.Portal>
+  <ExternalOverlay.DismissLayer
+    asChild
+    open={open}
+    onDismiss={() => setOpen(false)}
+    restoreFocusRef={triggerRef}
+    onExitComplete={releaseOverlaySession}
+  >
+    <ThirdParty.Positioner />
+  </ExternalOverlay.DismissLayer>
+</ThirdParty.Portal>
 ```
 
-Without this wrapper, a modal sheet can treat the third-party portal as outside content and make it inert.
+Wrap the DOM-bearing popup or positioner inside the third-party Portal, never the Portal or controller itself. `ExternalOverlay.Root` is still available when scope enrollment alone is desired; scope enrollment does not imply dismissal ownership.
+
+## Official adapter entries
+
+```tsx
+import { VelvetRadixPopover } from "@velvetui/react/radix";
+import { VelvetAriaSelect } from "@velvetui/react/react-aria";
+import { VelvetBaseUIPopover } from "@velvetui/react/base-ui";
+```
+
+The adapters do not import or style their third-party library. Render one inside that library's portal and slot the real DOM-bearing surface through `asChild`; the library keeps positioning and accessibility while Velvet coordinates scope, frontmost dismissal, and focus return.
+
+[Run the Radix, React Aria, and Base UI recipes](/recipes) to compare the exact portal boundary for each library.
+
+## Inspect and assert
+
+```tsx
+import { expectVelvetLayer } from "@velvetui/react/testing";
+
+const layers = window.__velvet.inspect();
+
+expectVelvetLayer(document, {
+  role: "dialog",
+  frontmost: true,
+  restoresFocusTo: trigger,
+});
+```
+
+`window.__velvet.inspect()` reports scope, parent scope, layer kind, frontmost state, portal container, open/travel status, last dismissal reason, pending dismissal, captured focus, and planned focus targets. The DOM helper also checks the accessible label, one frontmost layer, one Sheet runway, nested positioning, and external scope enrollment.
 
 ## Hooks and helpers
 

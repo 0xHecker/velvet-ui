@@ -8,11 +8,6 @@
      mobile browser chrome and the virtual keyboard. */
   --velvet-100lvh: 100vh;
 
-  /* Stacking layers. Sheets must float above page chrome (nav); toasts float
-     above everything. */
-  --velvet-z-nav: 10;
-  --velvet-z-sheet: 100;
-  --velvet-z-toast: 9999;
 }
 @supports (height: 1dvh) {
   :root {
@@ -27,12 +22,24 @@
   height: 100%;
   width: 100%;
   overflow: clip;
-  z-index: var(--velvet-z-sheet);
+  z-index: var(--velvet-z-sheet, 100);
   /* The view itself is click-through; only content + backdrop catch pointers. */
   pointer-events: none;
 }
 [data-velvet="view"] * {
   box-sizing: border-box;
+}
+
+/* A nested host owns the containing block without introducing a z-index or
+   isolation boundary. NestedPanel repeats the critical position inline so
+   layered utility CSS cannot lose to Velvet's unlayered fixed View rule. */
+[data-velvet="nested-host"] {
+  position: relative;
+  overflow: clip;
+}
+[data-velvet="view"][data-velvet-nested] {
+  position: absolute;
+  inset: 0;
 }
 
 /* ---- Backdrop: dimming layer behind the content ---- */

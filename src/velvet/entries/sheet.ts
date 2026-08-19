@@ -15,11 +15,33 @@ export type SheetStepDirection = "up" | "down";
 
 export type AnimationSettings = MotionSettings;
 
+export type SheetOpenChangeReason =
+  | "trigger"
+  | "close-trigger"
+  | "escape"
+  | "outside-press"
+  | "swipe"
+  | "programmatic";
+
+export interface SheetOpenChangeDetail {
+  reason: SheetOpenChangeReason;
+  nativeEvent?: Event;
+}
+
+export type SheetDismissDetail = SheetOpenChangeDetail;
+
 export interface SheetRootProps {
   children?: React.ReactNode;
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  onOpenChange?: (open: boolean, detail: SheetOpenChangeDetail) => void;
+  onDismissRequest?: (
+    detail: SheetOpenChangeDetail,
+  ) => boolean | Promise<boolean>;
+  onEnterComplete?: () => void;
+  onExitComplete?: () => void;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
+  restoreFocusRef?: React.RefObject<HTMLElement | null>;
   snap?: number;
   defaultSnap?: number;
   onSnapChange?: (snap: number) => void;
@@ -169,6 +191,8 @@ export interface SheetPanelProps extends SheetContentProps {
   contentProps?: SheetContentProps;
 }
 
+export interface SheetNestedPortalHostProps extends PrimitiveProps<HTMLDivElement> {}
+
 export interface SheetOutletProps extends PrimitiveProps<HTMLDivElement> {
   travelAnimation?: TravelAnimation;
   stackingAnimation?: TravelAnimation;
@@ -186,6 +210,8 @@ export interface SheetComponent extends React.FC<SheetRootProps> {
   Root: React.FC<SheetRootProps>;
   Portal: React.FC<SheetPortalProps>;
   Panel: DivPart<SheetPanelProps>;
+  NestedPortalHost: DivPart<SheetNestedPortalHostProps>;
+  NestedPanel: DivPart<SheetPanelProps>;
   View: DivPart<SheetViewProps>;
   Backdrop: DivPart<SheetBackdropProps>;
   Content: DivPart<SheetContentProps>;

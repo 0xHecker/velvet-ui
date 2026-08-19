@@ -1,0 +1,22 @@
+# Toast positioning
+
+> The Toaster supports the six viewport corners and centers with a fixed viewport layer that does not inherit local layout offsets.
+
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-positioning
+
+Position belongs to the `Toaster`, not individual messages. Choose one predictable location for an application region.
+
+## Positions
+
+```tsx
+<Toaster position="top-left" />
+<Toaster position="top-center" />
+<Toaster position="top-right" />
+<Toaster position="bottom-left" />
+<Toaster position="bottom-center" />
+<Toaster position="bottom-right" />
+```
+
+Corner positions accept left and right swipes by default; centered positions accept up and down. Pass `swipeDirections` to `Toaster` for the global policy or to one toast for a local override. On mobile, bottom-center is usually easiest to reach; avoid covering persistent navigation or form submit controls.

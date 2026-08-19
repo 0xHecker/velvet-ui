@@ -1,0 +1,111 @@
+.ErrorGuide {
+  --error-ink: #172019;
+  --error-muted: #5c6860;
+  color: var(--error-ink);
+  padding-top: clamp(44px, 7vw, 84px);
+}
+
+.ErrorGuide-breadcrumb {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: clamp(54px, 9vw, 110px);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.ErrorGuide-breadcrumb a,
+.ErrorGuide-fix a {
+  color: inherit;
+  text-underline-offset: 4px;
+}
+
+.ErrorGuide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: clamp(48px, 8vw, 112px);
+  align-items: end;
+}
+
+.ErrorGuide-eyebrow,
+.ErrorGuide-fix > p,
+.ErrorGuide aside > span {
+  margin: 0 0 14px;
+  color: var(--error-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ErrorGuide h1 {
+  max-width: 13ch;
+  margin: 0 0 24px;
+  font-family: var(--font-serif);
+  font-size: clamp(50px, 7vw, 82px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.ErrorGuide header > p:last-child {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--error-muted);
+  font-size: 18px;
+  line-height: 1.58;
+}
+
+.ErrorGuide aside {
+  padding: 20px 0;
+  border-block: 1px solid var(--line);
+}
+
+.ErrorGuide aside > span {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.ErrorGuide aside code {
+  overflow-wrap: anywhere;
+  color: var(--error-ink);
+  font-size: 13px;
+}
+
+.ErrorGuide-fix {
+  margin-top: clamp(70px, 10vw, 132px);
+  padding: clamp(30px, 5vw, 54px);
+  border-radius: 18px;
+  background: var(--fill);
+}
+
+.ErrorGuide-fix h2 {
+  max-width: 34ch;
+  margin: 0;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.ErrorGuide-fix div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 34px;
+  color: var(--error-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .ErrorGuide-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .ErrorGuide h1 {
+    font-size: clamp(46px, 14vw, 68px);
+  }
+}

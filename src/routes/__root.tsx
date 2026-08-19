@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import "../velvet/styles.css";
@@ -19,6 +20,7 @@ export const Route = createRootRoute({
       { name: "author", content: "Sai Shanmukh" },
       { name: "format-detection", content: "telephone=no" },
       { name: "robots", content: "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" },
+      { name: "google-site-verification", content: "SEsJ0sj4IiEZJft6lGVaH4kP7owhBE6LSxiBtIFbAc0" },
       { property: "og:site_name", content: "Velvet UI" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -43,6 +45,12 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
   return (
     <RootDocument>
       <SiteShell><Outlet /></SiteShell>

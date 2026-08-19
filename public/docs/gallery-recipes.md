@@ -2,28 +2,30 @@
 
 > The gallery demonstrates production-shaped layouts such as bottom sheets, drawers, modals, detents, lightboxes, and persistent surfaces.
 
-Web: https://velvetui.co/docs/gallery-recipes
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/gallery-recipes
 
 Every homepage card is built from the public package. The concise recipes explain the reusable structure; the source links below are generated from the exact live JSX and CSS, so the documentation cannot silently drift away from the gallery.
 
 ## Exact live source
 
-1. [Bottom Sheet exact JSX and CSS](/docs/examples/bottom-sheet.md)
-2. [Modal Dialog exact JSX and CSS](/docs/examples/modal.md)
-3. [Navigation Drawer exact JSX and CSS](/docs/examples/sidebar.md)
-4. [Detent Sheet exact JSX and CSS](/docs/examples/detent.md)
-5. [Top Sheet exact JSX and CSS](/docs/examples/top-sheet.md)
-6. [Scrollable Sheet exact JSX and CSS](/docs/examples/long-sheet.md)
-7. [Stacked Sheets exact JSX and CSS](/docs/examples/stacked.md)
-8. [Detached Sheet exact JSX and CSS](/docs/examples/detached.md)
-9. [Full-Screen Sheet exact JSX and CSS](/docs/examples/page-from-bottom.md)
-10. [Depth Sheet exact JSX and CSS](/docs/examples/depth.md)
-11. [Lightbox exact JSX and CSS](/docs/examples/lightbox.md)
-12. [Parallax Sheet exact JSX and CSS](/docs/examples/parallax.md)
-13. [Side Sheet exact JSX and CSS](/docs/examples/page.md)
-14. [Keyboard-Aware Sheet exact JSX and CSS](/docs/examples/keyboard.md)
-15. [Card Expansion exact JSX and CSS](/docs/examples/card.md)
-16. [Persistent Sheet exact JSX and CSS](/docs/examples/persistent.md)
+1. [Bottom Sheet exact JSX and CSS](/docs/0.3.0/examples/bottom-sheet.md)
+2. [Modal Dialog exact JSX and CSS](/docs/0.3.0/examples/modal.md)
+3. [Navigation Drawer exact JSX and CSS](/docs/0.3.0/examples/sidebar.md)
+4. [Detent Sheet exact JSX and CSS](/docs/0.3.0/examples/detent.md)
+5. [Top Sheet exact JSX and CSS](/docs/0.3.0/examples/top-sheet.md)
+6. [Scrollable Sheet exact JSX and CSS](/docs/0.3.0/examples/long-sheet.md)
+7. [Stacked Sheets exact JSX and CSS](/docs/0.3.0/examples/stacked.md)
+8. [Detached Sheet exact JSX and CSS](/docs/0.3.0/examples/detached.md)
+9. [Full-Screen Sheet exact JSX and CSS](/docs/0.3.0/examples/page-from-bottom.md)
+10. [Depth Sheet exact JSX and CSS](/docs/0.3.0/examples/depth.md)
+11. [Lightbox exact JSX and CSS](/docs/0.3.0/examples/lightbox.md)
+12. [Parallax Sheet exact JSX and CSS](/docs/0.3.0/examples/parallax.md)
+13. [Side Sheet exact JSX and CSS](/docs/0.3.0/examples/page.md)
+14. [Keyboard-Aware Sheet exact JSX and CSS](/docs/0.3.0/examples/keyboard.md)
+15. [Card Expansion exact JSX and CSS](/docs/0.3.0/examples/card.md)
+16. [Persistent Sheet exact JSX and CSS](/docs/0.3.0/examples/persistent.md)
 
 The raw files include playground icons, image helpers, and local import paths because they are the real implementation. Replace those helpers with product assets and use the package imports from the concise recipe.
 

@@ -2,7 +2,9 @@
 
 > Compare every supplied composition, its parts, defaults, escape hatches, and CSS contract.
 
-Web: https://velvetui.co/docs/composition-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/composition-api
 
 Compositions are small wrappers around Sheet primitives. They set good interaction defaults, emit stable data hooks, and expose the underlying part props instead of hiding them.
 

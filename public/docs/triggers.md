@@ -2,7 +2,9 @@
 
 > Trigger, Close, and Step communicate intent directly and can render through your own button using asChild.
 
-Web: https://velvetui.co/docs/triggers
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/triggers
 
 Trigger parts are real buttons by default and expose stateful intent without forcing a product button style.
 
@@ -32,7 +34,7 @@ Only the public `disabled` prop disables an action. A new open, close, toggle, o
 
 ## asChild requirements
 
-The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/custom-components).
+The single non-Fragment child receives the ref, children, click handler, disabled state, ARIA/data attributes, className, and style. Forward all of them. If the design system composes click handlers, respect `event.defaultPrevented` and do not silently replace Velvet's handler. See [Bring your own components](/docs/0.3.0/custom-components).
 
 ## onPress and onClick
 

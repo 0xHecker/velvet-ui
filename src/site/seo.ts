@@ -7,6 +7,7 @@ export const LICENSE_URL = `${SITE_ORIGIN}/?license=open`;
 export const SEO_IMAGES = {
   home: "/og/velvet-ui.jpg",
   docs: "/og/velvet-ui-docs.jpg",
+  recipes: "/og/velvet-ui-docs.jpg",
   toasts: "/og/velvet-ui-toasts.jpg",
 } as const;
 
@@ -109,7 +110,7 @@ export const softwareSchema = {
   description: "A headless React toolkit for swipeable sheets, stacked surfaces, toasts, gestures, and spring motion.",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Web",
-  softwareVersion: "0.1.0",
+  softwareVersion: "0.2.2",
   downloadUrl: NPM_PACKAGE_URL,
   publisher: { "@id": `${SITE_ORIGIN}/#organization` },
   image: absoluteUrl(SEO_IMAGES.home),

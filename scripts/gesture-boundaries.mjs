@@ -21,9 +21,22 @@ const check = (name, ok, info = "") => {
 };
 
 const open = async (page, id) => {
-  await page.$eval(`[data-shot="${id}"] .Card-trigger [data-velvet-trigger]`, (element) =>
-    element.click()
+  const triggerSelector = `[data-shot="${id}"] .Card-trigger [data-velvet-trigger]`;
+  // `.Gallery` is present in the streamed HTML before React owns its events.
+  // Wait until React has attached props to this trigger so a fast harness click
+  // cannot land in the pre-hydration gap.
+  await page.waitForFunction(
+    (selector) => {
+      const element = document.querySelector(selector);
+      return element && Object.keys(element).some((key) => key.startsWith("__reactProps$"));
+    },
+    { timeout: 10000 },
+    triggerSelector,
   );
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  await page.$eval(triggerSelector, (element) => element.click());
   await page.waitForSelector(ACTUAL_VIEW, { timeout: 5000 });
   await page.waitForFunction(
     () => window.__velvet?.count() > 0 && window.__velvet.idle(),

@@ -38,9 +38,10 @@ export const scopedFocusableElements = (view) => {
   });
 };
 
-export const focusFirst = (root) => {
+export const focusFirst = (root, preferred) => {
   if (!root) return;
   const element =
+    (preferred?.isConnected ? preferred : null) ||
     root.querySelector("[data-velvet-autofocus]") ||
     root.querySelector('[data-velvet="content"]') ||
     root.querySelector(FOCUSABLE);

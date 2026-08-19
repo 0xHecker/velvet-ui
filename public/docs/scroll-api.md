@@ -2,7 +2,9 @@
 
 > Coordinate nested scrolling, virtual keyboards, focus, progress, and imperative spring scrolling.
 
-Web: https://velvetui.co/docs/scroll-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/scroll-api
 
 Scroll coordinates long content, virtual keyboards, programmatic travel, and the gesture handoff between a nested scroller and its parent sheet.
 

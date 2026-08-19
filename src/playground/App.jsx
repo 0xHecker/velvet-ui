@@ -522,6 +522,12 @@ export const SheetGallery = () => (
 );
 
 export const App = () => {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
   const [view, setView] = useState(viewFromLocation);
   const viewRef = useRef(view);
   const pendingScrollRef = useRef(getScrollState());

@@ -16,12 +16,24 @@ const tabs = [
   { label: "Sheets", to: "/" },
   { label: "Toasts", to: "/toasts" },
   { label: "Docs", to: "/docs" },
+  { label: "Recipes", to: "/recipes" },
 ];
 
 export function SiteShell({ children }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [licenseOpen, setLicenseOpen] = useState(false);
   const isDocs = pathname === "/docs" || pathname.startsWith("/docs/");
+  const isRecipes = pathname === "/recipes" || pathname.startsWith("/recipes/");
+
+  useEffect(() => {
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        document.querySelector(".App-surface")?.scrollTo({ top: 0 });
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -75,7 +87,7 @@ export function SiteShell({ children }) {
               </button>
             </div>
           </nav>
-          <div className={`Page${isDocs ? " Page--docs" : ""}`}>{children}</div>
+          <div className={`Page${isDocs ? " Page--docs" : ""}${isRecipes ? " Page--recipes" : ""}`}>{children}</div>
         </div>
       </SheetStack.Outlet>
       <LicenseCenter open={licenseOpen} onOpenChange={setLicenseVisibility} />

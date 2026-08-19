@@ -23,6 +23,38 @@ const installDebugController = (ownerDocument) => {
       return view ? view.idle() : true;
     },
     count: () => motionStore.peek(ownerDocument)?.activeViews.length || 0,
+    inspect: () => {
+      const sheets = (motionStore.peek(ownerDocument)?.activeViews || []).map(
+        (view, index, views) => ({
+          ...view.inspect?.(),
+          element: view.element,
+          frontmost:
+            view.element?.getAttribute("data-velvet-frontmost") === "true" ||
+            (view.element?.getAttribute("data-velvet-frontmost") == null &&
+              views.length === 1 &&
+              index === 0),
+        })
+      );
+      const externalLayers = [...ownerDocument.querySelectorAll(
+        '[data-velvet="external-overlay"][data-velvet-dismiss-layer][data-velvet-open="true"]'
+      )].map((element) => ({
+        scopeId: element.getAttribute("data-velvet-scope"),
+        parentScopeId: null,
+        layerKind: "external-overlay",
+        portalContainer: element.parentElement,
+        open: element.getAttribute("data-velvet-open") === "true",
+        travelStatus: null,
+        lastDismissReason: element.getAttribute("data-velvet-dismiss-reason"),
+        dismissPending:
+          element.getAttribute("data-velvet-dismiss-pending") === "true",
+        capturedFocusElement: null,
+        plannedRestoreTarget: null,
+        initialFocusTarget: null,
+        element,
+        frontmost: element.getAttribute("data-velvet-frontmost") === "true",
+      }));
+      return [...sheets, ...externalLayers];
+    },
     setTimeScale: (scale) => (ownerWindow.__VELVET_TIME_SCALE = scale),
   };
 };

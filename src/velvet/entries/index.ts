@@ -10,3 +10,4 @@ export * from "./toast.js";
 export * from "./motion.js";
 export * from "./motion-react.js";
 export * from "./utilities.js";
+export * from "./adapters.js";

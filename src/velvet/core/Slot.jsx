@@ -4,6 +4,9 @@ import {
   cloneElement,
   forwardRef,
   isValidElement,
+  useCallback,
+  useEffect,
+  useRef,
   version,
 } from "react";
 import { composeEventHandlers } from "./events.js";
@@ -12,6 +15,7 @@ import { composeRefs } from "./refs.js";
 // React 19 exposes ref as a normal prop; React 18 keeps it on element.ref.
 // Reading the right one keeps the library compatible with both (no warnings).
 const REACT_19 = Number((version || "18").split(".")[0]) >= 19;
+const isDevelopment = import.meta.env?.DEV === true;
 const childRefOf = (child) => (REACT_19 ? child.props.ref : child.ref);
 
 const onlySlottableChild = (children, owner = "A Velvet component") => {
@@ -53,12 +57,97 @@ const mergeProps = (slotProps, childProps) => {
 
 // Renders its single child, merging the Slot's own props/ref onto it. Used to
 // implement the `asChild` prop available on every element-rendering sub-component.
-export const Slot = forwardRef(function Slot({ children, ...slotProps }, forwardedRef) {
-  const child = onlySlottableChild(children);
+export const Slot = forwardRef(function Slot(
+  {
+    children,
+    __slotOwner = "A Velvet component",
+    __slotDiagnosticActive = true,
+    ...slotProps
+  },
+  forwardedRef
+) {
+  const child = onlySlottableChild(children, __slotOwner);
   const childRef = childRefOf(child);
+  const nodeRef = useRef(null);
+  const firstNodeRef = useRef(null);
+  const ownerRef = useRef(__slotOwner);
+  const warnedRef = useRef(new Set());
+  ownerRef.current = __slotOwner;
+
+  const warn = useCallback((code, message, path) => {
+    if (!isDevelopment || warnedRef.current.has(code)) return;
+    warnedRef.current.add(code);
+    console.error(
+      `[Velvet UI] ${code}: ${message} https://velvetui.co/errors/${path}`
+    );
+  }, []);
+
+  const diagnosticRef = useCallback((node) => {
+    if (!node) {
+      nodeRef.current = null;
+      return;
+    }
+    if (typeof Element !== "undefined" && !(node instanceof Element)) {
+      warn(
+        "VELVET_AS_CHILD_NON_DOM",
+        `${ownerRef.current} resolved its ref to a non-DOM value.`,
+        "as-child-non-dom"
+      );
+      return;
+    }
+    if (
+      firstNodeRef.current &&
+      firstNodeRef.current !== node &&
+      firstNodeRef.current.isConnected
+    ) {
+      warn(
+        "VELVET_AS_CHILD_IDENTITY_CHANGED",
+        `${ownerRef.current} changed its DOM element identity while mounted.`,
+        "as-child-identity-changed"
+      );
+    }
+    firstNodeRef.current ||= node;
+    nodeRef.current = node;
+  }, [warn]);
+
+  useEffect(() => {
+    if (!isDevelopment || !__slotDiagnosticActive) return undefined;
+    const schedule =
+      globalThis.requestAnimationFrame ?? ((callback) => setTimeout(callback, 0));
+    const cancel = globalThis.cancelAnimationFrame ?? clearTimeout;
+    const frame = schedule(() => {
+      const node = nodeRef.current;
+      if (!node) {
+        const external = ownerRef.current.startsWith("ExternalOverlay");
+        warn(
+          external
+            ? "VELVET_EXTERNAL_OVERLAY_NON_DOM"
+            : "VELVET_AS_CHILD_REF_DROPPED",
+          external
+            ? `${ownerRef.current} must wrap the DOM-bearing popup surface, not a Portal or controller component.`
+            : `${ownerRef.current}'s child did not forward the received ref to one DOM element.`,
+          external ? "external-overlay-non-dom" : "as-child-ref-dropped"
+        );
+        return;
+      }
+      const missing = Object.keys(slotProps).filter((key) => {
+        if (!/^data-|^aria-/.test(key) || slotProps[key] == null) return false;
+        return !node.hasAttribute(key);
+      });
+      if (missing.length > 0) {
+        warn(
+          "VELVET_AS_CHILD_PROPS_DROPPED",
+          `${ownerRef.current}'s child dropped required attributes: ${missing.join(", ")}.`,
+          "as-child-props-dropped"
+        );
+      }
+    });
+    return () => cancel(frame);
+  }, [__slotDiagnosticActive, slotProps, warn]);
+
   return cloneElement(child, {
     ...mergeProps(slotProps, child.props),
-    ref: forwardedRef ? composeRefs(forwardedRef, childRef) : childRef,
+    ref: composeRefs(forwardedRef, childRef, diagnosticRef),
   });
 });
 
@@ -79,12 +168,24 @@ export const mapSlottedChildren = (
 
 // Helper: render either the Slot (asChild) or a default element with the given props.
 export const Polymorph = forwardRef(function Polymorph(
-  { asChild, as: Tag = "div", children, ...props },
+  {
+    asChild,
+    as: Tag = "div",
+    children,
+    slotOwner,
+    slotDiagnosticActive,
+    ...props
+  },
   ref
 ) {
   if (asChild) {
     return (
-      <Slot ref={ref} {...props}>
+      <Slot
+        ref={ref}
+        __slotOwner={slotOwner}
+        __slotDiagnosticActive={slotDiagnosticActive}
+        {...props}
+      >
         {children}
       </Slot>
     );

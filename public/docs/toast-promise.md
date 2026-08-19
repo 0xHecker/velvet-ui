@@ -2,7 +2,9 @@
 
 > toast.promise binds an async result to one continuous feedback item with loading, success, and error states.
 
-Web: https://velvetui.co/docs/toast-promise
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-promise
 
 `toast.promise` turns one asynchronous operation into one continuous feedback item. It prevents duplicate loading, success, and failure notifications.
 

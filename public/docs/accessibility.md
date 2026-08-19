@@ -2,7 +2,9 @@
 
 > Modal sheets apply dialog semantics, focus management, Escape handling, inert background treatment, and focus restoration.
 
-Web: https://velvetui.co/docs/accessibility
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/accessibility
 
 Velvet supplies dialog semantics and interaction infrastructure, but accessible product copy and workflow remain application responsibilities.
 

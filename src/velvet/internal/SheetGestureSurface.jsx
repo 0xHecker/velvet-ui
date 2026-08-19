@@ -33,8 +33,10 @@ import {
   scopedFocusableElements,
 } from "./FocusScope.js";
 import {
+  isFrontmostDismissLayer,
   isFrontmostModal,
   lockDocumentScroll,
+  registerDismissLayer,
   registerModalLayer,
   unlockDocumentScroll,
 } from "./ModalManager.js";
@@ -46,7 +48,6 @@ import {
   DETENT_TOLERANCE_PX,
   getMorphAnimation,
   hasMorphAnimation,
-  isFrontmostView,
   isLeadingTrack,
   maxOf,
   NATIVE_TRAVEL_CAPABLE,
@@ -65,6 +66,7 @@ import {
   SheetPreviewEnvironment,
   SheetRoot as Root,
   useSheet,
+  useSheetPart,
   useStacking,
   useTravel,
 } from "./SheetState.jsx";
@@ -111,6 +113,34 @@ const Portal = ({ children, container }) => {
   return createPortal(children, target || document.body);
 };
 
+const NestedPortalContext = createContext(null);
+
+const NestedPortalHost = forwardRef(function NestedPortalHost(
+  { asChild, children, className, style, ...rest },
+  forwardedRef
+) {
+  const hostRef = useRef(null);
+  const composed = useComposedRefs(forwardedRef, hostRef);
+  return (
+    <NestedPortalContext.Provider value={hostRef}>
+      <Polymorph
+        asChild={asChild}
+        ref={composed}
+        data-velvet="nested-host"
+        className={className}
+        {...rest}
+        style={{
+          ...style,
+          position: "relative",
+          overflow: "clip",
+        }}
+      >
+        {children}
+      </Polymorph>
+    </NestedPortalContext.Provider>
+  );
+});
+
 // ---- View -----------------------------------------------------------------
 // Gesture travel is a native mandatory-scroll-snap system. JavaScript never
 // estimates release velocity or chooses a projected detent; the browser does
@@ -155,7 +185,6 @@ const View = forwardRef(function View(
   const sheet = useSheet();
   const {
     presented,
-    setPresented,
     activeDetent,
     setActiveDetent,
     sheetRole,
@@ -163,6 +192,7 @@ const View = forwardRef(function View(
     emitStacking,
     getTravelAnimations,
     getStackingAnimations,
+    finishEnter,
     finishExit,
     titleId,
     descriptionId,
@@ -170,9 +200,14 @@ const View = forwardRef(function View(
     setViewId,
     generatedViewId,
     scopeId,
+    parentScopeId,
     titleCount,
     descriptionCount,
     lastFocused,
+    initialFocusRef,
+    restoreFocusRef,
+    dismissPending,
+    lastDismissReason,
     actionDispatcherRef,
     performAction,
     requestAction,
@@ -204,7 +239,7 @@ const View = forwardRef(function View(
   const [restingInside, setRestingInside] = useState(false);
 
   const restoreCapturedFocus = useCallback(() => {
-    const element = lastFocused.current;
+    const element = restoreFocusRef?.current || lastFocused.current;
     lastFocused.current = null;
     // Exit can complete synchronously when motion is skipped. Restore after
     // the click/default-action task and modal-layer cleanup have finished, or
@@ -212,7 +247,7 @@ const View = forwardRef(function View(
     queueMicrotask(() => {
       if (element?.isConnected) restoreFocus(element);
     });
-  }, [lastFocused]);
+  }, [lastFocused, restoreFocusRef]);
   useEffect(() => {
     if (!presented) {
       setRestingInside(false);
@@ -283,6 +318,8 @@ const View = forwardRef(function View(
 
   const viewRef = useRef(null);
   const scrollRef = useRef(null);
+  const presentedLatestRef = useRef(presented);
+  presentedLatestRef.current = presented;
   const composedView = useComposedRefs(forwardedRef, viewRef);
   const geometryRef = useRef(null);
   const previousDetentRef = useRef(0);
@@ -303,6 +340,10 @@ const View = forwardRef(function View(
   const wheelSeenRef = useRef(false);
   const nativeDismissRef = useRef(false);
   const nativeDismissRafRef = useRef(0);
+  const nativeObservationArmedRef = useRef(false);
+  const nativeObservationArmRafRef = useRef(0);
+  const nativeInputObservedRef = useRef(false);
+  const lastNativeInputEventRef = useRef(null);
   const movedRef = useRef(false);
   const pointerDownTargetRef = useRef(null);
   const pendingStepRef = useRef(null);
@@ -312,6 +353,22 @@ const View = forwardRef(function View(
   const titleCountRef = useRef(titleCount);
   titleCountRef.current = titleCount;
   const missingTitleWarnedRef = useRef(false);
+  const [travelStatus, setTravelStatus] = useState(
+    presented ? "entering" : "idleOutside"
+  );
+  const travelStatusRef = useRef(travelStatus);
+  const dismissPendingRef = useRef(dismissPending);
+  const lastDismissReasonRef = useRef(lastDismissReason);
+  travelStatusRef.current = travelStatus;
+  dismissPendingRef.current = dismissPending;
+  lastDismissReasonRef.current = lastDismissReason;
+  const publishTravelStatus = useCallback(
+    (status) => {
+      setTravelStatus(status);
+      onTravelStatusChange?.(status);
+    },
+    [onTravelStatusChange]
+  );
   const hasExplicitAccessibleName = Boolean(
     rest["aria-label"] || rest["aria-labelledby"]
   );
@@ -843,7 +900,7 @@ const View = forwardRef(function View(
       };
 
       if (runStart) {
-        onTravelStatusChange?.(travelStatus);
+        publishTravelStatus(travelStatus);
         onTravelStart?.();
       }
       if (config.skip) {
@@ -1168,7 +1225,7 @@ const View = forwardRef(function View(
       measureGeometry,
       onTravelEnd,
       onTravelStart,
-      onTravelStatusChange,
+      publishTravelStatus,
       placement,
       readVisualCoordinate,
       reportTravel,
@@ -1212,7 +1269,7 @@ const View = forwardRef(function View(
         // STEP is semantic rather than a precomputed detent so it is resolved
         // against the detent reached by native scroll-snap, after paint.
         pendingStepRef.current = action;
-        return;
+        return true;
       }
       if (action.type === "dismiss") {
         const range = lastRangeRef.current;
@@ -1225,16 +1282,20 @@ const View = forwardRef(function View(
         // close while native travel is between detents.
         if (
           !programmaticRef.current &&
+          !action.nativeCommit &&
           (atClosedDetent || persistentBetweenDetents)
-        ) return;
+        ) return false;
       }
-      performAction(action);
+      if (action.type === "step" && presented) {
+        nativeObservationArmedRef.current = true;
+      }
+      return performAction(action);
     };
     actionDispatcherRef.current = dispatch;
     return () => {
       if (actionDispatcherRef.current === dispatch) actionDispatcherRef.current = null;
     };
-  }, [actionDispatcherRef, dismissible, performAction]);
+  }, [actionDispatcherRef, dismissible, performAction, presented]);
 
   const updateLiveDetent = useCallback(
     (progress) => {
@@ -1268,6 +1329,7 @@ const View = forwardRef(function View(
       !scroll ||
       !content ||
       !activeRef.current ||
+      !nativeObservationArmedRef.current ||
       nativeDismissRef.current ||
       programmaticRef.current ||
       !dismissible
@@ -1296,10 +1358,66 @@ const View = forwardRef(function View(
     content.style.setProperty("pointer-events", "none", "important");
     scroll.style.setProperty("pointer-events", "none", "important");
 
-    const dismiss = () => {
-      nativeDismissRafRef.current = 0;
-      setActiveDetent(0);
-      setPresented(false);
+    const recoveryDetent = Math.max(activeDetent || 1, 1);
+    const dismissalAction = {
+      type: "dismiss",
+      nativeCommit: true,
+      detail: {
+        reason: "swipe",
+        nativeEvent: lastNativeInputEventRef.current ?? undefined,
+      },
+    };
+    const restoreDismissedRunway = () => {
+      const geometry = measureGeometry();
+      nativeDismissRef.current = false;
+      activeRef.current = true;
+      nativeObservationArmedRef.current = true;
+      nativeInputObservedRef.current = false;
+      view.inert = false;
+      view.style.removeProperty("pointer-events");
+      content.style.removeProperty("pointer-events");
+      scroll.style.removeProperty("pointer-events");
+      scroll.style.removeProperty("scroll-snap-type");
+      previousDetentRef.current = recoveryDetent;
+      liveDetentRef.current = recoveryDetent;
+      if (geometry) {
+        const offset = targetOffset(recoveryDetent, primaryTrack);
+        programmaticRef.current = true;
+        suppressAsyncScrollEvent(offset);
+        setOff(scroll, axis, offset);
+        reportTravel(geometry.exactProgressAtDetents[recoveryDetent], {
+          start: recoveryDetent,
+          end: recoveryDetent,
+        });
+        programmaticRef.current = false;
+      }
+      setRestingInside(true);
+      publishTravelStatus("idleInside");
+    };
+
+    const settleDismissRequest = (accepted) => {
+      if (accepted === false) {
+        restoreDismissedRunway();
+        return;
+      }
+      cancelAnimationFrame(nativeDismissRafRef.current);
+      nativeDismissRafRef.current = requestAnimationFrame(() => {
+        nativeDismissRafRef.current = requestAnimationFrame(() => {
+          // Keep the exact zero-progress stack/backdrop frame through a full
+          // paint boundary before React can remove the layer. A single rAF can
+          // still share the rendering update that published the zero frame
+          // when a compositor fling crosses the boundary between samples.
+          performAction(dismissalAction);
+          nativeDismissRafRef.current = requestAnimationFrame(() => {
+            nativeDismissRafRef.current = 0;
+            // A controlled owner rejects by leaving `open` true. Return to the
+            // last inside detent after giving React a frame to commit its choice.
+            if (presentedLatestRef.current && nativeDismissRef.current) {
+              restoreDismissedRunway();
+            }
+          });
+        });
+      });
     };
     if (wheelSeenRef.current) {
       let previousDelta = 100000;
@@ -1317,10 +1435,27 @@ const View = forwardRef(function View(
         window.removeEventListener("wheel", suppressWheelTail, { passive: false });
       }, 100);
     }
-    cancelAnimationFrame(nativeDismissRafRef.current);
-    nativeDismissRafRef.current = requestAnimationFrame(dismiss);
+    const requested = requestAction({ ...dismissalAction, deferCommit: true });
+    if (requested && typeof requested.then === "function") {
+      requested.then(settleDismissRequest);
+    } else {
+      settleDismissRequest(requested);
+    }
     return true;
-  }, [dismissible, endNativeTravel, reportTravel, setActiveDetent, setPresented]);
+  }, [
+    activeDetent,
+    axis,
+    dismissible,
+    endNativeTravel,
+    measureGeometry,
+    primaryTrack,
+    performAction,
+    publishTravelStatus,
+    reportTravel,
+    requestAction,
+    suppressAsyncScrollEvent,
+    targetOffset,
+  ]);
 
   const armDismissObserver = useCallback(() => {
     disarmDismissObserver();
@@ -1332,6 +1467,7 @@ const View = forwardRef(function View(
       !scroll ||
       !content ||
       !activeRef.current ||
+      !nativeObservationArmedRef.current ||
       !nativeScrollEnabled ||
       !dismissible ||
       typeof IntersectionObserver === "undefined"
@@ -1339,16 +1475,25 @@ const View = forwardRef(function View(
       return;
     }
     wheelSeenRef.current = false;
-    const markWheel = () => {
+    const markWheel = (event) => {
       wheelSeenRef.current = true;
+      nativeInputObservedRef.current = true;
+      lastNativeInputEventRef.current = event;
     };
     window.addEventListener("wheel", markWheel, { passive: true, once: true });
     observerWheelCleanupRef.current = () =>
       window.removeEventListener("wheel", markWheel, { passive: true });
 
+    let firstObservation = true;
     observerRef.current = new IntersectionObserver(
       (entries) => {
+        const ignoreInitialGeometry =
+          firstObservation &&
+          !nativeInputObservedRef.current &&
+          !scrollSequenceRef.current;
+        firstObservation = false;
         for (const entry of entries) {
+          if (ignoreInitialGeometry) continue;
           if (entry.isIntersecting || programmaticRef.current) continue;
           beginNativeDismiss();
         }
@@ -1362,6 +1507,17 @@ const View = forwardRef(function View(
     dismissible,
     nativeScrollEnabled,
   ]);
+
+  const scheduleNativeObservationArm = useCallback(() => {
+    cancelAnimationFrame(nativeObservationArmRafRef.current);
+    nativeObservationArmRafRef.current = requestAnimationFrame(() => {
+      nativeObservationArmRafRef.current = 0;
+      if (!activeRef.current || !presented) return;
+      nativeObservationArmedRef.current = true;
+      nativeInputObservedRef.current = false;
+      armDismissObserver();
+    });
+  }, [armDismissObserver, presented]);
 
   const sampleNativeTravel = useCallback(() => {
     if (!scrollSequenceRef.current) return;
@@ -1404,7 +1560,9 @@ const View = forwardRef(function View(
     if (settledIndex > 0) {
       lastVisualCoordinateRef.current = readVisualCoordinate();
       setRestingInside(true);
-      onTravelStatusChange?.("idleInside");
+      publishTravelStatus("idleInside");
+      finishEnter();
+      scheduleNativeObservationArm();
     }
     endNativeTravel();
     if (settledIndex > 0) flushPendingStep(settledIndex);
@@ -1415,10 +1573,12 @@ const View = forwardRef(function View(
     dismissible,
     endNativeTravel,
     flushPendingStep,
-    onTravelStatusChange,
+    finishEnter,
+    publishTravelStatus,
     progressOf,
     readVisualCoordinate,
     reportTravel,
+    scheduleNativeObservationArm,
     setActiveDetent,
   ]);
 
@@ -1438,7 +1598,8 @@ const View = forwardRef(function View(
     if (
       !activeRef.current ||
       programmaticRef.current ||
-      !nativeScrollEnabled
+      !nativeScrollEnabled ||
+      !nativeObservationArmedRef.current
     ) {
       return;
     }
@@ -1449,18 +1610,22 @@ const View = forwardRef(function View(
         delta: 0,
       };
       movedRef.current = true;
-      onTravelStatusChange?.("stepping");
+      publishTravelStatus("stepping");
       onTravelStart?.();
     }
     cancelAnimationFrame(travelRafRef.current);
     travelRafRef.current = requestAnimationFrame(sampleNativeTravel);
     clearTimeout(scrollEndTimerRef.current);
     scrollEndTimerRef.current = window.setTimeout(settleNativeTravel, SCROLL_IDLE_MS);
-  }, [axis, nativeScrollEnabled, onTravelStart, onTravelStatusChange, sampleNativeTravel, settleNativeTravel]);
+  }, [axis, nativeScrollEnabled, onTravelStart, publishTravelStatus, sampleNativeTravel, settleNativeTravel]);
 
-  const onTouchStart = useCallback(() => {
+  const onTouchStart = useCallback((event) => {
     touchOngoingRef.current = true;
-  }, []);
+    nativeInputObservedRef.current = true;
+    lastNativeInputEventRef.current = event.nativeEvent ?? event;
+    nativeObservationArmedRef.current = true;
+    armDismissObserver();
+  }, [armDismissObserver]);
   const onTouchEnd = useCallback(() => {
     touchOngoingRef.current = false;
     if (!swipeOvershootDisabled) return;
@@ -1497,6 +1662,12 @@ const View = forwardRef(function View(
       ? Math.min(Math.max(activeDetent || 1, 1), last)
       : 0;
     let previous = previousDetentRef.current;
+    if (presented && previous === 0) {
+      cancelAnimationFrame(nativeObservationArmRafRef.current);
+      nativeObservationArmRafRef.current = 0;
+      nativeObservationArmedRef.current = false;
+      nativeInputObservedRef.current = false;
+    }
     const configurationChanged =
       configurationRef.current != null && configurationRef.current !== configurationKey;
     configurationRef.current = configurationKey;
@@ -1526,12 +1697,14 @@ const View = forwardRef(function View(
       lastFocused.current = document.activeElement;
     }
     if (!presented && nativeDismissRef.current) {
+      cancelAnimationFrame(nativeObservationArmRafRef.current);
+      nativeObservationArmedRef.current = false;
       cancelMotion();
       nativeDismissRef.current = false;
       previousDetentRef.current = 0;
       if (!isPreview) restoreCapturedFocus();
       finishExit();
-      onTravelStatusChange?.("idleOutside");
+      publishTravelStatus("idleOutside");
       return undefined;
     }
     if (!presented && previous === 0) {
@@ -1540,9 +1713,11 @@ const View = forwardRef(function View(
       // merely because no programmatic exit distance remains.
       cancelMotion();
       disarmDismissObserver();
+      cancelAnimationFrame(nativeObservationArmRafRef.current);
+      nativeObservationArmedRef.current = false;
       if (!isPreview) restoreCapturedFocus();
       finishExit();
-      onTravelStatusChange?.("idleOutside");
+      publishTravelStatus("idleOutside");
       return undefined;
     }
 
@@ -1571,18 +1746,20 @@ const View = forwardRef(function View(
       lastVisualCoordinateRef.current = readVisualCoordinate();
       programmaticRef.current = false;
       setRestingInside(true);
-      armDismissObserver();
+      publishTravelStatus("idleInside");
+      finishEnter();
+      scheduleNativeObservationArm();
       return undefined;
     }
 
     if (presented && previous === target) {
       cancelMotion();
-      armDismissObserver();
+      scheduleNativeObservationArm();
       return undefined;
     }
 
     if (presented && previous === 0) {
-      onTravelStatusChange?.("entering");
+      publishTravelStatus("entering");
       onTravelStart?.();
       programmaticRef.current = true;
       const offset = targetOffset(0, travelTrack);
@@ -1601,7 +1778,10 @@ const View = forwardRef(function View(
       setOff(scroll, axis, offset);
       reportTravel(geometry.exactProgressAtDetents[target], { start: target, end: target });
       programmaticRef.current = false;
-      armDismissObserver();
+      setRestingInside(true);
+      publishTravelStatus("idleInside");
+      finishEnter();
+      scheduleNativeObservationArm();
       return undefined;
     }
 
@@ -1623,7 +1803,7 @@ const View = forwardRef(function View(
         if (target === 0) {
           if (!isPreview) restoreCapturedFocus();
           finishExit();
-          onTravelStatusChange?.("idleOutside");
+          publishTravelStatus("idleOutside");
           return;
         }
         activeRef.current = true;
@@ -1634,11 +1814,14 @@ const View = forwardRef(function View(
           // is the safe fallback, so opening a form never summons the mobile
           // keyboard unless the author explicitly marks a field for autofocus.
           requestAnimationFrame(() => {
-            if (activeRef.current) focusFirst(viewRef.current);
+            if (activeRef.current) {
+              focusFirst(viewRef.current, initialFocusRef?.current);
+            }
           });
         }
-        armDismissObserver();
-        onTravelStatusChange?.("idleInside");
+        publishTravelStatus("idleInside");
+        finishEnter();
+        scheduleNativeObservationArm();
       },
     });
     return undefined;
@@ -1654,11 +1837,13 @@ const View = forwardRef(function View(
     exitingAnimationSettings,
     endNativeTravel,
     finishExit,
+    finishEnter,
     isPreview,
+    initialFocusRef,
     lastFocused,
     measureGeometry,
     onTravelStart,
-    onTravelStatusChange,
+    publishTravelStatus,
     presented,
     primaryTrack,
     reportTravel,
@@ -1666,7 +1851,7 @@ const View = forwardRef(function View(
     restoreCapturedFocus,
     runProgrammaticTravel,
     setActiveDetent,
-    setPresented,
+    scheduleNativeObservationArm,
     steppingAnimationSettings,
     suppressAsyncScrollEvent,
     targetOffset,
@@ -1729,6 +1914,7 @@ const View = forwardRef(function View(
         clearTimeout(scrollEndTimerRef.current);
         cancelAnimationFrame(travelRafRef.current);
         cancelAnimationFrame(nativeDismissRafRef.current);
+        cancelAnimationFrame(nativeObservationArmRafRef.current);
         cancelAnimationFrame(pendingStepRafRef.current[0]);
         cancelAnimationFrame(pendingStepRafRef.current[1]);
         pendingStepRef.current = null;
@@ -1770,9 +1956,26 @@ const View = forwardRef(function View(
       },
       getProgress: rawProgressOf,
       idle: () => !programmaticRef.current && !scrollSequenceRef.current,
+      inspect: () => {
+        const element = viewRef.current;
+        return {
+          scopeId,
+          parentScopeId,
+          layerKind: "sheet",
+          portalContainer: element?.parentElement || null,
+          open: presentedLatestRef.current,
+          travelStatus: travelStatusRef.current,
+          lastDismissReason: lastDismissReasonRef.current,
+          dismissPending: dismissPendingRef.current,
+          capturedFocusElement: lastFocused.current,
+          plannedRestoreTarget:
+            restoreFocusRef?.current || lastFocused.current || null,
+          initialFocusTarget: initialFocusRef?.current || null,
+        };
+      },
     };
     return registerActiveView(api);
-  }, [axis, cancelMotion, isPreview, measureGeometry, primaryTrack, rawProgressOf, reportTravel, suppressAsyncScrollEvent, targetOffset]);
+  }, [axis, cancelMotion, initialFocusRef, isPreview, lastFocused, measureGeometry, parentScopeId, primaryTrack, rawProgressOf, reportTravel, restoreFocusRef, scopeId, suppressAsyncScrollEvent, targetOffset]);
 
   // Body scroll lock for modal sheets (ref-counted across stacked sheets).
   useEffect(() => {
@@ -1789,6 +1992,11 @@ const View = forwardRef(function View(
     if (!modal || isPreview || !viewRef.current) return undefined;
     return registerModalLayer(viewRef.current);
   }, [isPreview, modal]);
+
+  useIso(() => {
+    if (isPreview || !viewRef.current) return undefined;
+    return registerDismissLayer(viewRef.current);
+  }, [isPreview]);
 
   // Loop Tab within the frontmost modal. `inert` prevents focus from escaping
   // by ordinary navigation; the loop keeps the keyboard sequence continuous
@@ -1831,13 +2039,18 @@ const View = forwardRef(function View(
     if (isPreview) return undefined;
     const onKey = (e) => {
       if (e.key !== "Escape") return;
-      if (!isFrontmostView(viewRef.current)) return;
+      if (!isFrontmostDismissLayer(viewRef.current)) return;
       const behavior = { nativePreventDefault: true, dismiss: sheetRole !== "alertdialog" };
       if (typeof onEscapeKeyDown === "function")
         onEscapeKeyDown({ changeDefault: (b) => Object.assign(behavior, b), nativeEvent: e });
       else if (onEscapeKeyDown) Object.assign(behavior, onEscapeKeyDown);
       if (behavior.nativePreventDefault) e.preventDefault();
-      if (behavior.dismiss) requestAction({ type: "dismiss" });
+      if (behavior.dismiss) {
+        requestAction({
+          type: "dismiss",
+          detail: { reason: "escape", nativeEvent: e },
+        });
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -1882,6 +2095,7 @@ const View = forwardRef(function View(
 
   const requestOutsideDismiss = useCallback(
     (event) => {
+      if (!isFrontmostDismissLayer(viewRef.current)) return;
       const behavior = {
         dismiss: sheetRole !== "alertdialog",
         stopOverlayPropagation: true,
@@ -1895,7 +2109,12 @@ const View = forwardRef(function View(
         Object.assign(behavior, onClickOutside);
       }
       if (behavior.stopOverlayPropagation) event.stopPropagation();
-      if (behavior.dismiss) requestAction({ type: "dismiss" });
+      if (behavior.dismiss) {
+        requestAction({
+          type: "dismiss",
+          detail: { reason: "outside-press", nativeEvent: event.nativeEvent ?? event },
+        });
+      }
     },
     [onClickOutside, requestAction, sheetRole]
   );
@@ -1931,7 +2150,11 @@ const View = forwardRef(function View(
   const onScrollPointerDown = useCallback((event) => {
     pointerDownTargetRef.current = event.target;
     movedRef.current = false;
-  }, []);
+    nativeInputObservedRef.current = true;
+    lastNativeInputEventRef.current = event.nativeEvent ?? event;
+    nativeObservationArmedRef.current = true;
+    armDismissObserver();
+  }, [armDismissObserver]);
 
   const ariaProps = {
     role: sheetRole,
@@ -1974,6 +2197,7 @@ const View = forwardRef(function View(
     >
       <Polymorph
         asChild={asChild}
+        slotOwner="Sheet.View"
         ref={composedView}
         data-velvet="view"
         data-velvet-preview={isPreview ? "" : undefined}
@@ -1982,6 +2206,10 @@ const View = forwardRef(function View(
         data-velvet-tracks={trackList.join(" ")}
         data-velvet-modal={modal ? "true" : "false"}
         data-velvet-scope={scopeId}
+        data-velvet-parent-scope={parentScopeId || undefined}
+        data-velvet-travel={travelStatus}
+        data-velvet-dismiss-reason={lastDismissReason || undefined}
+        data-velvet-dismiss-pending={dismissPending ? "true" : undefined}
         className={className}
         style={style}
         {...rest}
@@ -2105,6 +2333,7 @@ const Backdrop = forwardRef(function Backdrop(
   return createPortal(
     <Polymorph
       asChild={asChild}
+      slotOwner="Sheet.Backdrop"
       ref={composed}
       data-velvet="backdrop"
       className={className}
@@ -2140,6 +2369,7 @@ const Content = forwardRef(function Content(
   return (
     <Polymorph
       asChild={asChild}
+      slotOwner="Sheet.Content"
       ref={composed}
       data-velvet="content"
       className={className}
@@ -2184,11 +2414,17 @@ const Handle = forwardRef(function Handle(
   },
   forwardedRef
 ) {
-  const { requestAction } = useSheet();
-  const activate = () => {
+  const { requestAction } = useSheetPart("Handle");
+  const activate = (event) => {
     if (disabled) return;
     if (action === "close") {
-      requestAction({ type: "dismiss" });
+      requestAction({
+        type: "dismiss",
+        detail: {
+          reason: "close-trigger",
+          nativeEvent: event?.nativeEvent ?? event,
+        },
+      });
       return;
     }
     const isStep = action === "step" || (action && action.type === "step");
@@ -2204,6 +2440,7 @@ const Handle = forwardRef(function Handle(
     <Polymorph
       as="button"
       asChild={asChild}
+      slotOwner="Sheet.Handle"
       ref={forwardedRef}
       type="button"
       aria-label={
@@ -2236,6 +2473,8 @@ const Trigger = forwardRef(function Trigger(
     onClick,
     onPress,
     disabled,
+    __velvetFamily = "sheet",
+    __velvetPart = "Trigger",
     ...rest
   },
   forwardedRef
@@ -2248,7 +2487,7 @@ const Trigger = forwardRef(function Trigger(
     lastFocused,
     sheetRole,
     viewId,
-  } = useSheet();
+  } = useSheetPart(__velvetPart, __velvetFamily);
   const action =
     actionProp !== undefined
       ? actionProp
@@ -2262,9 +2501,27 @@ const Trigger = forwardRef(function Trigger(
     if (actionType === "open") {
       lastFocused.current = e.currentTarget;
       motionOriginRef.current = captureElementGeometry(e.currentTarget);
-      requestAction({ type: "present" });
+      requestAction({
+        type: "present",
+        detail: { reason: "trigger", nativeEvent: e.nativeEvent ?? e },
+      });
     } else if (actionType === "close") {
-      requestAction({ type: "dismiss" });
+      const view = typeof document === "undefined" ? null : document.getElementById(viewId);
+      if (
+        isDevelopment &&
+        view &&
+        !isFrontmostDismissLayer(view)
+      ) {
+        console.warn(
+          "[Velvet UI] VELVET_CLOSE_NOT_FRONTMOST: a close control targeted a layer " +
+            "that is not frontmost. Close the active child layer first. " +
+            "https://velvetui.co/errors/close-not-frontmost"
+        );
+      }
+      requestAction({
+        type: "dismiss",
+        detail: { reason: "close-trigger", nativeEvent: e.nativeEvent ?? e },
+      });
     } else if (isStep) {
       const spec = action === "step" ? {} : action;
       requestAction({
@@ -2277,7 +2534,13 @@ const Trigger = forwardRef(function Trigger(
         lastFocused.current = e.currentTarget;
         motionOriginRef.current = captureElementGeometry(e.currentTarget);
       }
-      requestAction({ type: "toggle" });
+      requestAction({
+        type: "toggle",
+        detail: {
+          reason: presented ? "close-trigger" : "trigger",
+          nativeEvent: e.nativeEvent ?? e,
+        },
+      });
     }
   };
   const handle = composeEventHandlers(
@@ -2292,9 +2555,11 @@ const Trigger = forwardRef(function Trigger(
     <Polymorph
       as="button"
       asChild={asChild}
+      slotOwner={`${__velvetFamily === "lightbox" ? "Lightbox" : "Sheet"}.${__velvetPart}`}
       ref={forwardedRef}
       type="button"
       data-velvet-trigger=""
+      data-velvet-action={actionType}
       data-velvet-preview-trigger={preview ? "" : undefined}
       className={className}
       style={style}
@@ -2317,7 +2582,14 @@ const Close = forwardRef(function Close(
   { action: _action, snapTo: _snapTo, ...props },
   forwardedRef
 ) {
-  return <Trigger {...props} ref={forwardedRef} action="close" />;
+  return (
+    <Trigger
+      {...props}
+      ref={forwardedRef}
+      action="close"
+      __velvetPart={props.__velvetPart ?? "Close"}
+    />
+  );
 });
 
 const Step = forwardRef(function Step(
@@ -2329,31 +2601,54 @@ const Step = forwardRef(function Step(
       {...props}
       ref={forwardedRef}
       action={{ type: "step", snapTo, direction }}
+      __velvetPart={props.__velvetPart ?? "Step"}
     />
   );
 });
 
 // ---- Title / Description --------------------------------------------------
 const Title = forwardRef(function Title(
-  { className, asChild, children, id: titleIdProp, ...rest },
+  {
+    className,
+    asChild,
+    children,
+    id: titleIdProp,
+    __velvetFamily = "sheet",
+    __velvetPart = "Title",
+    ...rest
+  },
   forwardedRef
 ) {
-  const { setTitleId, generatedTitleId, registerTitle } = useSheet();
+  const { setTitleId, generatedTitleId, registerTitle } = useSheetPart(
+    __velvetPart,
+    __velvetFamily
+  );
   const renderedTitleId = titleIdProp ?? generatedTitleId;
   useIso(() => registerTitle(), [registerTitle]);
   useIso(() => setTitleId(renderedTitleId), [renderedTitleId, setTitleId]);
   return (
-    <Polymorph as="h2" asChild={asChild} ref={forwardedRef} {...rest} id={renderedTitleId} className={className}>
+    <Polymorph as="h2" asChild={asChild} slotOwner={`${__velvetFamily === "lightbox" ? "Lightbox" : "Sheet"}.${__velvetPart}`} ref={forwardedRef} {...rest} id={renderedTitleId} className={className}>
       {children}
     </Polymorph>
   );
 });
 
 const Description = forwardRef(function Description(
-  { className, asChild, children, id: descriptionIdProp, ...rest },
+  {
+    className,
+    asChild,
+    children,
+    id: descriptionIdProp,
+    __velvetFamily = "sheet",
+    __velvetPart = "Description",
+    ...rest
+  },
   forwardedRef
 ) {
-  const { setDescriptionId, generatedDescriptionId, registerDescription } = useSheet();
+  const { setDescriptionId, generatedDescriptionId, registerDescription } = useSheetPart(
+    __velvetPart,
+    __velvetFamily
+  );
   const renderedDescriptionId = descriptionIdProp ?? generatedDescriptionId;
   useIso(() => registerDescription(), [registerDescription]);
   useIso(
@@ -2361,7 +2656,7 @@ const Description = forwardRef(function Description(
     [renderedDescriptionId, setDescriptionId]
   );
   return (
-    <Polymorph as="p" asChild={asChild} ref={forwardedRef} {...rest} id={renderedDescriptionId} className={className}>
+    <Polymorph as="p" asChild={asChild} slotOwner={`${__velvetFamily === "lightbox" ? "Lightbox" : "Sheet"}.${__velvetPart}`} ref={forwardedRef} {...rest} id={renderedDescriptionId} className={className}>
       {children}
     </Polymorph>
   );
@@ -2505,6 +2800,35 @@ const Panel = forwardRef(function Panel(
   );
 });
 
+const NestedPanel = forwardRef(function NestedPanel(
+  { container, viewProps, ...props },
+  forwardedRef
+) {
+  const nestedHostRef = useContext(NestedPortalContext);
+  const resolvedContainer = container ?? nestedHostRef;
+  if (isDevelopment && !resolvedContainer) {
+    throw new Error(
+      "[Velvet UI] Sheet.NestedPanel must be rendered inside Sheet.NestedPortalHost."
+    );
+  }
+  return (
+    <Panel
+      {...props}
+      ref={forwardedRef}
+      container={resolvedContainer}
+      viewProps={{
+        ...viewProps,
+        "data-velvet-nested": "",
+        style: {
+          ...viewProps?.style,
+          position: "absolute",
+          inset: 0,
+        },
+      }}
+    />
+  );
+});
+
 // A function is a valid React component and can also carry the familiar
 // compound-part properties. This makes <Sheet> an additive Root shorthand
 // while preserving Sheet.Root and every existing import/call site.
@@ -2512,6 +2836,8 @@ export const Sheet = Object.assign(Root, {
   Root,
   Portal,
   Panel,
+  NestedPortalHost,
+  NestedPanel,
   View,
   Backdrop,
   Content,

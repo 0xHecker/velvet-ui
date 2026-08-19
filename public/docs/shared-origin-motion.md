@@ -2,7 +2,9 @@
 
 > SheetMorph starts content at the trigger or a supplied element’s measured geometry, then settles it into its authored layout.
 
-Web: https://velvetui.co/docs/shared-origin-motion
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/shared-origin-motion
 
 Shared-origin motion visually connects a trigger to its expanded surface. It is opt-in so ordinary sheets do not pay for geometry measurement.
 

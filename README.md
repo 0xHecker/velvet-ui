@@ -15,7 +15,7 @@ Velvet uses browser scroll-snap momentum for direct manipulation and sampled spr
 - Framework-free motion utilities with React hooks when you need them
 - ESM, CommonJS, TypeScript declarations, and tree-shakable subpath exports
 
-[Documentation](https://velvetui.co/docs) · [Examples](https://velvetui.co) · [Licensing](https://velvetui.co/?license=open)
+[Documentation](https://velvetui.co/docs) · [Live recipes](https://velvetui.co/recipes) · [Examples](https://velvetui.co) · [Licensing](https://velvetui.co/?license=open)
 
 ## Install
 
@@ -296,40 +296,56 @@ For stable Chromium keyboard behavior, include this viewport value:
 
 ### Nested sheet inside a modal
 
-Pass a React ref directly to `Sheet.Portal` when a child sheet must stay inside a parent modal:
+Use the host/panel pair when a child sheet must stay physically clipped by a parent modal:
 
 ```tsx
-const nestedHostRef = useRef<HTMLDivElement>(null);
-
 <Sheet.Root>
   <Sheet.Trigger type="button">Open library</Sheet.Trigger>
-  <Sheet.Panel side="center" className="library-modal">
-    <Sheet.Title>Component library</Sheet.Title>
+  <Sheet.NestedPortalHost asChild>
+    <Sheet.Panel side="center" className="library-modal">
+      <Sheet.Title>Component library</Sheet.Title>
 
-    <Sheet.Root>
-      <Sheet.Trigger type="button">Open component</Sheet.Trigger>
-      <div ref={nestedHostRef} className="nested-portal-host" />
-
-      <Sheet.Portal container={nestedHostRef}>
-        <Sheet.View className="nested-view" side="right">
-          <Sheet.Content>
-            <Sheet.Title>Component details</Sheet.Title>
-            <Scroll.Root>
-              <Scroll.View>
-                <Scroll.Content>{/* scrollable detail */}</Scroll.Content>
-              </Scroll.View>
-            </Scroll.Root>
-          </Sheet.Content>
-        </Sheet.View>
-      </Sheet.Portal>
-    </Sheet.Root>
-  </Sheet.Panel>
+      <Sheet.Root>
+        <Sheet.Trigger type="button">Open component</Sheet.Trigger>
+        <Sheet.NestedPanel side="right" className="nested-detail">
+          <Sheet.Title>Component details</Sheet.Title>
+          <Scroll.Root>
+            <Scroll.View>
+              <Scroll.Content>{/* scrollable detail */}</Scroll.Content>
+            </Scroll.View>
+          </Scroll.Root>
+        </Sheet.NestedPanel>
+      </Sheet.Root>
+    </Sheet.Panel>
+  </Sheet.NestedPortalHost>
 </Sheet.Root>
 ```
 
-Keep the parent title outside the child Root, use one `Scroll.Root → Scroll.View → Scroll.Content` chain per layer, and make the portal host positioned and clipped. Back, Close, and row triggers should be `<button type="button">`—never `href="#"`.
+Keep the parent title outside the child Root and use one `Scroll.Root → Scroll.View → Scroll.Content` chain per layer. `NestedPortalHost` owns relative clipping and `NestedPanel` applies host-relative positioning inline, including under Tailwind v4's layered cascade. Back, Close, and row triggers should be `<button type="button">`—never `href="#"`.
 
-See the complete responsive CSS and Tailwind CSS v4 recipes in [Nested modal navigation](https://velvetui.co/docs/nested-modal-navigation).
+See the complete responsive CSS, Tailwind CSS v4, and directly embedded StackBlitz projects in [Nested modal navigation](https://velvetui.co/docs/nested-modal-navigation), or browse the [live recipe workbench](https://velvetui.co/recipes).
+
+### Dismissal lifecycle and route focus
+
+Controlled dismissal exposes its reason and can be accepted asynchronously before state commits:
+
+```tsx
+<Sheet.Root
+  open={open}
+  initialFocusRef={headingRef}
+  restoreFocusRef={pageLandmarkRef}
+  onDismissRequest={async (detail) => saveBeforeClose(detail.reason)}
+  onOpenChange={(next, detail) => {
+    analytics.track("sheet request", detail.reason);
+    setOpen(next);
+  }}
+  onExitComplete={removeSheetRoute}
+>
+  <Sheet.Panel side="right">...</Sheet.Panel>
+</Sheet.Root>
+```
+
+Requests report `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, or `programmatic`. Returning or resolving `false` rejects dismissal without starting exit motion. Use `onEnterComplete` and `onExitComplete` for lifecycle work instead of interpreting travel states.
 
 ### Motion customization
 
@@ -734,11 +750,22 @@ import {
 
 - `Scroll` coordinates nested scrolling, safe areas, focus, and sheet boundaries.
 - `ExternalOverlay.Root` includes a third-party portal in the owning modal sheet.
+- `ExternalOverlay.DismissLayer` also owns the frontmost Escape/outside gesture, focus return, and exit completion.
 - `Island` keeps a separate interactive region available inside sheet modality.
 - `Fixed` preserves fixed-position behavior inside transformed surfaces.
 - `AutoFocusTarget` and `VisuallyHidden` provide accessible focus and labeling helpers.
 
 The utility entry also exports `useClientMediaQuery`, `updateThemeColor`, and `useThemeColorDimmingOverlay`.
+
+Third-party adapters are headless portal boundaries with no peer import or styling:
+
+```tsx
+import { VelvetRadixPopover } from "@velvetui/react/radix";
+import { VelvetAriaSelect } from "@velvetui/react/react-aria";
+import { VelvetBaseUIPopover } from "@velvetui/react/base-ui";
+```
+
+Render the adapter inside the third-party Portal and pass its real DOM-bearing popup or positioner through `asChild`. See the [Radix, React Aria, and Base UI recipes](https://velvetui.co/recipes).
 
 ## Styling
 
@@ -780,6 +807,11 @@ The imperative toast store is client process state. Call `toast()` from client c
 | `@velvetui/react/motion` | Framework-free springs, WAAPI, and travel helpers |
 | `@velvetui/react/motion/react` | React motion hooks |
 | `@velvetui/react/utilities` | Scroll, focus, fixed, island, and overlay helpers |
+| `@velvetui/react/adapters` | All headless third-party overlay boundaries |
+| `@velvetui/react/radix` | Radix Popover and Dropdown Menu boundaries |
+| `@velvetui/react/react-aria` | React Aria Popover, Tooltip, and Select boundaries |
+| `@velvetui/react/base-ui` | Base UI Popover, Menu, and Select boundaries |
+| `@velvetui/react/testing` | `expectVelvetLayer` DOM conformance helper |
 | `@velvetui/react/sheet-morph` | Shared-origin geometry primitive |
 | `@velvetui/react/theme-backdrop` | Browser-theme dimming backdrop |
 | `@velvetui/react/depth-sheet` | `DepthSheet` composition and tokens |
@@ -791,9 +823,11 @@ The imperative toast store is client process state. Call `toast()` from client c
 
 The package ships minified ESM and CommonJS builds plus TypeScript declarations. React and React DOM remain peer dependencies.
 
+The machine-scannable [INVARIANTS.md](./INVARIANTS.md) captures the component-family, lifecycle, focus, nesting, portal, and styling contracts. In development, `window.__velvet.inspect()` exposes mounted scope and stack data for debugging.
+
 ## Licensing
 
-Velvet UI is proprietary software distributed in compiled form, not open-source software. See [LICENSE.md](./LICENSE.md) for the complete terms.
+Velvet UI is proprietary software distributed in compiled form, not open-source software. See [LICENSE.md](https://unpkg.com/@velvetui/react@latest/LICENSE.md) for the complete terms.
 
 | License | Use |
 | --- | --- |

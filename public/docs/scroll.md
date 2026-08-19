@@ -2,7 +2,9 @@
 
 > A scrollable sheet hands a drag to the sheet only when its internal Scroll.View reaches the matching boundary.
 
-Web: https://velvetui.co/docs/scroll
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/scroll
 
 Use Scroll whenever content can move independently of its sheet. The component prevents a drag from scrolling content and dismissing the sheet at the same time.
 

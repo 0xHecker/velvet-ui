@@ -2,7 +2,9 @@
 
 > Use Velvet's interruptible springs, WAAPI orchestration, travel interpolation, reduced-motion handling, and React lifecycle hooks anywhere.
 
-Web: https://velvetui.co/docs/motion-api
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/motion-api
 
 Velvet's motion engine is a framework-free public module. Use the same sampled springs, interruption policy, reduced-motion settlement, and progress interpolation outside Sheet without importing React or any component runtime.
 

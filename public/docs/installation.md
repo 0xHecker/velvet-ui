@@ -2,7 +2,9 @@
 
 > Install Velvet UI, then import the structural stylesheet required by the primitive or composition you use.
 
-Web: https://velvetui.co/docs/installation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/installation
 
 Install the package once, then choose either the complete stylesheet or granular CSS entries. Velvet supports React 18 and 19 and does not require a styling runtime.
 

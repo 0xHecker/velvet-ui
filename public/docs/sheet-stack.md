@@ -2,7 +2,9 @@
 
 > SheetStack coordinates layering, backdrop ownership, focus restoration, and depth transforms for any number of nested sheets.
 
-Web: https://velvetui.co/docs/sheet-stack
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-stack
 
 SheetStack is a document-local coordinator for nested layers. It does not impose a two-sheet ceiling: each registered sheet publishes its progress, every layer receives the accumulated progress above it, and only the frontmost modal owns dismissal and focus.
 

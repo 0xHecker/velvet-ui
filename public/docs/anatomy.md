@@ -2,7 +2,9 @@
 
 > The primitive tree separates state, trigger, portal, view, backdrop, content, and accessible labels.
 
-Web: https://velvetui.co/docs/anatomy
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/anatomy
 
 The parts are separate so styling and composition can change without rewriting gesture, focus, and modality behavior.
 

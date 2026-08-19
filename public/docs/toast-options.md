@@ -2,7 +2,9 @@
 
 > Toast options control duration, description, action, close affordance, visual treatment, and stacked expansion.
 
-Web: https://velvetui.co/docs/toast-options
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-options
 
 A toast title should say what happened. The description should explain impact or recovery. Actions should be short and safe to repeat.
 

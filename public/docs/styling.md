@@ -2,7 +2,9 @@
 
 > Velvet exposes semantic classes and CSS custom properties so the component can inherit your design system without a styling runtime.
 
-Web: https://velvetui.co/docs/styling
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/styling
 
 Velvet owns geometry, focus, and gestures. Product CSS owns color, spacing, typography, and layout. Use classes for a component instance and variables for theme-level decisions.
 

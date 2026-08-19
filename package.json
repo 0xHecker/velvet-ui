@@ -93,6 +93,31 @@
       "import": "./dist/lightbox.js",
       "require": "./dist/lightbox.cjs"
     },
+    "./adapters": {
+      "types": "./dist/adapters.d.ts",
+      "import": "./dist/adapters.js",
+      "require": "./dist/adapters.cjs"
+    },
+    "./radix": {
+      "types": "./dist/radix.d.ts",
+      "import": "./dist/radix.js",
+      "require": "./dist/radix.cjs"
+    },
+    "./react-aria": {
+      "types": "./dist/react-aria.d.ts",
+      "import": "./dist/react-aria.js",
+      "require": "./dist/react-aria.cjs"
+    },
+    "./base-ui": {
+      "types": "./dist/base-ui.d.ts",
+      "import": "./dist/base-ui.js",
+      "require": "./dist/base-ui.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "require": "./dist/testing.cjs"
+    },
     "./base.css": "./dist/base.css",
     "./sheet.css": "./dist/sheet.css",
     "./toast.css": "./dist/toast.css",
@@ -108,7 +133,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE.md"
+    "LICENSE.md",
+    "INVARIANTS.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -125,17 +151,21 @@
     "build:lib": "npm run generate:types && vite build --config vite.lib.config.js",
     "generate:types": "tsc -p tsconfig.declarations.json",
     "deploy": "npm run build:site && wrangler deploy --config site-dist/server/wrangler.json",
-    "docs:generate": "node scripts/generate-doc-assets.mjs",
-    "docs:check": "node scripts/generate-doc-assets.mjs --check",
+    "docs:snapshot": "node scripts/snapshot-doc-version.mjs",
+    "docs:snapshot:check": "node scripts/snapshot-doc-version.mjs --check",
+    "docs:versioning:check": "node scripts/docs-versioning.mjs",
+    "docs:generate": "npm run docs:snapshot:check && npm run docs:versioning:check && node scripts/generate-doc-assets.mjs",
+    "docs:check": "npm run docs:snapshot:check && npm run docs:versioning:check && node scripts/generate-doc-assets.mjs --check",
     "typecheck:site": "tsc -p tsconfig.site.json",
     "types:check": "tsc -p tsconfig.types.json && tsc -p tsconfig.nodenext.json",
     "typecheck": "npm run build:lib && npm run types:check",
-    "verify:package": "node --input-type=module --eval \"const root=await import('@velvetui/react'); const sheet=await import('@velvetui/react/sheet'); const motion=await import('@velvetui/react/motion'); const motionReact=await import('@velvetui/react/motion/react'); const utilities=await import('@velvetui/react/utilities'); const morph=await import('@velvetui/react/sheet-morph'); const theme=await import('@velvetui/react/theme-backdrop'); const toast=await import('@velvetui/react/toast'); const card=await import('@velvetui/react/card-expansion'); const depth=await import('@velvetui/react/depth-sheet'); const bottom=await import('@velvetui/react/bottom-sheet'); const persistent=await import('@velvetui/react/persistent-sheet'); const lightbox=await import('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('@velvetui/react'); const sheet=require('@velvetui/react/sheet'); const motion=require('@velvetui/react/motion'); const motionReact=require('@velvetui/react/motion/react'); const utilities=require('@velvetui/react/utilities'); const morph=require('@velvetui/react/sheet-morph'); const theme=require('@velvetui/react/theme-backdrop'); const toast=require('@velvetui/react/toast'); const card=require('@velvetui/react/card-expansion'); const depth=require('@velvetui/react/depth-sheet'); const bottom=require('@velvetui/react/bottom-sheet'); const persistent=require('@velvetui/react/persistent-sheet'); const lightbox=require('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('CJS export identity mismatch')\"",
+    "verify:package": "node --input-type=module --eval \"const root=await import('@velvetui/react'); const sheet=await import('@velvetui/react/sheet'); const motion=await import('@velvetui/react/motion'); const motionReact=await import('@velvetui/react/motion/react'); const utilities=await import('@velvetui/react/utilities'); const morph=await import('@velvetui/react/sheet-morph'); const theme=await import('@velvetui/react/theme-backdrop'); const toast=await import('@velvetui/react/toast'); const card=await import('@velvetui/react/card-expansion'); const depth=await import('@velvetui/react/depth-sheet'); const bottom=await import('@velvetui/react/bottom-sheet'); const persistent=await import('@velvetui/react/persistent-sheet'); const lightbox=await import('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('ESM export identity mismatch')\" && node --eval \"const root=require('@velvetui/react'); const sheet=require('@velvetui/react/sheet'); const motion=require('@velvetui/react/motion'); const motionReact=require('@velvetui/react/motion/react'); const utilities=require('@velvetui/react/utilities'); const morph=require('@velvetui/react/sheet-morph'); const theme=require('@velvetui/react/theme-backdrop'); const toast=require('@velvetui/react/toast'); const card=require('@velvetui/react/card-expansion'); const depth=require('@velvetui/react/depth-sheet'); const bottom=require('@velvetui/react/bottom-sheet'); const persistent=require('@velvetui/react/persistent-sheet'); const lightbox=require('@velvetui/react/lightbox'); if(root.Sheet!==sheet.Sheet || root.animate!==motion.animate || root.useAnimate!==motionReact.useAnimate || root.Scroll!==utilities.Scroll || root.SheetMorph!==morph.SheetMorph || root.ThemeBackdrop!==theme.ThemeBackdrop || root.toast!==toast.toast || root.CardExpansion!==card.CardExpansion || root.DepthSheet!==depth.DepthSheet || root.BottomSheet!==bottom.BottomSheet || root.PersistentSheet!==persistent.PersistentSheet || root.Lightbox!==lightbox.Lightbox) throw new Error('CJS export identity mismatch')\" && node scripts/package-extensions.mjs",
     "verify:bundle": "node scripts/bundle-budget.mjs",
+    "verify:site": "node scripts/site-navigation.mjs",
     "verify:motion": "node scripts/motion.mjs && node scripts/depth-contract.mjs",
-    "verify:sheet": "node scripts/compositions.mjs && node scripts/sheet-api.mjs && node scripts/gesture-boundaries.mjs && node scripts/preview-hover.mjs && node scripts/stacking.mjs && node scripts/detent.mjs && node scripts/drag.mjs",
+    "verify:sheet": "node scripts/compositions.mjs && node scripts/sheet-api.mjs && node scripts/initial-open.mjs && node scripts/overlay-contract.mjs && node scripts/gesture-boundaries.mjs && node scripts/preview-hover.mjs && node scripts/stacking.mjs && node scripts/detent.mjs && node scripts/drag.mjs",
     "verify:toast": "node scripts/toast.mjs && node scripts/toast-drag.mjs",
-    "verify": "npm run build && npm run types:check && npm run verify:package && npm run verify:bundle && npm run verify:motion && npm run verify:sheet && npm run verify:toast",
+    "verify": "npm run build && npm run types:check && npm run verify:package && npm run verify:bundle && npm run verify:site && npm run verify:motion && npm run verify:sheet && npm run verify:toast",
     "test": "npm run verify",
     "prepack": "npm run typecheck",
     "pack:check": "npm pack --dry-run",
@@ -143,6 +173,7 @@
     "shots": "node scripts/screenshot.mjs"
   },
   "devDependencies": {
+    "@base-ui/react": "^1.7.0",
     "@cloudflare/vite-plugin": "^1.46.0",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.32",
@@ -152,7 +183,9 @@
     "@vitejs/plugin-react": "^6.0.4",
     "lightningcss": "^1.33.0",
     "puppeteer": "^25.2.1",
+    "radix-ui": "^1.6.7",
     "react": "^19.1.0",
+    "react-aria-components": "^1.20.0",
     "react-dom": "^19.1.0",
     "react-grab": "^0.1.44",
     "react-markdown": "^10.1.0",

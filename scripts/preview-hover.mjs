@@ -238,6 +238,25 @@ try {
   await page.goto(base, { waitUntil: "load" });
   await page.waitForSelector(".Gallery");
   await page.evaluate(() => document.fonts?.ready);
+  const hydrationProbe = await page.$('[data-shot="bottom-sheet"]');
+  let previewHandlersReady = false;
+  for (let attempt = 0; attempt < 40 && !previewHandlersReady; attempt++) {
+    await page.mouse.move(8, 8);
+    await sleep(25);
+    await hydrationProbe.hover();
+    await sleep(50);
+    previewHandlersReady = await page.$eval(
+      '[data-shot="bottom-sheet"]',
+      (element) => element.hasAttribute("data-preview-open")
+    );
+  }
+  if (!previewHandlersReady) {
+    throw new Error("Gallery preview handlers did not hydrate.");
+  }
+  await page.mouse.move(8, 8);
+  await page.waitForFunction(
+    () => !document.querySelector('[data-shot="bottom-sheet"]')?.hasAttribute("data-preview-open")
+  );
   const only = process.env.VELVET_PREVIEW_CASE;
 
   console.log("\n--- PREVIEW HOVER ASSERTIONS ---");

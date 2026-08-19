@@ -2,7 +2,9 @@
 
 > Travel animation maps a shared open progress value onto any visual property, keeping panel, backdrop, and surrounding UI synchronized.
 
-Web: https://velvetui.co/docs/travel-animation
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/travel-animation
 
 Travel animation maps the same physical progress used by the sheet onto CSS properties. This keeps the surface, backdrop, page, and decorative layers synchronized.
 

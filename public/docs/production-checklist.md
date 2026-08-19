@@ -2,7 +2,9 @@
 
 > A manual release checklist for state, gestures, scroll, mobile keyboards, accessibility, arbitrary-depth stacks, portals, and bundle cost.
 
-Web: https://velvetui.co/docs/production-checklist
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/production-checklist
 
 Run this checklist before shipping a sheet family. It catches the failures that unit snapshots miss: ownership, scroll handoff, mobile viewport changes, focus, stacking, and visual end states.
 

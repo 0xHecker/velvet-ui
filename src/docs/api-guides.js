@@ -10,6 +10,11 @@ const importMap = `| Import | What it contains | CSS |
 | \`@velvetui/react/motion\` | Framework-free springs, WAAPI, and travel interpolation | none |
 | \`@velvetui/react/motion/react\` | Lifecycle-owned motion hooks | none |
 | \`@velvetui/react/utilities\` | Scroll, accessibility, fixed, island, and overlay helpers | \`@velvetui/react/sheet.css\` |
+| \`@velvetui/react/adapters\` | All headless third-party overlay adapters | none |
+| \`@velvetui/react/radix\` | Radix Popover and Dropdown Menu boundaries | none |
+| \`@velvetui/react/react-aria\` | React Aria Popover, Tooltip, and Select boundaries | none |
+| \`@velvetui/react/base-ui\` | Base UI Popover, Menu, and Select boundaries | none |
+| \`@velvetui/react/testing\` | DOM layer conformance assertion | none |
 | \`@velvetui/react/sheet-morph\` | Shared-origin geometry | \`@velvetui/react/sheet.css\` |
 | \`@velvetui/react/theme-backdrop\` | Backdrop plus browser theme tint | \`@velvetui/react/sheet.css\` |
 | \`@velvetui/react/bottom-sheet\` | Styled mobile/task sheet | \`sheet.css\` + \`bottom-sheet.css\` |
@@ -24,7 +29,12 @@ const rootProps = `| Prop | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | \`open\` | \`boolean\` | uncontrolled | Controlled presented state |
 | \`defaultOpen\` | \`boolean\` | \`false\` | Initial uncontrolled state |
-| \`onOpenChange\` | \`(open) => void\` | — | Receives requested state changes |
+| \`onOpenChange\` | \`(open, detail) => void\` | — | Receives requested state changes and their reason |
+| \`onDismissRequest\` | \`(detail) => boolean \\| Promise<boolean>\` | — | Accepts or rejects dismissal before state commits |
+| \`onEnterComplete\` | \`() => void\` | — | Fires once after the layer settles inside |
+| \`onExitComplete\` | \`() => void\` | — | Fires once after exit and modality release |
+| \`initialFocusRef\` | \`RefObject<HTMLElement>\` | — | Preferred focus target after entry |
+| \`restoreFocusRef\` | \`RefObject<HTMLElement>\` | trigger or captured focus | Stable focus target after exit |
 | \`snap\` | \`number\` | uncontrolled | Controlled detent index |
 | \`defaultSnap\` | \`number\` | \`defaultOpen ? 1 : 0\` | Initial detent |
 | \`onSnapChange\` | \`(snap) => void\` | — | Receives detent changes |
@@ -469,6 +479,40 @@ import "@velvetui/react/bottom-sheet.css";
     section("Import", code("tsx", sheetImports)),
     section("Sheet.Root", rootProps),
     section(
+      "Request, commit, and completion",
+      "A dismissal request is not an exit. `onDismissRequest` runs first and may resolve asynchronously. Once accepted, `onOpenChange(false, detail)` asks a controlled owner to commit the new state. Motion then exits, modality is released, focus is restored, and `onExitComplete` fires.",
+      code("tsx", `const [open, setOpen] = useState(false);
+
+<Sheet.Root
+  open={open}
+  onDismissRequest={async (detail) => {
+    if (!editor.dirty) return true;
+    return editor.flush({ reason: detail.reason });
+  }}
+  onOpenChange={(nextOpen, detail) => {
+    analytics.track("sheet state requested", detail.reason);
+    setOpen(nextOpen);
+  }}
+  onExitComplete={() => navigate("/projects")}
+>
+  ...
+</Sheet.Root>`),
+      "Dismissal reasons are `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, and `programmatic`. A rejected request leaves controlled state, travel, focus, and modality unchanged.",
+    ),
+    section(
+      "Triggerless focus",
+      "Route-open sheets may have no physical trigger. Supply refs when the safe entry or return target is dynamic or outside the Sheet subtree.",
+      code("tsx", `<Sheet.Root
+  open={routeMatch}
+  initialFocusRef={headingRef}
+  restoreFocusRef={pageLandmarkRef}
+  onExitComplete={removeSheetRoute}
+>
+  <Sheet.Panel side="right">...</Sheet.Panel>
+</Sheet.Root>`),
+      "When a real trigger exists, point `restoreFocusRef` at it. When it was deleted or the route cold-opened, use a connected page landmark. Do not race restoration with a timeout.",
+    ),
+    section(
       "Sheet.Panel",
       "Panel is the convenient composition of Portal, View, Backdrop, Content, and an optional Handle.",
       `| Prop | Type | Default |
@@ -512,6 +556,22 @@ import "@velvetui/react/bottom-sheet.css";
 </Sheet.Portal>`),
       "If the ref is assigned during the same commit as an already-open sheet, Velvet waits for the ref and mounts the portal after it resolves. A supplied ref never silently falls back to document.body while its current value is null.",
     ),
+    section(
+      "NestedPortalHost and NestedPanel",
+      "Use the nested pair when a child sheet must remain physically clipped by a parent surface. The host applies relative clipping without creating a new low stacking context; NestedPanel portals to that host and applies host-relative absolute View positioning inline.",
+      code("tsx", `<Sheet.NestedPortalHost asChild>
+  <Sheet.Content className="library-modal">
+    <Library />
+    <Sheet.Root open={detailOpen} onOpenChange={setDetailOpen}>
+      <Sheet.NestedPanel side="right" className="detail-panel">
+        <Sheet.Title>Launch notes</Sheet.Title>
+        <Sheet.Close>Back</Sheet.Close>
+      </Sheet.NestedPanel>
+    </Sheet.Root>
+  </Sheet.Content>
+</Sheet.NestedPortalHost>`),
+      "The structural inline position also avoids Tailwind v4's layered-utility cascade trap: a visible `absolute` class no longer needs to beat Velvet's unlayered fixed rule.",
+    ),
     section("Sheet.View", viewProps),
     section(
       "View callbacks",
@@ -535,6 +595,8 @@ import "@velvetui/react/bottom-sheet.css";
       `| Part | Important props |
 | --- | --- |
 | \`Sheet.Portal\` | \`container: Element \| DocumentFragment \| RefObject\` |
+| \`Sheet.NestedPortalHost\` | host div props, \`asChild\` |
+| \`Sheet.NestedPanel\` | Panel props; portal host is discovered automatically |
 | \`Sheet.Backdrop\` | \`travelAnimation\`, \`asChild\` |
 | \`Sheet.Content\` | \`travelAnimation\`, \`stackingAnimation\`, \`asChild\` |
 | \`Sheet.BleedingBackground\` | normal div props, \`asChild\` |
@@ -557,7 +619,7 @@ import "@velvetui/react/bottom-sheet.css";
     section(
       "asChild contract",
       "The child becomes the real DOM node. Pass one non-Fragment element and forward its ref, children, className, style, ARIA/data attributes, disabled state, and event handlers to the final DOM node.",
-      "Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. See [Bring your own components](/docs/custom-components) for complete examples.",
+      "Child handlers run first and `event.preventDefault()` cancels Velvet's behavior. Refs are composed, class names are concatenated, and the child's inline style wins on collisions. Development diagnostics report a dropped ref, missing data/ARIA props, a non-DOM external overlay target, or unstable element identity with a stable `VELVET_*` code and focused error URL. See [Bring your own components](/docs/custom-components) for complete examples.",
     ),
   ),
 
@@ -648,7 +710,7 @@ import "@velvetui/react/bottom-sheet.css";
   ),
 
   dismissal: guide(
-    "Dismissal has three independent inputs: travel, outside interaction, and Escape. Treat them as product policy rather than assuming every overlay should close from every input.",
+    "Dismissal has three independent inputs—travel, outside interaction, and Escape—and four observable phases: request, controlled commit, exit start, and exit completion. Treat each as product policy rather than assuming every overlay should close from every input.",
     section(
       "Policy matrix",
       `| Input | Control |
@@ -672,6 +734,26 @@ import "@velvetui/react/bottom-sheet.css";
   }}
 />`),
       "`changeDefault` changes Velvet's default for that interaction. It does not cancel unrelated application handlers.",
+    ),
+    section(
+      "Async request gate",
+      code("tsx", `<Sheet.Root
+  open={open}
+  onDismissRequest={async ({ reason }) => {
+    if (!draft.dirty) return true;
+    const saved = await saveDraft();
+    if (!saved) announce("Draft could not be saved");
+    return saved;
+  }}
+  onOpenChange={(next, detail) => {
+    setOpen(next);
+    logDismissal(detail.reason);
+  }}
+  onExitComplete={clearEditorSession}
+>
+  ...
+</Sheet.Root>`),
+      "While a promise is pending, repeated requests coalesce and the View exposes `data-velvet-dismiss-pending=\"true\"`. Rejection restores an attempted native swipe to its prior detent.",
     ),
     section(
       "Alert dialogs",
@@ -1315,6 +1397,7 @@ import "@velvetui/react/sheet.css";`),
 | \`Fixed\` | Viewport-fixed content that ignores sheet travel |
 | \`Island\` | Interactive region belonging to the frontmost sheet |
 | \`ExternalOverlay.Root\` | Third-party portal joined to sheet modality |
+| \`ExternalOverlay.DismissLayer\` | Scope enrollment plus frontmost Escape/outside ownership and exit lifecycle |
 | \`ThemeBackdrop\` | Backdrop plus browser theme-color dimming |
 | \`SheetMorph.Content\` | Shared-origin geometry |
 | \`SheetStack.Root/Outlet\` | Nested layer coordination |`,
@@ -1327,10 +1410,39 @@ import "@velvetui/react/sheet.css";`),
     ),
     section(
       "Portalled third-party UI",
-      code("tsx", `<ExternalOverlay.Root asChild>
-  <ThirdPartyDatePickerPortal />
-</ExternalOverlay.Root>`),
-      "Without this wrapper, a modal sheet can treat the third-party portal as outside content and make it inert.",
+      code("tsx", `<ThirdParty.Portal>
+  <ExternalOverlay.DismissLayer
+    asChild
+    open={open}
+    onDismiss={() => setOpen(false)}
+    restoreFocusRef={triggerRef}
+    onExitComplete={releaseOverlaySession}
+  >
+    <ThirdParty.Positioner />
+  </ExternalOverlay.DismissLayer>
+</ThirdParty.Portal>`),
+      "Wrap the DOM-bearing popup or positioner inside the third-party Portal, never the Portal or controller itself. `ExternalOverlay.Root` is still available when scope enrollment alone is desired; scope enrollment does not imply dismissal ownership.",
+    ),
+    section(
+      "Official adapter entries",
+      code("tsx", `import { VelvetRadixPopover } from "@velvetui/react/radix";
+import { VelvetAriaSelect } from "@velvetui/react/react-aria";
+import { VelvetBaseUIPopover } from "@velvetui/react/base-ui";`),
+      "The adapters do not import or style their third-party library. Render one inside that library's portal and slot the real DOM-bearing surface through `asChild`; the library keeps positioning and accessibility while Velvet coordinates scope, frontmost dismissal, and focus return.",
+      "[Run the Radix, React Aria, and Base UI recipes](/recipes) to compare the exact portal boundary for each library.",
+    ),
+    section(
+      "Inspect and assert",
+      code("tsx", `import { expectVelvetLayer } from "@velvetui/react/testing";
+
+const layers = window.__velvet.inspect();
+
+expectVelvetLayer(document, {
+  role: "dialog",
+  frontmost: true,
+  restoresFocusTo: trigger,
+});`),
+      "`window.__velvet.inspect()` reports scope, parent scope, layer kind, frontmost state, portal container, open/travel status, last dismissal reason, pending dismissal, captured focus, and planned focus targets. The DOM helper also checks the accessible label, one frontmost layer, one Sheet runway, nested positioning, and external scope enrollment.",
     ),
     section(
       "Hooks and helpers",
@@ -1639,7 +1751,7 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     ),
     section(
       "The nested sheet escapes the parent modal",
-      "Create a clipped, positioned portal host inside the modal and pass its ref directly: `<Sheet.Portal container={nestedHostRef}>`. Position the nested View absolutely so it resolves against that host instead of the viewport.",
+      "Render `<Sheet.NestedPortalHost>` inside the modal and use `<Sheet.NestedPanel>` for the child. The host provides the portal container, clipping boundary, and positioning context; NestedPanel applies host-relative positioning inline so Tailwind v4 utilities cannot accidentally restore viewport-fixed geometry.",
     ),
     section(
       "A bottom action is hidden on mobile",
@@ -1651,7 +1763,7 @@ import { PersistentSheet } from "@velvetui/react/persistent-sheet";`),
     ),
     section(
       "A third-party popup cannot be clicked",
-      "Wrap its portal root with ExternalOverlay.Root so the modal manager treats it as part of the active sheet instead of inert background content.",
+      "Inside the third-party Portal, wrap the real DOM-bearing popup or positioner with an official Radix, React Aria, or Base UI adapter. Use `ExternalOverlay.DismissLayer` for another library, or `ExternalOverlay.Root` only when passive scope enrollment is enough.",
     ),
     section(
       "Nested sheets dim or shrink too much",

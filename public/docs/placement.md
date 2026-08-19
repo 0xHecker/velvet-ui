@@ -2,7 +2,9 @@
 
 > The panel side determines both the origin and the dismiss direction: bottom, top, left, right, or center.
 
-Web: https://velvetui.co/docs/placement
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/placement
 
 Placement controls authored geometry. Tracks control direct-manipulation directions. Keeping those ideas separate makes detached dialogs, side drawers, and bidirectional media surfaces possible without a different primitive.
 

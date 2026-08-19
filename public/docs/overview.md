@@ -2,7 +2,9 @@
 
 > Velvet UI is a headless React sheet and toast toolkit built around composable primitives, resilient gestures, and WAAPI-driven motion.
 
-Web: https://velvetui.co/docs
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0
 
 Velvet gives React applications native-feeling sheets, stacked surfaces, lightboxes, card expansion, scroll coordination, and toasts. You choose a ready-made composition or assemble the primitives yourself.
 

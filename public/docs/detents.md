@@ -2,7 +2,9 @@
 
 > Snap points create intermediate resting positions without a separate gesture implementation.
 
-Web: https://velvetui.co/docs/detents
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/detents
 
 Detents are ordered CSS lengths measured along the sheet axis. Velvet adds the fully open content length after the supplied stops, so you declare intermediate resting positions rather than duplicating the final height.
 

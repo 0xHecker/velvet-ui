@@ -2,7 +2,9 @@
 
 > Keep routes server rendered while placing the smallest possible client boundary around interactive sheets, portals, and toast calls.
 
-Web: https://velvetui.co/docs/server-rendering
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/server-rendering
 
 Velvet is safe to render in an SSR tree. Triggers, labels, and authored page content produce ordinary server HTML; portal hosts, focus management, inertness, and gesture measurement activate after hydration.
 

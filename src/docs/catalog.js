@@ -1,4 +1,5 @@
 import { GUIDE_CONTENT, createFallbackGuide } from "./guides.js";
+import { CURRENT_DOCS_VERSION } from "./versioning.js";
 
 const sheetQuickStart = `import { Sheet } from "@velvetui/react";
 import "@velvetui/react/styles.css";
@@ -26,7 +27,7 @@ const docs = [
   ["css-reference", "Getting started", "CSS reference", "Use the stable CSS entries, variables, and semantic data hooks without depending on internal wrapper order.", "The reference covers the core sheet skin and every supplied composition token.", `import "@velvetui/react/base.css";`],
   ["sheet-quick-start", "Sheet primitives", "Sheet quick start", "A Sheet groups a trigger, portal, motion surface, accessible title, description, and close action under one controlled or uncontrolled state.", "Use Sheet.Panel for the standard composition; move to Sheet.View and Sheet.Content when you need a fully custom tree.", sheetQuickStart],
   ["anatomy", "Sheet primitives", "Anatomy", "The primitive tree separates state, trigger, portal, view, backdrop, content, and accessible labels.", "This separation keeps visuals replaceable while preserving the same interaction and accessibility behaviour.", `<Sheet.Root>\n  <Sheet.Trigger>Open</Sheet.Trigger>\n  <Sheet.Portal>\n    <Sheet.View side="bottom">\n      <Sheet.Backdrop />\n      <Sheet.Content>\n        <Sheet.Title>Title</Sheet.Title>\n        <Sheet.Close>Close</Sheet.Close>\n      </Sheet.Content>\n    </Sheet.View>\n  </Sheet.Portal>\n</Sheet.Root>`],
-  ["nested-modal-navigation", "Sheet primitives", "Nested modal navigation", "Keep a side sheet inside a centered modal with an independent native scrollbar, swipe-back through content, and separate Back and Close actions.", "Includes the complete React structure, required layout CSS, Tailwind CSS v4 equivalent, mobile rules, label ownership, and the failure modes that cause page jumps or blocked gestures.", `const nestedHostRef = useRef(null);\n\n<Sheet.Portal container={nestedHostRef}>\n  <Sheet.View className="nested-detail-view" side="right">…</Sheet.View>\n</Sheet.Portal>`],
+  ["nested-modal-navigation", "Sheet primitives", "Nested modal navigation", "Keep a side sheet inside a centered modal with an independent native scrollbar, swipe-back through content, and separate Back and Close actions.", "Includes the NestedPortalHost/NestedPanel primitive, plain CSS and Tailwind v4 structure, direct interactive previews, editable StackBlitz links, mobile rules, and label ownership.", `<Sheet.NestedPortalHost asChild>\n  <Sheet.Content className="library-modal">\n    <Sheet.Root open={detailOpen} onOpenChange={setDetailOpen}>\n      <Sheet.NestedPanel side="right">…</Sheet.NestedPanel>\n    </Sheet.Root>\n  </Sheet.Content>\n</Sheet.NestedPortalHost>`],
   ["gallery-recipes", "Sheet primitives", "Gallery recipes", "The gallery demonstrates production-shaped layouts such as bottom sheets, drawers, modals, detents, lightboxes, and persistent surfaces.", "Treat them as composition references: copy the layout and swap in your own content, not the demo-specific visuals.", `import { BottomSheet } from "@velvetui/react/bottom-sheet";\nimport "@velvetui/react/bottom-sheet.css";`],
   ["open-state", "Sheet primitives", "Open state", "Sheets support uncontrolled defaults and controlled state for coordination with your router, form flow, or application state.", "Use controlled state when another part of the interface needs to decide when the surface opens or closes.", `const [open, setOpen] = useState(false);\n\n<Sheet open={open} onOpenChange={setOpen}>\n  <Sheet.Trigger>Open</Sheet.Trigger>\n  <Sheet.Panel side="bottom" />\n</Sheet>`],
   ["placement", "Sheet primitives", "Placement", "The panel side determines both the origin and the dismiss direction: bottom, top, left, right, or center.", "Center is the right base for modal and media surfaces; edge placements retain directional gesture semantics.", `<Sheet.Panel side="bottom" />\n<Sheet.Panel side="top" />\n<Sheet.Panel side="left" />\n<Sheet.Panel side="right" />\n<Sheet.Panel side="center" />`],
@@ -55,6 +56,7 @@ const docs = [
   ["utilities", "Reference", "Utilities", "Utilities cover scroll coordination, visually hidden labels, autofocus targets, fixed surfaces, islands, and external overlays.", "The focused utilities entry avoids Sheet, Toast, motion hooks, and styled compositions.", `import { VisuallyHidden, AutoFocusTarget } from "@velvetui/react/utilities";`],
   ["troubleshooting", "Resources", "Troubleshooting", "Diagnose missing styles, swallowed refs, controlled-state loops, gesture handoff, mobile keyboards, nested sheets, and third-party portals.", "Start with ownership, refs, overflow, and CSS before changing motion values.", `import "@velvetui/react/base.css";`],
   ["production-checklist", "Resources", "Production checklist", "A manual release checklist for state, gestures, scroll, mobile keyboards, accessibility, arbitrary-depth stacks, portals, and bundle cost.", "Use it before shipping because screenshots and unit tests do not exercise native momentum or focus restoration.", `// Test slow drags, fast flicks, keyboard focus,\n// mobile viewports, and ten nested layers.`],
+  ["versions", "Resources", "Documentation versions", "Use an explicit documentation version when implementing or maintaining an application on a known Velvet UI release.", "Versioned guide and Markdown URLs are immutable; the unversioned documentation aliases always redirect to the current release.", `/docs/${CURRENT_DOCS_VERSION}\n/docs/${CURRENT_DOCS_VERSION}/installation\n/docs/${CURRENT_DOCS_VERSION}/installation.md`],
   ["changelog", "Resources", "Changelog", "Release notes for changes that affect installation, APIs, styling, behavior, performance, or upgrades.", "Follow meaningful product changes without reading a raw commit log.", `npm install @velvetui/react@latest\n# or bun add @velvetui/react@latest`],
 ];
 
@@ -77,16 +79,8 @@ export const DOC_GROUPS = Object.entries(
   }, {}),
 );
 
-export const SITE_ORIGIN = "https://velvetui.co";
-
-export const getDocPath = (slug) =>
-  slug === "overview" ? "/docs" : `/docs/${slug}`;
-
-export const docToMarkdown = (doc) => `# ${doc.title}
-
-> ${doc.description}
-
-Web: ${SITE_ORIGIN}${getDocPath(doc.slug)}
-
-${doc.guide}
-`;
+export {
+  SITE_ORIGIN,
+  docToMarkdown,
+  getDocPath,
+} from "./versioning.js";

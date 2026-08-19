@@ -2,7 +2,9 @@
 
 > Presets make interaction tuning consistent across a product while retaining an escape hatch for custom physical values.
 
-Web: https://velvetui.co/docs/springs
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/springs
 
 Named spring presets make motion consistent. Custom values are an escape hatch for a deliberate material change, not a requirement for each component.
 

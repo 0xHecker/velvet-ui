@@ -2,7 +2,9 @@
 
 > The Toaster supports the six viewport corners and centers with a fixed viewport layer that does not inherit local layout offsets.
 
-Web: https://velvetui.co/docs/toast-positioning
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/toast-positioning
 
 Position belongs to the `Toaster`, not individual messages. Choose one predictable location for an application region.
 

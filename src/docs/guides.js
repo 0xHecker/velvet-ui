@@ -1,4 +1,5 @@
 import { API_GUIDES } from "./api-guides.js";
+import { CURRENT_DOCS_VERSION } from "./versioning.js";
 
 const code = (language, source) => `\`\`\`${language}\n${source.trim()}\n\`\`\``;
 const section = (title, ...content) => [`## ${title}`, ...content].join("\n\n");
@@ -38,7 +39,7 @@ export function SettingsSheet() {
   );
 }`;
 
-const nestedModalNavigation = `import { useRef, useState } from "react";
+const nestedModalNavigation = `import { useState } from "react";
 import { Sheet } from "@velvetui/react/sheet";
 import { Scroll } from "@velvetui/react/utilities";
 import "@velvetui/react/sheet.css";
@@ -46,7 +47,6 @@ import "@velvetui/react/sheet.css";
 export function StudioLibrary() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [articleOpen, setArticleOpen] = useState(false);
-  const nestedHostRef = useRef(null);
 
   const closeAll = () => {
     setArticleOpen(false);
@@ -65,7 +65,8 @@ export function StudioLibrary() {
           onClickOutside={{ dismiss: false }}
         >
           <Sheet.Backdrop />
-          <Sheet.Content className="library-modal">
+          <Sheet.NestedPortalHost asChild>
+            <Sheet.Content className="library-modal">
             {/* Parent labels must stay outside the nested Root. */}
             <header className="library-header">
               <div>
@@ -86,18 +87,13 @@ export function StudioLibrary() {
                 </Scroll.View>
               </Scroll.Root>
 
-              <div ref={nestedHostRef} className="nested-portal-host" />
-
-              <Sheet.Portal container={nestedHostRef}>
-                <Sheet.View
-                  className="nested-detail-view"
-                  side="right"
-                  nativeEdgeSwipePrevention
-                  swipeOvershoot={false}
-                  onClickOutside={{ dismiss: false }}
-                >
-                  <Sheet.Backdrop />
-                  <Sheet.Content className="nested-detail-panel">
+              <Sheet.NestedPanel
+                side="right"
+                nativeEdgeSwipePrevention
+                swipeOvershoot={false}
+                onClickOutside={{ dismiss: false }}
+                className="nested-detail-panel"
+              >
                     <header className="detail-header">
                       <Sheet.Close type="button" aria-label="Back to library">←</Sheet.Close>
                       <Sheet.Title>Launch notes</Sheet.Title>
@@ -112,11 +108,10 @@ export function StudioLibrary() {
                         <Scroll.Content><Article /></Scroll.Content>
                       </Scroll.View>
                     </Scroll.Root>
-                  </Sheet.Content>
-                </Sheet.View>
-              </Sheet.Portal>
+              </Sheet.NestedPanel>
             </Sheet.Root>
-          </Sheet.Content>
+            </Sheet.Content>
+          </Sheet.NestedPortalHost>
         </Sheet.View>
       </Sheet.Portal>
     </Sheet.Root>
@@ -158,17 +153,6 @@ const nestedModalCss = `.library-modal {
   -webkit-overflow-scrolling: touch;
 }
 
-.nested-portal-host {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.nested-detail-view { position: absolute !important; }
-
 .nested-detail-panel {
   display: flex;
   width: 100%;
@@ -188,8 +172,9 @@ const nestedModalCss = `.library-modal {
   }
 }`;
 
-const nestedModalTailwind = `// The component tree is identical; replace the structural classes only.
-<Sheet.Content className="relative isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
+const nestedModalTailwind = `// NestedPortalHost owns relative clipping; utilities own the authored surface.
+<Sheet.NestedPortalHost asChild>
+<Sheet.Content className="isolate flex h-[min(48rem,calc(var(--velvet-100lvh)_-_2rem))] min-h-0 w-[min(64rem,calc(100vw_-_2rem))] flex-col rounded-[28px] bg-white max-[700px]:h-[var(--velvet-100lvh)] max-[700px]:w-screen max-[700px]:rounded-none">
   <header className="shrink-0">...</header>
 
   <Sheet.Root open={articleOpen} onOpenChange={setArticleOpen}>
@@ -199,10 +184,7 @@ const nestedModalTailwind = `// The component tree is identical; replace the str
       </Scroll.View>
     </Scroll.Root>
 
-    <div ref={nestedHostRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]" />
-    <Sheet.Portal container={nestedHostRef}>
-      <Sheet.View className="!absolute" side="right" nativeEdgeSwipePrevention>
-        <Sheet.Content className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
+    <Sheet.NestedPanel side="right" nativeEdgeSwipePrevention className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[inherit] bg-white">
           <header className="shrink-0">...</header>
           <Scroll.Root className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Scroll.View
@@ -212,11 +194,10 @@ const nestedModalTailwind = `// The component tree is identical; replace the str
               <Scroll.Content><Article /></Scroll.Content>
             </Scroll.View>
           </Scroll.Root>
-        </Sheet.Content>
-      </Sheet.View>
-    </Sheet.Portal>
+    </Sheet.NestedPanel>
   </Sheet.Root>
-</Sheet.Content>`;
+</Sheet.Content>
+</Sheet.NestedPortalHost>`;
 
 const compositionImports = `import { BottomSheet } from "@velvetui/react/bottom-sheet";
 import { CardExpansion } from "@velvetui/react/card-expansion";
@@ -387,22 +368,22 @@ const EDITORIAL_GUIDES = {
     section(
       "Complete React structure",
       code("tsx", nestedModalNavigation),
-      "`Sheet.Portal` accepts either a resolved element or a React ref. Passing the ref directly avoids callback-ref state and the extra guarded render that older recipes needed.",
+      "`Sheet.NestedPortalHost` supplies the child portal boundary and deliberate relative clipping. `Sheet.NestedPanel` discovers that host, portals into it, and applies host-relative View positioning without ref state or hand-authored portal plumbing.",
     ),
     section(
       "Required layout CSS",
       code("css", nestedModalCss),
-      "The portal host establishes the clipping boundary. The nested View must be absolute because a normal Sheet.View is viewport-fixed. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.",
+      "The host establishes the clipping boundary and NestedPanel supplies absolute positioning internally. Keep the sticky header outside Scroll.View so only the article becomes the native overflow surface.",
     ),
     section(
       "Tailwind CSS v4",
       code("css", `@import "tailwindcss";`),
       code("tsx", nestedModalTailwind),
-      "Keep `import \"@velvetui/react/sheet.css\"` in the JavaScript entry. Tailwind owns the authored surface; Velvet's stylesheet owns gesture tracks, portal mechanics, modality, and Scroll coordination.",
+      "Keep `import \"@velvetui/react/sheet.css\"` in the JavaScript entry. Tailwind owns the authored surface; Velvet owns gesture tracks, portal mechanics, modality, Scroll coordination, and the nested View's structural inline position. That last detail avoids Tailwind v4's layered `absolute` utility losing to an unlayered fixed rule.",
     ),
     section(
       "Live package examples",
-      "- [Open the plain CSS StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview)\n- [Open the Tailwind CSS v4 StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview)",
+      "- [Run the embedded plain CSS recipe](/recipes/nested-modal-navigation) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-dptpaa1d?file=App.jsx&view=preview).\n- [Run the embedded Tailwind CSS v4 recipe](/recipes/nested-modal-navigation-tailwind-v4) or [open its StackBlitz](https://stackblitz.com/edit/vitejs-vite-rrfjnly7?file=App.jsx,vite.config.js&view=preview).",
       "Both projects install `@velvetui/react` from npm. They do not alias the package to repository source or copy Velvet's internals into the example.",
     ),
     section(
@@ -521,17 +502,19 @@ const EDITORIAL_GUIDES = {
     section(
       "Controlled",
       code("tsx", `const [open, setOpen] = useState(searchParams.has("settings"));
+const initialFocusRef = useRef(null);
+const restoreFocusRef = useRef(null);
 
 <Sheet.Root
   open={open}
-  onOpenChange={(nextOpen) => {
-    setOpen(nextOpen);
-    updateUrl(nextOpen);
-  }}
+  initialFocusRef={initialFocusRef}
+  restoreFocusRef={restoreFocusRef}
+  onOpenChange={setOpen}
+  onExitComplete={() => updateUrl(false)}
 >
   ...
 </Sheet.Root>`),
-      "Do not ignore `onOpenChange` while passing `open`; the sheet will request a state change but your UI will remain frozen.",
+      "Do not ignore `onOpenChange` while passing `open`; the sheet will request a state change but your UI will remain frozen. Route-open surfaces should remove their URL state after `onExitComplete`, and cold-open paths should point `restoreFocusRef` at a stable page landmark. [Run the route-controlled recipe](/recipes/route-controlled-sheet).",
     ),
   ),
 
@@ -579,7 +562,7 @@ const EDITORIAL_GUIDES = {
   ),
 
   dismissal: guide(
-    "Dismissal is policy, not styling. Decide separately whether dragging, an outside press, and Escape may close the current state.",
+    "Dismissal is policy, not styling. Decide separately whether dragging, an outside press, and Escape may request closure, then distinguish that request from controlled state commit and exit completion.",
     section(
       "Guard unsaved work",
       code("tsx", `<Sheet.View
@@ -590,6 +573,24 @@ const EDITORIAL_GUIDES = {
   }}
 />`),
       "For a destructive confirmation, use `sheetRole=\"alertdialog\"`. It starts with safer outside and Escape behavior and still supports an explicit close action.",
+    ),
+    section(
+      "Await unsaved work",
+      code("tsx", `<Sheet.Root
+  open={open}
+  onDismissRequest={async ({ reason }) => {
+    if (!dirty) return true;
+    return saveDraft({ reason });
+  }}
+  onOpenChange={(next, detail) => {
+    setOpen(next);
+    log(detail.reason);
+  }}
+  onExitComplete={clearDraftSession}
+>
+  ...
+</Sheet.Root>`),
+      "Return or resolve `false` to reject the request. Repeated attempts share one pending request, and a rejected swipe returns to its prior detent. [Run the async editor recipe](/recipes/async-editor-close).",
     ),
     section(
       "Gesture directions",
@@ -697,7 +698,7 @@ const EDITORIAL_GUIDES = {
     ),
     section(
       "Focus checklist",
-      "- The opener receives focus again after close.\n- Tab and Shift+Tab remain inside the frontmost modal.\n- Escape closes only the frontmost dismissible layer.\n- A non-modal persistent sheet does not make the page inert.\n- Portalled third-party overlays join the sheet through `ExternalOverlay.Root`.",
+      "- The opener receives focus again after close.\n- Tab and Shift+Tab remain inside the frontmost modal.\n- Escape closes only the frontmost dismissible layer.\n- A non-modal persistent sheet does not make the page inert.\n- Portalled third-party overlays join the sheet through `ExternalOverlay.DismissLayer` or an official adapter; use `ExternalOverlay.Root` only for passive scope enrollment.",
     ),
     section(
       "Reduced motion",
@@ -709,7 +710,7 @@ const EDITORIAL_GUIDES = {
     "This is the contract for the headless primitives. Start with `Sheet.Panel`; consult this page when a composition needs lower-level control.",
     section(
       "Root state",
-      "- `open?: boolean` — controlled visibility.\n- `defaultOpen?: boolean` — initial uncontrolled visibility.\n- `onOpenChange?: (open) => void` — receives every requested visibility change.\n- `snap?: number` and `onSnapChange?: (index) => void` — controlled detent.\n- `defaultSnap?: number` — initial uncontrolled detent.\n- `sheetRole?: 'dialog' | 'alertdialog'` — accessible modal role.",
+      "- `open?: boolean` — controlled visibility.\n- `defaultOpen?: boolean` — initial uncontrolled visibility.\n- `onOpenChange?: (open, detail) => void` — commits visibility with a `trigger`, `close-trigger`, `escape`, `outside-press`, `swipe`, or `programmatic` reason.\n- `onDismissRequest?: (detail) => boolean | Promise<boolean>` — accepts or rejects dismissal before state and exit motion change.\n- `onEnterComplete` and `onExitComplete` — run once after their motion settles.\n- `initialFocusRef` and `restoreFocusRef` — explicit focus destinations for triggerless and route-controlled surfaces.\n- `snap?: number` and `onSnapChange?: (index) => void` — controlled detent.\n- `defaultSnap?: number` — initial uncontrolled detent.\n- `sheetRole?: 'dialog' | 'alertdialog'` — accessible modal role.",
     ),
     section(
       "View behavior",
@@ -1011,12 +1012,19 @@ toast.custom(
     "Utilities cover the integration details that do not belong in the main sheet tree. Import them only where needed.",
     section(
       "Accessibility utilities",
-      "- `VisuallyHidden` — keeps text available to assistive technology.\n- `AutoFocusTarget` — chooses the initial focus target.\n- `ExternalOverlay.Root` — joins a third-party portal to the active focus scope.",
+      "- `VisuallyHidden` — keeps text available to assistive technology.\n- `AutoFocusTarget` — chooses an inline initial focus target.\n- `ExternalOverlay.Root` — joins a third-party portal to the active focus scope.\n- `ExternalOverlay.DismissLayer` — additionally owns frontmost Escape/outside dismissal and focus return.\n- `expectVelvetLayer` from `@velvetui/react/testing` — asserts modal DOM invariants.\n- `window.__velvet.inspect()` — exposes scope, stack, travel, dismissal, and focus plans in development.",
       code("tsx", `import {
   AutoFocusTarget,
   ExternalOverlay,
   VisuallyHidden,
 } from "@velvetui/react/utilities";`),
+    ),
+    section(
+      "Third-party adapters",
+      code("tsx", `import { VelvetRadixPopover } from "@velvetui/react/radix";
+import { VelvetAriaSelect } from "@velvetui/react/react-aria";
+import { VelvetBaseUIPopover } from "@velvetui/react/base-ui";`),
+      "Each adapter is a zero-style, zero-peer-dependency boundary. Render it inside the third-party Portal and slot the actual DOM-bearing popup or positioner—not a Portal or controller component. [Compare all live adapter recipes](/recipes).",
     ),
     section(
       "Motion and composition utilities",
@@ -1028,8 +1036,41 @@ toast.custom(
     ),
   ),
 
+  versions: guide(
+    "Documentation is captured per release so a guide keeps describing the package version named in its URL. Choose a version from the documentation sidebar before copying an API or implementation pattern.",
+    section(
+      "Stable release URLs",
+      "Every guide, Markdown download, example source file, and machine-readable documentation index lives beneath a semantic version. Share these URLs in issues, migration plans, and long-lived application documentation.",
+      code("text", `/docs/${CURRENT_DOCS_VERSION}
+/docs/${CURRENT_DOCS_VERSION}/installation
+/docs/${CURRENT_DOCS_VERSION}/installation.md
+/docs/${CURRENT_DOCS_VERSION}/llms-full.txt`),
+    ),
+    section(
+      "Current-version aliases",
+      "`/docs` and legacy paths such as `/docs/installation` redirect to the current documentation version. They are convenient for discovery, but use the explicit versioned URL when another person must see the same contract later.",
+    ),
+    section(
+      "Switch versions without losing your place",
+      "The version selector preserves the current guide whenever that guide exists in the target version. If a page was introduced later or removed, the selector falls back to that version's overview instead of showing a broken page.",
+    ),
+    section(
+      "Match package and documentation versions",
+      "Use documentation that matches the installed package version. Check your lockfile or installed package metadata when the application is not using the latest release.",
+      code("sh", `npm list @velvetui/react
+# or
+pnpm why @velvetui/react`),
+    ),
+  ),
+
   changelog: guide(
-    "A human-readable record of the changes that affect how Velvet is installed, composed, styled, or experienced. Internal refactors appear only when they change reliability, bundle size, or extension points.",
+    section(
+      "Unreleased · 2026-08-15",
+      "### Added",
+      "- Added reasoned `onOpenChange`, async `onDismissRequest`, direct enter/exit completion callbacks, and triggerless focus refs.\n- Added `Sheet.NestedPortalHost` and `Sheet.NestedPanel` with automatic host-relative positioning.\n- Added `ExternalOverlay.DismissLayer` and focused Radix, React Aria, and Base UI adapter entries.\n- Added stable `asChild` diagnostics, Sheet/Lightbox family mismatch errors, development layer inspection, and `@velvetui/react/testing`.\n- Added `INVARIANTS.md`, direct local recipe previews, optional StackBlitz playground links, and immutable versioned documentation beginning with 0.3.0.",
+      "### Fixed",
+      "- Prevented an initially open draggable Sheet from emitting a false close during native runway or visual-viewport setup, including reduced motion.\n- Removed global z-index token assignments in favor of local CSS variable fallbacks.\n- Prevented nested in-scope external overlays from narrowing parent inertness and blocking sibling focus targets.",
+    ),
     section(
       "0.2.2 · 2026-08-05",
       "### Packaging",

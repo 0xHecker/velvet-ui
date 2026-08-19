@@ -2,7 +2,9 @@
 
 > DepthSheet gives a full-width surface the visual hierarchy of iOS stacked sheets by scaling and rounding the page behind it.
 
-Web: https://velvetui.co/docs/depth-sheet
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/depth-sheet
 
 Depth Sheet creates an iOS-like hierarchy: the current page recedes, rounds, and dims while the new full-width surface rises. It uses the actual page as the backing layer.
 

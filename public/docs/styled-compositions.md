@@ -2,7 +2,9 @@
 
 > Styled compositions package the visual grammar for common interactions while preserving the underlying primitive API.
 
-Web: https://velvetui.co/docs/styled-compositions
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/styled-compositions
 
 Start with a composition when its behavior matches the task. Drop to Sheet primitives only when the DOM, placement, tracks, or visual layers need a different contract.
 
@@ -21,7 +23,7 @@ Start with a composition when its behavior matches the task. Drop to Sheet primi
 
 Every Content forwards refs and DOM props and supports `asChild`. Supply your own `view`, `backdrop`, `handle`, and `bleedingBackground` elements where that part exists; Velvet composes primitive behavior onto those nodes.
 
-`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/custom-components).
+`viewProps`, `portalProps`, and part-specific prop bags reach the underlying primitive. The supplied CSS establishes responsive geometry and safe-area behavior, while color and product layout remain overrideable through variables, classes, or replacement components. See [Bring your own components](/docs/0.3.0/custom-components).
 
 ## Imports
 

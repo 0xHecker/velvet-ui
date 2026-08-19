@@ -2,7 +2,9 @@
 
 > A Sheet groups a trigger, portal, motion surface, accessible title, description, and close action under one controlled or uncontrolled state.
 
-Web: https://velvetui.co/docs/sheet-quick-start
+Documentation version: 0.3.0
+
+Web: https://velvetui.co/docs/0.3.0/sheet-quick-start
 
 Start with `Sheet.Panel`. It supplies the portal, backdrop, gesture view, content surface, and handle while leaving your content and classes untouched.
 

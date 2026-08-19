@@ -12,12 +12,16 @@ const LIGHTBOX_CONTENT = {
   transform: ({ tween }) => `scale(${tween(0.82, 1)})`,
 };
 
+const Root = (props) => <Sheet.Root {...props} componentFamily="lightbox" />;
+
 const Trigger = forwardRef(function LightboxTrigger(props, forwardedRef) {
   return (
     <Sheet.Trigger
       ref={forwardedRef}
       data-velvet-lightbox="trigger"
       {...props}
+      __velvetFamily="lightbox"
+      __velvetPart="Trigger"
     />
   );
 });
@@ -111,11 +115,44 @@ const Content = forwardRef(function LightboxContent(
   );
 });
 
+const Close = forwardRef(function LightboxClose(props, forwardedRef) {
+  return (
+    <Sheet.Close
+      {...props}
+      ref={forwardedRef}
+      __velvetFamily="lightbox"
+      __velvetPart="Close"
+    />
+  );
+});
+
+const Title = forwardRef(function LightboxTitle(props, forwardedRef) {
+  return (
+    <Sheet.Title
+      {...props}
+      ref={forwardedRef}
+      __velvetFamily="lightbox"
+      __velvetPart="Title"
+    />
+  );
+});
+
+const Description = forwardRef(function LightboxDescription(props, forwardedRef) {
+  return (
+    <Sheet.Description
+      {...props}
+      ref={forwardedRef}
+      __velvetFamily="lightbox"
+      __velvetPart="Description"
+    />
+  );
+});
+
 export const Lightbox = {
-  Root: Sheet.Root,
+  Root,
   Trigger,
   Content,
-  Close: Sheet.Close,
-  Title: Sheet.Title,
-  Description: Sheet.Description,
+  Close,
+  Title,
+  Description,
 };
